@@ -1,0 +1,147 @@
+{
+    "designSystem": {
+      "name": "Soft Minimalist Wellness App",
+      "theme": {
+        "mode": "light",
+        "background": "#F7F3F1",
+        "surface": "#FFFDFB",
+        "primary": "#F99546",
+        "primaryDark": "#DB6B1D",
+        "accent": "#86C67A",
+        "accentAlt": "#D1B0F8",
+        "neutral": "#FFE6D0",
+        "neutralDark": "#40302B",
+        "divider": "#EFE6E0",
+        "iconInactive": "#E0D7CF"
+      },
+      "typography": {
+        "fontFamily": "Inter, 'SF Pro', 'Roboto', sans-serif",
+        "fontWeights": {
+          "regular": 400,
+          "medium": 500,
+          "bold": 700
+        },
+        "displayLarge": {
+          "fontSize": 32,
+          "fontWeight": "bold",
+          "letterSpacing": -0.5
+        },
+        "headline": {
+          "fontSize": 24,
+          "fontWeight": "bold",
+          "letterSpacing": -0.5
+        },
+        "title": {
+          "fontSize": 18,
+          "fontWeight": "medium",
+          "letterSpacing": -0.3
+        },
+        "body": {
+          "fontSize": 16,
+          "fontWeight": "regular",
+          "letterSpacing": 0
+        },
+        "caption": {
+          "fontSize": 13,
+          "fontWeight": "regular",
+          "letterSpacing": 0
+        }
+      },
+      "radius": {
+        "button": 16,
+        "card": 24,
+        "input": 12,
+        "avatar": 28
+      },
+      "elevation": {
+        "card": "0 2px 12px rgba(209,176,248,0.06)",
+        "button": "0 1px 6px rgba(249,149,70,0.08)"
+      },
+      "spacing": {
+        "xxs": 4,
+        "xs": 8,
+        "sm": 12,
+        "md": 20,
+        "lg": 32,
+        "xl": 48
+      },
+      "components": {
+        "AppBar": {
+          "background": "transparent",
+          "titleAlign": "left",
+          "titleWeight": "bold",
+          "hasProfileAvatar": true,
+          "avatarShape": "circle",
+          "avatarSize": 36
+        },
+        "TabBar": {
+          "background": "transparent",
+          "activeColor": "#F99546",
+          "inactiveColor": "#E0D7CF",
+          "indicatorStyle": "rounded"
+        },
+        "Button": {
+          "shape": "rounded",
+          "background": "#F99546",
+          "textColor": "#FFFFFF",
+          "height": 48,
+          "fontWeight": "bold"
+        },
+        "Card": {
+          "background": "#FFFDFB",
+          "radius": 24,
+          "elevation": "card",
+          "padding": "md"
+        },
+        "Input": {
+          "background": "#FFFDFB",
+          "borderRadius": 12,
+          "border": "#EFE6E0",
+          "fontSize": 16,
+          "padding": "sm"
+        },
+        "HabitList": {
+          "itemBackground": "#FFFDFB",
+          "itemRadius": 18,
+          "itemElevation": "card",
+          "iconColor": "#F99546",
+          "progressColor": "#86C67A",
+          "inactiveProgressColor": "#E0D7CF",
+          "checkboxStyle": "soft, rounded"
+        },
+        "Chart": {
+          "barBackground": "#F7F3F1",
+          "barRadius": 12,
+          "barColors": [
+            "#A87C6A", "#E6A656", "#86C67A", "#D1B0F8", "#E078A3"
+          ],
+          "percentageFontWeight": "bold"
+        },
+        "Modal": {
+          "background": "#FFFDFB",
+          "radius": 24,
+          "shadow": "card"
+        },
+        "Reminder": {
+          "icon": "bell, line",
+          "iconColor": "#F99546",
+          "background": "#FFE6D0"
+        }
+      },
+      "iconography": {
+        "style": "rounded, playful, outlined",
+        "size": 24,
+        "color": "#F99546"
+      },
+      "animations": {
+        "buttonPress": "scale(0.96)",
+        "cardAppear": "fade-in-up",
+        "transition": "0.25s cubic-bezier(0.4,0,0.2,1)"
+      },
+      "accessibility": {
+        "minTapSize": 44,
+        "highContrastMode": false
+      }
+    }
+  }
+  

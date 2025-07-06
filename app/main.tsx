@@ -1,0 +1,159 @@
+import { StatusBar } from 'expo-status-bar';
+import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { auth } from '../src/services/firebase';
+
+import AppNavigator from '../src/navigation/AppNavigator';
+import LoginScreen from '../src/screens/LoginScreen';
+import OnboardingScreen from '../src/screens/OnboardingScreen';
+import SignUpScreen from '../src/screens/SignUpScreen';
+import SplashScreen from '../src/screens/SplashScreen';
+import { demoGetCurrentUser, demoLogout, demoRestoreUser } from '../src/services/demoAuth';
+import { COLORS } from '../src/utils/constants';
+
+type AppState = 'splash' | 'login' | 'signup' | 'onboarding' | 'dashboard';
+
+export default function Main() {
+  const [appState, _setAppState] = useState<AppState>(() => {
+    const initialState: AppState = 'login';
+    console.log('Main.tsx: Initial appState set to', initialState);
+    return initialState;
+  });
+
+  const setAppState = (newState: AppState) => {
+    console.log(`Main.tsx: Changing appState from ${appState} to ${newState}`);
+    _setAppState(newState);
+  };
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  useEffect(() => {
+    // Try to restore demo user from AsyncStorage first
+    (async () => {
+      const restoredDemoUser = await demoRestoreUser();
+      if (restoredDemoUser) {
+        setUser(restoredDemoUser as unknown as FirebaseUser);
+        setAppState('dashboard');
+        return;
+      }
+
+      const demoUser = demoGetCurrentUser();
+      if (demoUser) {
+        setUser(demoUser as unknown as FirebaseUser); // Cast as FirebaseUser for type compatibility
+        setAppState('dashboard');
+        return;
+      }
+
+      // Only set up Firebase listener if no demo user is found
+      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        setUser(firebaseUser);
+        if (firebaseUser) {
+          // Check if user needs onboarding
+          checkOnboardingStatus(firebaseUser);
+        } else {
+          setAppState('login');
+        }
+      });
+
+      // Clean up Firebase listener on unmount
+      return unsubscribe;
+    })();
+  }, []);
+
+  const checkOnboardingStatus = async (firebaseUser: FirebaseUser) => {
+    try {
+      // In a real app, you'd check Firestore for user data
+      // For now, we'll assume new users need onboarding
+      const userCreationTime = new Date(firebaseUser.metadata.creationTime || '');
+      const now = new Date();
+      const timeDiff = now.getTime() - userCreationTime.getTime();
+      const hoursDiff = timeDiff / (1000 * 3600);
+      
+      // If account was created less than 1 hour ago, show onboarding
+      if (hoursDiff < 1) {
+        setNeedsOnboarding(true);
+        setAppState('onboarding');
+      } else {
+        setAppState('dashboard');
+      }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      setAppState('dashboard');
+    }
+  };
+
+  const handleSplashFinish = () => {
+    const demoUser = demoGetCurrentUser();
+    if (user || demoUser) {
+      setAppState(needsOnboarding ? 'onboarding' : 'dashboard');
+    } else {
+      setAppState('login');
+    }
+  };
+
+  const handleLogin = () => {
+    console.log('handleLogin called - forcing navigation to dashboard');
+    setAppState('dashboard');
+  };
+
+  const handleSignUp = () => {
+    // Auth state change will be handled by the listener
+  };
+
+  const handleOnboardingComplete = () => {
+    setNeedsOnboarding(false);
+    setAppState('dashboard');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await demoLogout();
+      await auth.signOut();
+      setAppState('login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const renderCurrentScreen = () => {
+    switch (appState) {
+      case 'splash':
+        return <SplashScreen onFinish={handleSplashFinish} />;
+      case 'login':
+        return (
+          <LoginScreen
+            onLogin={handleLogin}
+            onSignUp={() => setAppState('signup')}
+          />
+        );
+      case 'signup':
+        return (
+          <SignUpScreen
+            onSignUp={handleSignUp}
+            onLogin={() => setAppState('login')}
+          />
+        );
+      case 'onboarding':
+        return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+      case 'dashboard':
+        return <AppNavigator onLogout={handleLogout} />;
+      default:
+        return <SplashScreen onFinish={handleSplashFinish} />;
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      {renderCurrentScreen()}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+});
