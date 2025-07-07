@@ -5,7 +5,7 @@ import { COLORS, FONTS } from './constants';
 export const getTextStyle = (variant: keyof typeof FONTS.styles): TextStyle => {
   return {
     ...FONTS.styles[variant],
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.fontFamily,
   };
 };
 
@@ -106,6 +106,43 @@ export const TYPOGRAPHY = {
   bodyMediumError: {
     ...getTextStyle('bodyMedium'),
     color: COLORS.error,
+  },
+
+  displayLarge: {
+    fontSize: 32,
+    fontWeight: '700',
+    fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
+    letterSpacing: -0.5,
+  },
+  headline: {
+    fontSize: 24,
+    fontWeight: '700',
+    fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
+    letterSpacing: -0.5,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '500',
+    fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
+    letterSpacing: -0.3,
+  },
+  body: {
+    fontSize: 16,
+    fontWeight: '400',
+    fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
+    letterSpacing: 0,
+  },
+  caption: {
+    fontSize: 13,
+    fontWeight: '400',
+    fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
+    letterSpacing: 0,
+  },
+  button: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
+    letterSpacing: 0.1,
   },
 };
 

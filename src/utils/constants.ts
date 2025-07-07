@@ -1,7 +1,7 @@
 export const COLORS = {
   // Primary colors (calming blues and greens)
-  primary: '#4A90E2',
-  primaryDark: '#357ABD',
+  primary: '#F99546',
+  primaryDark: '#DB6B1D',
   primaryLight: '#6BA3E8',
   
   // Secondary colors
@@ -10,9 +10,10 @@ export const COLORS = {
   secondaryLight: '#45C579',
   
   // Accent colors
-  accent: '#F39C12',
+  accent: '#86C67A',
   accentDark: '#E67E22',
   accentLight: '#F7B733',
+  accentAlt: '#D1B0F8',
   
   // Status colors
   success: '#2ECC71',
@@ -25,21 +26,27 @@ export const COLORS = {
   lightGray: '#F8F9FA',
   gray: '#6C757D',
   darkGray: '#495057',
-  black: '#212529',
+  black: '#000000',
   
   // Background colors
-  background: '#F8F9FA',
-  surface: '#FFFFFF',
+  background: '#F7F3F1',
+  surface: '#FFFDFB',
   card: '#FFFFFF',
   
   // Text colors
-  textPrimary: '#212529',
+  textPrimary: '#40302B',
   textSecondary: '#6C757D',
   textLight: '#FFFFFF',
   
   // Shadow
   shadow: 'rgba(0, 0, 0, 0.1)',
   shadowDark: 'rgba(0, 0, 0, 0.15)',
+  
+  // New tokens
+  neutral: '#FFE6D0',
+  neutralDark: '#40302B',
+  divider: '#EFE6E0',
+  iconInactive: '#E0D7CF',
 };
 
 export const SIZES = {
@@ -57,61 +64,44 @@ export const SIZES = {
   bodySmall: 13,   // Captions, metadata
   
   // Special sizes
-  display: 48,     // Large display text (splash)
-  caption: 11,     // Small captions
-  button: 16,      // Button text
+  displayLarge: 32,
+  headline: 24,
+  title: 18,
+  body: 16,
+  caption: 13,
+  button: 16,
   
   // Spacing Scale (8pt grid system)
-  spacingXs: 4,
-  spacingSm: 8,
-  spacingMd: 16,
-  spacingLg: 24,
-  spacingXl: 32,
-  spacingXxl: 40,
-  spacingXxxl: 48,
-  
-  // Legacy spacing (for backward compatibility)
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 40,
-  xxxl: 48,
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 20,
+  lg: 32,
+  xl: 48,
   
   // Component sizes
   buttonHeight: 52,    // Increased for better touch targets
   inputHeight: 52,     // Increased for better touch targets
-  cardPadding: 20,     // Increased for better breathing room
+  cardPadding: 12,     // Further reduced for more compact cards
   screenPadding: 24,   // Increased for better margins
   
   // Border radius
-  borderRadius: 12,    // More modern rounded corners
-  borderRadiusLg: 16,
-  borderRadiusXl: 20,
+  buttonRadius: 16,
+  cardRadius: 24,
+  inputRadius: 12,
+  avatarRadius: 28,
   
   // Icon sizes
-  iconSm: 18,         // Slightly larger for better visibility
-  iconMd: 24,
-  iconLg: 32,
-  iconXl: 48,
+  icon: 24,
 };
 
 export const FONTS = {
   // Font families (using system fonts for better performance)
-  regular: 'System',
-  medium: 'System',
-  bold: 'System',
-  light: 'System',
-  
-  // Font weights (for iOS/Android compatibility)
-  weights: {
-    light: '300',
-    regular: '400',
-    medium: '500',
-    semibold: '600',
-    bold: '700',
-    heavy: '800',
+  fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
+  fontWeights: {
+    regular: 400,
+    medium: 500,
+    bold: 700,
   },
   
   // Line heights for better readability

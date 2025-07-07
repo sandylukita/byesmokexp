@@ -13,7 +13,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { demoGetCurrentUser, demoUpdateUser } from '../services/demoAuth';
+import { demoGetCurrentUser, demoRestoreUser, demoUpdateUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 
 import { BentoCard, BentoGrid } from '../components/BentoGrid';
@@ -46,30 +46,69 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
   useEffect(() => {
     loadUserData();
+    
+    // Timeout fallback to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log('Loading timeout reached, forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+    
+    return () => clearTimeout(timeout);
   }, []);
 
   const loadUserData = async () => {
+    console.log('Starting loadUserData...');
     try {
-      // Try demo user first
+      // Try to restore demo user from storage first
+      console.log('Attempting to restore demo user from storage...');
+      const restoredUser = await demoRestoreUser();
+      if (restoredUser) {
+        console.log('Demo user restored from storage:', restoredUser.email);
+        setUser(restoredUser);
+        setLoading(false);
+        return;
+      }
+      
+      // Check current demo user in memory
+      console.log('Checking for demo user in memory...');
       const demoUser = demoGetCurrentUser();
       if (demoUser) {
+        console.log('Demo user found in memory:', demoUser.email);
         setUser(demoUser);
         setLoading(false);
         return;
       }
 
       // Fallback to Firebase
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const userData = { id: currentUser.uid, ...userDoc.data() } as User;
-          setUser(userData);
+      console.log('No demo user, checking Firebase auth...');
+      try {
+        const currentUser = auth.currentUser;
+        console.log('Firebase currentUser:', currentUser?.email);
+        
+        if (currentUser) {
+          console.log('Getting user doc from Firestore...');
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = { id: currentUser.uid, ...userDoc.data() } as User;
+            console.log('User data loaded:', userData.email);
+            setUser(userData);
+          } else {
+            console.log('User doc does not exist');
+          }
+        } else {
+          console.log('No current user in Firebase auth');
         }
+      } catch (firebaseError) {
+        console.error('Firebase error (non-fatal):', firebaseError);
+        // Don't throw, just continue without Firebase user
       }
     } catch (error) {
       console.error('Error loading user data:', error);
+      Alert.alert('Error', 'Failed to load user data. Please try logging in again.');
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
@@ -135,11 +174,13 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
   const generateDailyMissions = (): Mission[] => {
     const missions = STATIC_MISSIONS.slice(0, user?.isPremium ? 3 : 1);
+    const hasCheckedInToday = !canCheckInToday(user?.lastCheckIn);
+    
     return missions.map(mission => ({
       ...mission,
       id: generateMissionId(),
-      isCompleted: false,
-      completedAt: null,
+      isCompleted: mission.id === 'daily-checkin' ? hasCheckedInToday : false,
+      completedAt: mission.id === 'daily-checkin' && hasCheckedInToday ? new Date() : null,
       isAIGenerated: false,
     }));
   };
@@ -176,7 +217,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     >
       <LinearGradient colors={[COLORS.primary, COLORS.primaryLight]} style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.greeting}>{getGreeting(user.displayName)}</Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.greeting}>{getGreeting(user.displayName)}</Text>
+            <Text style={styles.headerSubtext}>{levelInfo.nextLevelXP - user.xp} XP to next badge</Text>
+            <Text style={styles.headerMotivation}>Keep going, champion! 🚀</Text>
+          </View>
           <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
             <MaterialIcons name="logout" size={24} color={COLORS.white} />
           </TouchableOpacity>
@@ -187,11 +232,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       <View style={styles.levelCardFinal}>
         {/* Top row */}
         <View style={styles.levelTopRow}>
-          <View style={styles.levelTopLeftGroup}>
-            <MaterialIcons name="emoji-events" size={28} color={COLORS.accent} style={styles.levelIcon} />
-            <Text style={styles.levelBadgeText}>{levelInfo.title}</Text>
-          </View>
-          <Text style={styles.levelXP}>{user.xp} XP</Text>
+          <MaterialIcons name="emoji-events" size={24} color={COLORS.accent} style={styles.levelIcon} />
+          <Text style={styles.levelBadgeText} numberOfLines={1} ellipsizeMode="tail">{levelInfo.title}</Text>
+          <Text style={styles.levelXPTextLarge}>{user.xp} XP</Text>
         </View>
         {/* Middle: Progress bar and level names */}
         <View style={styles.levelProgressRow}>
@@ -200,90 +243,82 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               colors={[COLORS.primary, COLORS.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[styles.levelProgressFill, { width: `${levelInfo.progress * 100}%` }]}
+              style={[styles.levelProgressFill, { width: `${Math.round(levelInfo.progress * 100)}%` }]}
             />
           </View>
           <View style={styles.levelProgressLabelsRow}>
-            <Text style={styles.levelProgressLabelLeft}>{levelInfo.title}</Text>
+            <Text style={styles.levelProgressLabelLeft}>{`Level ${levelInfo.level}`}</Text>
             <Text style={styles.levelProgressLabelRight}>{`Level ${levelInfo.level + 1}`}</Text>
           </View>
         </View>
-        {/* Bottom: Motivation and XP to next badge */}
-        <View style={styles.levelBottomRow}>
-          <Text style={styles.levelSubtitleFinal}>Keep going, champion! 🚀</Text>
-          <Text style={styles.levelToNextBadge}>{levelInfo.nextLevelXP - user.xp} XP to next badge</Text>
-        </View>
-      </View>
-
-      {/* Statistics Row - Circles in one line */}
-      <View style={styles.statsRow}>
-        <View style={styles.statCircle}>
-          <View style={[styles.statCircleIcon, { backgroundColor: `${COLORS.error}15` }]}>
-            <MaterialIcons name="local-fire-department" size={24} color={COLORS.error} />
-          </View>
-          <Text style={styles.statCircleValue}>{formatNumber(user.streak)}</Text>
-          <Text style={styles.statCircleLabel}>Streak</Text>
-        </View>
-
-        <View style={styles.statCircle}>
-          <View style={[styles.statCircleIcon, { backgroundColor: `${COLORS.primary}15` }]}>
-            <MaterialIcons name="calendar-today" size={24} color={COLORS.primary} />
-          </View>
-          <Text style={styles.statCircleValue}>{formatNumber(daysSinceQuit)}</Text>
-          <Text style={styles.statCircleLabel}>Total Hari</Text>
-        </View>
-
-        <View style={styles.statCircle}>
-          <View style={[styles.statCircleIcon, { backgroundColor: `${COLORS.secondary}15` }]}>
-            <MaterialIcons name="savings" size={24} color={COLORS.secondary} />
-          </View>
-          <Text style={styles.statCircleValue}>{formatCurrency(moneySaved)}</Text>
-          <Text style={styles.statCircleLabel}>Uang Hemat</Text>
-        </View>
-      </View>
-
-      <BentoGrid columns={2}>
-
-        {/* Check-in Button - Large bento card */}
-        <BentoCard span={2} height="large" backgroundColor="transparent" style={styles.bentoCheckInCard}>
-          <TouchableOpacity
-            style={[styles.bentoCheckInButton, !canCheckIn && styles.checkInButtonDisabled]}
-            onPress={handleCheckIn}
-            disabled={!canCheckIn || checkingIn}
+        
+        {/* Check-in Button - Now part of level card */}
+        <TouchableOpacity
+          style={[styles.levelCheckInButton, !canCheckIn && styles.checkInButtonDisabled]}
+          onPress={handleCheckIn}
+          disabled={!canCheckIn || checkingIn}
+        >
+          <LinearGradient
+            colors={canCheckIn ? [COLORS.secondary, COLORS.secondaryDark] : [COLORS.gray, COLORS.darkGray]}
+            style={styles.levelCheckInGradient}
           >
-            <LinearGradient
-              colors={canCheckIn ? [COLORS.secondary, COLORS.secondaryDark] : [COLORS.gray, COLORS.darkGray]}
-              style={styles.bentoCheckInGradient}
-            >
-              {checkingIn ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <>
-                  <MaterialIcons name="check-circle" size={32} color={COLORS.white} />
-                  <Text style={styles.checkInText}>
-                    {canCheckIn ? 'Check-in Harian' : 'Sudah Check-in'}
-                  </Text>
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </BentoCard>
+            {checkingIn ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <>
+                <MaterialIcons name="check-circle" size={20} color={COLORS.white} />
+                <Text style={styles.levelCheckInText}>
+                  {canCheckIn ? 'Check-in Harian' : 'Sudah Check-in'}
+                </Text>
+              </>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
 
+      {/* Statistics Row - Two cards side by side */}
+      <View style={styles.statsRowContainer}>
+        {/* Streak and Total Days Card */}
+        <View style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <View style={[styles.statCircleIcon, { backgroundColor: 'rgba(231, 76, 60, 0.15)' }]}>
+              <MaterialIcons name="local-fire-department" size={20} color={COLORS.error} />
+            </View>
+            <Text style={styles.statValue}>{formatNumber(user.streak)}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <View style={[styles.statCircleIcon, { backgroundColor: 'rgba(249, 149, 70, 0.15)' }]}>
+              <MaterialIcons name="calendar-today" size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.statValue}>{formatNumber(daysSinceQuit)}</Text>
+            <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">Total Hari</Text>
+          </View>
+        </View>
 
+        {/* Money Saved Card */}
+        <View style={[styles.statsCard, styles.statsCardLast]}>
+          <View style={styles.statItem}>
+            <View style={[styles.statCircleIcon, { backgroundColor: 'rgba(39, 174, 96, 0.15)' }]}>
+              <MaterialIcons name="savings" size={24} color={COLORS.secondary} />
+            </View>
+            <Text style={styles.statValue}>{formatCurrency(moneySaved)}</Text>
+            <Text style={styles.statLabel}>Uang Hemat</Text>
+          </View>
+        </View>
+      </View>
 
+      <View style={styles.bentoGridContainer}>
+        {/* Section Title */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Misi Harian</Text>
+        </View>
 
-
+        <BentoGrid columns={2}>
         {/* Daily Missions Card */}
         <BentoCard span={2} height="auto" backgroundColor={COLORS.surface} style={styles.bentoMissionsCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Misi Harian</Text>
-            {!user.isPremium && (
-              <TouchableOpacity style={styles.upgradeButton}>
-                <Text style={styles.upgradeButtonText}>Upgrade</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          {dailyMissions.map((mission) => (
+          {dailyMissions.filter(mission => !mission.isCompleted).map((mission) => (
             <View key={mission.id} style={styles.missionItem}>
               <View style={styles.missionInfo}>
                 <Text style={styles.missionTitle}>{mission.title}</Text>
@@ -294,24 +329,41 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               </View>
             </View>
           ))}
-        </BentoCard>
-
-        {/* Motivation Card */}
-        <BentoCard span={2} height="auto" backgroundColor={COLORS.surface} style={styles.bentoMotivationCard}>
-          <Text style={styles.cardTitle}>Motivasi Harian</Text>
-          {user.isPremium ? (
-            <Text style={styles.motivationText}>{getRandomMotivation()}</Text>
-          ) : (
-            <View style={styles.lockedContent}>
-              <MaterialIcons name="lock" size={24} color={COLORS.gray} />
-              <Text style={styles.lockedText}>Konten motivasi AI tersedia untuk Premium</Text>
+          
+          {!user.isPremium && (
+            <View style={styles.upgradePrompt}>
+              <Text style={styles.upgradePromptText}>Buka lebih banyak misi dan raih XP berlimpah! Upgrade sekarang untuk mempercepat perjalanan sehatmu.</Text>
               <TouchableOpacity style={styles.upgradeButton}>
-                <Text style={styles.upgradeButtonText}>Upgrade</Text>
+                <Text style={styles.upgradeButtonText}>Upgrade Premium</Text>
               </TouchableOpacity>
             </View>
           )}
         </BentoCard>
       </BentoGrid>
+
+      {/* Motivation Section Title */}
+      <View style={[styles.sectionHeader, { marginTop: SIZES.xs || 4 }]}>
+        <Text style={styles.sectionTitle}>Personal Motivator</Text>
+      </View>
+
+      <BentoGrid columns={2}>
+        {/* Motivation Card */}
+        <BentoCard span={2} height="auto" backgroundColor={COLORS.surface} style={styles.bentoMotivationCard}>
+          {user.isPremium ? (
+            <Text style={styles.motivationText}>{getRandomMotivation()}</Text>
+          ) : (
+            <View style={styles.lockedContent}>
+              <MaterialIcons name="psychology" size={32} color={COLORS.accent} />
+              <Text style={styles.lockedText}>Dapatkan motivasi personal yang disesuaikan dengan perjalanan unikmu</Text>
+              <Text style={styles.lockedSubtext}>AI akan menganalisis progresmu dan memberikan dukungan yang tepat di saat yang tepat</Text>
+              <TouchableOpacity style={styles.upgradeButton}>
+                <Text style={styles.upgradeButtonText}>Aktifkan Personal Motivator</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </BentoCard>
+      </BentoGrid>
+      </View>
     </ScrollView>
   );
 };
@@ -344,7 +396,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: SIZES.xl,
     paddingVertical: SIZES.md,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: SIZES.buttonRadius || 16,
   },
   retryButtonText: {
     ...TYPOGRAPHY.button,
@@ -352,18 +404,33 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 50,
-    paddingBottom: SIZES.lg,
+    paddingBottom: SIZES.xs || 4,
     paddingHorizontal: SIZES.screenPadding,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   greeting: {
     ...TYPOGRAPHY.h1White,
     fontSize: 20,
     lineHeight: 26,
+    marginBottom: SIZES.xs || 4,
+  },
+  headerSubtext: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.white,
+    opacity: 0.9,
+    marginBottom: SIZES.xs || 2,
+  },
+  headerMotivation: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.white,
+    opacity: 0.8,
   },
   logoutButton: {
     padding: SIZES.sm,
@@ -374,7 +441,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: SIZES.borderRadiusLg,
+    borderRadius: SIZES.buttonRadius || 12,
     padding: SIZES.cardPadding,
     marginBottom: SIZES.md,
     shadowColor: COLORS.shadow,
@@ -419,9 +486,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIZES.xl,
   },
   checkInText: {
-    ...TYPOGRAPHY.button,
+    ...TYPOGRAPHY.bodyMedium,
     color: COLORS.white,
-    marginLeft: SIZES.md,
+    marginLeft: SIZES.sm,
+    fontWeight: '600',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -438,12 +506,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.xs,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: SIZES.buttonRadius || 12,
   },
   upgradeButtonText: {
     ...TYPOGRAPHY.bodySmall,
     color: COLORS.white,
     fontWeight: '600',
+  },
+  upgradePrompt: {
+    marginTop: SIZES.md,
+    padding: SIZES.md,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: SIZES.buttonRadius || 12,
+    alignItems: 'center',
+  },
+  upgradePromptText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SIZES.sm,
+    lineHeight: 18,
   },
   missionItem: {
     flexDirection: 'row',
@@ -469,7 +551,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: SIZES.sm,
     paddingVertical: SIZES.xs,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: SIZES.buttonRadius || 12,
   },
   missionXP: {
     ...TYPOGRAPHY.bodySmall,
@@ -483,22 +565,32 @@ const styles = StyleSheet.create({
   },
   lockedContent: {
     alignItems: 'center',
-    paddingVertical: SIZES.lg,
+    paddingVertical: SIZES.md,
   },
   lockedText: {
     ...TYPOGRAPHY.bodyMedium,
-    color: COLORS.gray,
+    color: COLORS.textPrimary,
     textAlign: 'center',
-    marginVertical: SIZES.spacingMd,
+    marginTop: SIZES.sm,
+    marginBottom: SIZES.xs,
+    fontWeight: '600',
+  },
+  lockedSubtext: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SIZES.md,
+    lineHeight: 18,
   },
 
   // Level Card - Final structure with next level
   levelCardFinal: {
     backgroundColor: COLORS.surface,
-    borderRadius: SIZES.borderRadiusLg,
+    borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
-    marginVertical: SIZES.md,
-    padding: SIZES.lg,
+    marginTop: SIZES.xs || 4,
+    marginBottom: SIZES.xs || 4,
+    padding: SIZES.sm,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -510,23 +602,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SIZES.md,
-    gap: 12,
   },
   levelIcon: {
-    marginRight: 8,
+    marginRight: SIZES.sm,
   },
   levelBadgeText: {
-    ...TYPOGRAPHY.h3,
+    ...TYPOGRAPHY.h4,
     fontWeight: '700',
     color: COLORS.textPrimary,
     flex: 1,
-    textAlign: 'center',
+    textAlign: 'left',
   },
-  levelXP: {
-    ...TYPOGRAPHY.bodyLarge,
+  levelXPTextLarge: {
+    ...TYPOGRAPHY.h3,
     color: COLORS.primary,
     fontWeight: '700',
-    minWidth: 90,
     textAlign: 'right',
   },
   levelProgressRow: {
@@ -568,7 +658,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: SIZES.md,
-    gap: 12,
   },
   levelSubtitleFinal: {
     ...TYPOGRAPHY.bodyMedium,
@@ -584,46 +673,66 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // Statistics Row - Circles in one line
-  statsRow: {
+  // Statistics Row - Two cards side by side
+  statsRowContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: SIZES.screenPadding,
-    paddingVertical: SIZES.lg,
-    backgroundColor: COLORS.surface,
     marginHorizontal: SIZES.screenPadding,
-    marginVertical: SIZES.md,
-    borderRadius: SIZES.borderRadiusLg,
+    marginTop: SIZES.xs || 4,
+    marginBottom: SIZES.xs || 4,
+  },
+  statsCard: {
+    width: '49%',
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.buttonRadius || 12,
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: 2,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-  },
-  statCircle: {
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: '2%',
+    minHeight: 75,
+  },
+  statsCardLast: {
+    marginRight: 0,
+  },
+  statItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
+    paddingVertical: SIZES.xs,
+    paddingHorizontal: SIZES.xs,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: COLORS.lightGray,
+    marginHorizontal: 2,
   },
   statCircleIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SIZES.spacingSm,
+    marginBottom: SIZES.xs || 4,
   },
-  statCircleValue: {
-    ...TYPOGRAPHY.h4,
+  statValue: {
+    ...TYPOGRAPHY.h5,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    marginVertical: SIZES.spacingXs,
+    marginVertical: SIZES.xs || 2,
     textAlign: 'center',
   },
-  statCircleLabel: {
-    ...TYPOGRAPHY.bodySmall,
+  statLabel: {
+    fontSize: 10,
     color: COLORS.textSecondary,
     textAlign: 'center',
+    fontWeight: '500',
   },
 
   // Bento-specific styles
@@ -657,17 +766,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   bentoCheckInButton: {
-    flex: 1,
-    borderRadius: SIZES.borderRadiusLg,
+    borderRadius: SIZES.buttonRadius || 12,
     overflow: 'hidden',
   },
   bentoCheckInGradient: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SIZES.spacingLg,
-    paddingHorizontal: SIZES.spacingXl,
+    paddingVertical: SIZES.md,
+    paddingHorizontal: SIZES.lg,
+    borderRadius: SIZES.buttonRadius || 12,
   },
   
   bentoLevelContainer: {
@@ -695,12 +803,52 @@ const styles = StyleSheet.create({
     minHeight: 160,
   },
   bentoMotivationCard: {
-    minHeight: 120,
+    minHeight: 'auto',
   },
   levelTopLeftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    flex: 1,
+    marginRight: 12,
+  },
+  bentoGridContainer: {
+    marginTop: SIZES.xs || 4,
+  },
+  
+  // Section Header Styles
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SIZES.sm,
+    paddingHorizontal: SIZES.screenPadding,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h1,
+    fontSize: 16,
+    lineHeight: 22,
+    color: COLORS.textPrimary,
+  },
+  
+  // Level card check-in button styles
+  levelCheckInButton: {
+    marginTop: SIZES.xs,
+    borderRadius: SIZES.buttonRadius || 12,
+    overflow: 'hidden',
+  },
+  levelCheckInGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.md,
+    borderRadius: SIZES.buttonRadius || 12,
+  },
+  levelCheckInText: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.white,
+    marginLeft: SIZES.sm,
+    fontWeight: '600',
   },
 });
 

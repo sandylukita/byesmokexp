@@ -22,10 +22,10 @@ interface BentoCardProps {
 export const BentoGrid: React.FC<BentoGridProps> = ({ 
   children, 
   columns = 2, 
-  gap = SIZES.spacingMd 
+  gap = SIZES.md 
 }) => {
   return (
-    <View style={[styles.grid, { gap }]}>
+    <View style={styles.grid}>
       {children}
     </View>
   );
@@ -39,7 +39,7 @@ export const BentoCard: React.FC<BentoCardProps> = ({
   backgroundColor = COLORS.white,
   style,
 }) => {
-  const gap = SIZES.spacingMd;
+  const gap = SIZES.md;
   const cardWidth = (screenWidth - SIZES.screenPadding * 2 - gap) / 2;
   const spanWidth = span === 2 ? screenWidth - SIZES.screenPadding * 2 : 
                     span === 3 ? screenWidth - SIZES.screenPadding * 2 : cardWidth;
@@ -85,7 +85,7 @@ export const StatsBento: React.FC<StatsBentoProps> = ({
   return (
     <BentoCard height="medium">
       <View style={styles.statsContent}>
-        <View style={[styles.statsIcon, { backgroundColor: `${color}15` }]}>
+        <View style={[styles.statsIcon, { backgroundColor: COLORS.lightGray }]}>
           {icon}
         </View>
         <View style={styles.statsText}>
@@ -158,10 +158,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: SIZES.screenPadding,
-    gap: SIZES.spacingMd,
   },
   card: {
-    borderRadius: SIZES.borderRadiusLg,
+    borderRadius: SIZES.buttonRadius || 12,
     padding: SIZES.cardPadding,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
@@ -169,6 +168,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
     backgroundColor: COLORS.white,
+    marginBottom: SIZES.xs || 4,
   },
   
   // Stats Bento Styles
@@ -183,13 +183,13 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SIZES.spacingSm,
+    marginBottom: SIZES.sm || 8,
   },
   statsText: {
     alignItems: 'center',
   },
   statsValue: {
-    marginBottom: SIZES.spacingXs,
+    marginBottom: SIZES.xs || 4,
   },
   statsLabel: {
     // Style will be applied via Typography
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SIZES.spacingMd,
+    marginBottom: SIZES.md || 16,
   },
   infoTitle: {
     flex: 1,

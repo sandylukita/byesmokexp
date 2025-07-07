@@ -14,7 +14,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     const timer = setTimeout(() => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onFinish();
-    }, 2500);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, [onFinish]);

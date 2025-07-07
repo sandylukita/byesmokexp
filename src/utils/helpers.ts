@@ -71,18 +71,7 @@ export const getHealthMilestones = (quitDate: Date): HealthMilestone[] => {
 };
 
 export const getGreeting = (name: string): string => {
-  const hour = new Date().getHours();
-  let greeting = '';
-  
-  if (hour < 12) {
-    greeting = 'Selamat pagi';
-  } else if (hour < 17) {
-    greeting = 'Selamat siang';
-  } else {
-    greeting = 'Selamat malam';
-  }
-  
-  return `${greeting}, ${name}!`;
+  return `Hi, ${name}!`;
 };
 
 export const canCheckInToday = (lastCheckIn: Date | null): boolean => {

@@ -199,13 +199,13 @@ const ProgressScreen: React.FC = () => {
         <View style={styles.statCard}>
           <MaterialIcons name="local-fire-department" size={32} color={COLORS.error} />
           <Text style={styles.statValue}>{user.streak}</Text>
-          <Text style={styles.statLabel}>Streak Terpanjang</Text>
+          <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">Streak Terpanjang</Text>
         </View>
         
         <View style={styles.statCard}>
           <MaterialIcons name="star" size={32} color={COLORS.accent} />
           <Text style={styles.statValue}>{user.xp}</Text>
-          <Text style={styles.statLabel}>Total XP</Text>
+          <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">Total XP</Text>
         </View>
       </View>
 
@@ -534,13 +534,15 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.borderRadiusLg,
     padding: SIZES.md,
     alignItems: 'center',
-    width: (width - SIZES.screenPadding * 2 - SIZES.md) / 2,
-    marginBottom: SIZES.md,
+    width: (width - SIZES.screenPadding * 2 - SIZES.sm) / 2,
+    marginBottom: SIZES.sm,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    minWidth: 120,
+    maxWidth: 180,
   },
   statValue: {
     ...TYPOGRAPHY.bodyLargePrimary,

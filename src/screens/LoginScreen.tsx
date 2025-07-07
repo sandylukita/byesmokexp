@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: COLORS.white,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: SIZES.buttonRadius || 16,
     padding: SIZES.md,
     marginBottom: SIZES.md,
     fontSize: SIZES.md,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: COLORS.secondary,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: SIZES.buttonRadius || 16,
     padding: SIZES.md,
     alignItems: 'center',
     marginTop: SIZES.md,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: COLORS.white,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: SIZES.buttonRadius || 16,
     padding: SIZES.md,
     alignItems: 'center',
     marginTop: SIZES.md,

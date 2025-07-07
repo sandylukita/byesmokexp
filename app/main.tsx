@@ -16,7 +16,7 @@ type AppState = 'splash' | 'login' | 'signup' | 'onboarding' | 'dashboard';
 
 export default function Main() {
   const [appState, _setAppState] = useState<AppState>(() => {
-    const initialState: AppState = 'login';
+    const initialState: AppState = 'splash';
     console.log('Main.tsx: Initial appState set to', initialState);
     return initialState;
   });
@@ -27,8 +27,12 @@ export default function Main() {
   };
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [splashFinished, setSplashFinished] = useState(false);
 
   useEffect(() => {
+    // Only check for users after splash screen finishes
+    if (!splashFinished) return;
+
     // Try to restore demo user from AsyncStorage first
     (async () => {
       const restoredDemoUser = await demoRestoreUser();
@@ -59,7 +63,7 @@ export default function Main() {
       // Clean up Firebase listener on unmount
       return unsubscribe;
     })();
-  }, []);
+  }, [splashFinished]);
 
   const checkOnboardingStatus = async (firebaseUser: FirebaseUser) => {
     try {
@@ -84,12 +88,7 @@ export default function Main() {
   };
 
   const handleSplashFinish = () => {
-    const demoUser = demoGetCurrentUser();
-    if (user || demoUser) {
-      setAppState(needsOnboarding ? 'onboarding' : 'dashboard');
-    } else {
-      setAppState('login');
-    }
+    setSplashFinished(true);
   };
 
   const handleLogin = () => {
