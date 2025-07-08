@@ -219,7 +219,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
             <Text style={styles.greeting}>{getGreeting(user.displayName)}</Text>
-            <Text style={styles.headerSubtext}>{levelInfo.nextLevelXP - user.xp} XP to next badge</Text>
+            <Text style={styles.headerSubtext}>{levelInfo.nextLevelXP - user.xp} XP to next level</Text>
             <Text style={styles.headerMotivation}>Keep going, champion! 🚀</Text>
           </View>
           <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
@@ -309,60 +309,68 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         </View>
       </View>
 
-      <View style={styles.bentoGridContainer}>
-        {/* Section Title */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Misi Harian</Text>
-        </View>
+      {/* Section Title */}
+      <View style={[styles.sectionHeader, { marginTop: SIZES.md }]}>
+        <Text style={styles.sectionTitle}>Misi-mu Hari Ini</Text>
+      </View>
 
-        <BentoGrid columns={2}>
-        {/* Daily Missions Card */}
-        <BentoCard span={2} height="auto" backgroundColor={COLORS.surface} style={styles.bentoMissionsCard}>
-          {dailyMissions.filter(mission => !mission.isCompleted).map((mission) => (
-            <View key={mission.id} style={styles.missionItem}>
-              <View style={styles.missionInfo}>
-                <Text style={styles.missionTitle}>{mission.title}</Text>
-                <Text style={styles.missionDescription}>{mission.description}</Text>
-              </View>
-              <View style={styles.missionReward}>
-                <Text style={styles.missionXP}>+{mission.xpReward} XP</Text>
-              </View>
+      {/* Daily Missions Card */}
+      <View style={styles.missionCardContainer}>
+        <LinearGradient
+          colors={[COLORS.accent + '20', COLORS.accent + '10']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.missionCardGradient}
+        >
+        {dailyMissions.filter(mission => !mission.isCompleted).map((mission) => (
+          <View key={mission.id} style={styles.missionItem}>
+            <View style={styles.missionInfo}>
+              <Text style={styles.missionTitle}>{mission.title}</Text>
+              <Text style={styles.missionDescription}>{mission.description}</Text>
             </View>
-          ))}
-          
-          {!user.isPremium && (
-            <View style={styles.upgradePrompt}>
-              <Text style={styles.upgradePromptText}>Buka lebih banyak misi dan raih XP berlimpah! Upgrade sekarang untuk mempercepat perjalanan sehatmu.</Text>
-              <TouchableOpacity style={styles.upgradeButton}>
-                <Text style={styles.upgradeButtonText}>Upgrade Premium</Text>
-              </TouchableOpacity>
+            <View style={styles.missionReward}>
+              <Text style={styles.missionXP}>+{mission.xpReward} XP</Text>
             </View>
-          )}
-        </BentoCard>
-      </BentoGrid>
+          </View>
+        ))}
+        
+        {!user.isPremium && (
+          <View style={styles.upgradePrompt}>
+            <Text style={styles.upgradePromptText}>Buka lebih banyak misi dan raih XP berlimpah! Upgrade sekarang untuk mempercepat perjalanan sehatmu.</Text>
+            <TouchableOpacity style={styles.upgradeButton}>
+              <Text style={styles.upgradeButtonText}>Upgrade Premium</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        </LinearGradient>
+      </View>
 
       {/* Motivation Section Title */}
-      <View style={[styles.sectionHeader, { marginTop: SIZES.xs || 4 }]}>
+      <View style={[styles.sectionHeader, { marginTop: SIZES.md }]}>
         <Text style={styles.sectionTitle}>Personal Motivator</Text>
       </View>
 
-      <BentoGrid columns={2}>
-        {/* Motivation Card */}
-        <BentoCard span={2} height="auto" backgroundColor={COLORS.surface} style={styles.bentoMotivationCard}>
-          {user.isPremium ? (
-            <Text style={styles.motivationText}>{getRandomMotivation()}</Text>
-          ) : (
-            <View style={styles.lockedContent}>
-              <MaterialIcons name="psychology" size={32} color={COLORS.accent} />
-              <Text style={styles.lockedText}>Dapatkan motivasi personal yang disesuaikan dengan perjalanan unikmu</Text>
-              <Text style={styles.lockedSubtext}>AI akan menganalisis progresmu dan memberikan dukungan yang tepat di saat yang tepat</Text>
-              <TouchableOpacity style={styles.upgradeButton}>
-                <Text style={styles.upgradeButtonText}>Aktifkan Personal Motivator</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </BentoCard>
-      </BentoGrid>
+      {/* Personal Motivator Card */}
+      <View style={styles.motivationCardContainer}>
+        <LinearGradient
+          colors={[COLORS.accentAlt + '20', COLORS.accentAlt + '10']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.motivationCardGradient}
+        >
+        {user.isPremium ? (
+          <Text style={styles.motivationText}>{getRandomMotivation()}</Text>
+        ) : (
+          <View style={styles.lockedContent}>
+            <MaterialIcons name="psychology" size={32} color={COLORS.accent} />
+            <Text style={styles.lockedText}>Dapatkan motivasi personal yang disesuaikan dengan perjalanan unikmu</Text>
+            <Text style={styles.lockedSubtext}>AI akan menganalisis progresmu dan memberikan dukungan yang tepat di saat yang tepat</Text>
+            <TouchableOpacity style={styles.upgradeButton}>
+              <Text style={styles.upgradeButtonText}>Aktifkan Personal Motivator</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        </LinearGradient>
       </View>
     </ScrollView>
   );
@@ -588,7 +596,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
-    marginTop: SIZES.xs || 4,
+    marginTop: SIZES.md,
     marginBottom: SIZES.xs || 4,
     padding: SIZES.sm,
     shadowColor: COLORS.shadow,
@@ -601,7 +609,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SIZES.md,
+    marginBottom: SIZES.xs || 4,
   },
   levelIcon: {
     marginRight: SIZES.sm,
@@ -620,7 +628,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   levelProgressRow: {
-    marginBottom: SIZES.md,
+    marginBottom: SIZES.xs || 4,
   },
   levelProgressBar: {
     width: '100%',
@@ -802,8 +810,44 @@ const styles = StyleSheet.create({
   bentoMissionsCard: {
     minHeight: 160,
   },
+  missionCardContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.buttonRadius || 12,
+    marginHorizontal: SIZES.screenPadding,
+    marginTop: 0,
+    marginBottom: SIZES.xs || 4,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
+    overflow: 'hidden',
+  },
   bentoMotivationCard: {
     minHeight: 'auto',
+  },
+  motivationCardContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.buttonRadius || 12,
+    marginHorizontal: SIZES.screenPadding,
+    marginTop: 0,
+    marginBottom: SIZES.xs || 4,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  missionCardGradient: {
+    padding: SIZES.sm,
+    minHeight: 160,
+    flex: 1,
+  },
+  motivationCardGradient: {
+    padding: SIZES.sm,
+    minHeight: 'auto',
+    flex: 1,
   },
   levelTopLeftGroup: {
     flexDirection: 'row',
@@ -820,7 +864,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SIZES.sm,
+    marginBottom: SIZES.xs || 4,
     paddingHorizontal: SIZES.screenPadding,
   },
   sectionTitle: {
@@ -832,7 +876,7 @@ const styles = StyleSheet.create({
   
   // Level card check-in button styles
   levelCheckInButton: {
-    marginTop: SIZES.xs,
+    marginTop: 0,
     borderRadius: SIZES.buttonRadius || 12,
     overflow: 'hidden',
   },

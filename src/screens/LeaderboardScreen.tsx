@@ -4,6 +4,7 @@ import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Dimensions,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -11,12 +12,15 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 
 import { LeaderboardEntry } from '../types';
 import { COLORS, SIZES } from '../utils/constants';
 import { calculateLevel } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
+
+const { width } = Dimensions.get('window');
 
 const LeaderboardScreen: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'weekly' | 'allTime'>('weekly');
@@ -28,12 +32,32 @@ const LeaderboardScreen: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (user) {
-      setCurrentUserId(user.uid);
-      loadLeaderboardData();
-    }
+    loadUserAndLeaderboardData();
   }, []);
+
+  const loadUserAndLeaderboardData = async () => {
+    try {
+      // Try to get demo user first
+      const restoredUser = await demoRestoreUser();
+      if (restoredUser) {
+        setCurrentUserId(restoredUser.id);
+      } else {
+        const demoUser = demoGetCurrentUser();
+        if (demoUser) {
+          setCurrentUserId(demoUser.id);
+        } else {
+          // Fallback to Firebase
+          const user = auth.currentUser;
+          if (user) {
+            setCurrentUserId(user.uid);
+          }
+        }
+      }
+      await loadLeaderboardData();
+    } catch (error) {
+      console.error('Error loading user and leaderboard data:', error);
+    }
+  };
 
   const loadLeaderboardData = async () => {
     try {
@@ -240,12 +264,8 @@ const LeaderboardScreen: React.FC = () => {
       }
     };
 
-    return (
-      <View key={entry.id} style={[
-        styles.leaderboardItem,
-        isCurrentUser && styles.currentUserItem,
-        isTopThree && styles.topThreeItem
-      ]}>
+    const itemContent = (
+      <>
         <View style={styles.rankContainer}>
           {getRankIcon(entry.rank) ? (
             <Text style={styles.rankEmoji}>{getRankIcon(entry.rank)}</Text>
@@ -258,7 +278,7 @@ const LeaderboardScreen: React.FC = () => {
 
         <View style={styles.userInfo}>
           <View style={[styles.avatar, isCurrentUser && styles.currentUserAvatar]}>
-            <Text style={styles.avatarText}>
+            <Text style={[styles.avatarText, isCurrentUser && styles.currentUserAvatarText]}>
               {entry.displayName.charAt(0).toUpperCase()}
             </Text>
           </View>
@@ -292,6 +312,39 @@ const LeaderboardScreen: React.FC = () => {
             {selectedTab === 'weekly' ? 'XP' : 'Hari'}
           </Text>
         </View>
+      </>
+    );
+
+    if (isTopThree && !isCurrentUser) {
+      const gradientColors = [
+        [COLORS.accent + '20', COLORS.accent + '10'], // Gold
+        [COLORS.gray + '20', COLORS.gray + '10'], // Silver  
+        [COLORS.accentLight + '20', COLORS.accentLight + '10'], // Bronze
+      ];
+
+      return (
+        <View key={entry.id} style={[
+          styles.leaderboardItem,
+          styles.topThreeItem
+        ]}>
+          <LinearGradient
+            colors={gradientColors[entry.rank - 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.leaderboardItemGradient}
+          >
+            {itemContent}
+          </LinearGradient>
+        </View>
+      );
+    }
+
+    return (
+      <View key={entry.id} style={[
+        styles.leaderboardItem,
+        isCurrentUser && styles.currentUserItem
+      ]}>
+        {itemContent}
       </View>
     );
   };
@@ -328,7 +381,7 @@ const LeaderboardScreen: React.FC = () => {
         >
           <MaterialIcons 
             name="date-range" 
-            size={20} 
+            size={Math.min(width * 0.045, 18)} 
             color={selectedTab === 'weekly' ? COLORS.white : COLORS.gray} 
           />
           <Text style={[
@@ -345,7 +398,7 @@ const LeaderboardScreen: React.FC = () => {
         >
           <MaterialIcons 
             name="emoji-events" 
-            size={20} 
+            size={Math.min(width * 0.045, 18)} 
             color={selectedTab === 'allTime' ? COLORS.white : COLORS.gray} 
           />
           <Text style={[
@@ -362,10 +415,15 @@ const LeaderboardScreen: React.FC = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {selectedTab === 'weekly' ? 'Top Mingguan' : 'Top Sepanjang Waktu'}
+          </Text>
+        </View>
+
         <View style={styles.leaderboardContainer}>
           {currentLeaders.map((entry, index) => renderLeaderboardItem(entry, index))}
         </View>
-
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
@@ -391,21 +449,22 @@ const styles = StyleSheet.create({
   loadingText: {
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.textSecondary,
-    marginTop: SIZES.spacingMd,
+    marginTop: SIZES.md,
   },
   header: {
     paddingTop: 50,
-    paddingBottom: SIZES.lg,
+    paddingBottom: SIZES.xl,
     paddingHorizontal: SIZES.screenPadding,
     alignItems: 'center',
   },
   headerTitle: {
-    ...TYPOGRAPHY.display,
-    color: COLORS.white,
-    marginBottom: SIZES.spacingXs,
+    ...TYPOGRAPHY.h1White,
+    fontSize: 20,
+    lineHeight: 26,
+    marginBottom: SIZES.xs || 4,
   },
   headerSubtitle: {
-    ...TYPOGRAPHY.bodyLarge,
+    ...TYPOGRAPHY.bodyMedium,
     color: COLORS.white,
     opacity: 0.9,
   },
@@ -413,7 +472,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.xs,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: SIZES.buttonRadius || 12,
     marginTop: SIZES.md,
   },
   userRankText: {
@@ -423,78 +482,86 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     marginHorizontal: SIZES.screenPadding,
-    borderRadius: SIZES.borderRadiusLg,
-    padding: SIZES.xs,
+    borderRadius: SIZES.buttonRadius || 12,
+    padding: Math.max(width * 0.015, 6),
     marginTop: -SIZES.lg,
     marginBottom: SIZES.md,
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SIZES.md,
-    paddingHorizontal: SIZES.sm,
-    borderRadius: SIZES.borderRadius,
+    paddingVertical: Math.max(width * 0.025, 10),
+    paddingHorizontal: Math.max(width * 0.015, 4),
+    borderRadius: SIZES.buttonRadius || 12,
+    minHeight: 60,
   },
   activeTab: {
     backgroundColor: COLORS.primary,
   },
   tabText: {
-    ...TYPOGRAPHY.bodySmall,
+    fontSize: Math.min(width * 0.032, 12),
     color: COLORS.gray,
-    marginLeft: SIZES.spacingXs,
+    marginTop: 2,
     fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: Math.min(width * 0.04, 14),
   },
   activeTabText: {
     color: COLORS.white,
   },
   content: {
     flex: 1,
-    paddingHorizontal: SIZES.screenPadding,
   },
   leaderboardContainer: {
-    marginBottom: SIZES.lg,
+    paddingBottom: SIZES.xl,
   },
   leaderboardItem: {
-    backgroundColor: COLORS.white,
-    borderRadius: SIZES.borderRadiusLg,
-    padding: SIZES.cardPadding,
-    marginBottom: SIZES.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.buttonRadius || 12,
+    padding: SIZES.sm,
+    marginHorizontal: SIZES.screenPadding,
+    marginBottom: SIZES.xs || 4,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   currentUserItem: {
     borderWidth: 2,
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryLight + '10',
+    backgroundColor: COLORS.primary + '10',
   },
   topThreeItem: {
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.accent,
+    overflow: 'hidden',
+    padding: 0,
+  },
+  leaderboardItemGradient: {
+    padding: SIZES.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   rankContainer: {
     width: 40,
     alignItems: 'center',
   },
   rankEmoji: {
-    fontSize: SIZES.h3,
+    fontSize: Math.min(width * 0.06, 24),
   },
   rankText: {
-    ...TYPOGRAPHY.bodyLarge,
-    fontWeight: '600',
+    fontSize: Math.min(width * 0.04, 16),
+    fontWeight: '700',
   },
   userInfo: {
     flex: 1,
@@ -519,50 +586,76 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.gray,
   },
+  currentUserAvatarText: {
+    color: COLORS.white,
+  },
   userDetails: {
     flex: 1,
   },
   userName: {
-    ...TYPOGRAPHY.bodyMedium,
+    fontSize: Math.min(width * 0.035, 14),
     fontWeight: '600',
     color: COLORS.textPrimary,
-    marginBottom: SIZES.spacingXs,
+    marginBottom: SIZES.xs || 2,
+    lineHeight: Math.min(width * 0.045, 18),
   },
   currentUserText: {
     color: COLORS.primary,
   },
   userStats: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Math.min(width * 0.02, 8),
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: SIZES.md,
+    marginRight: Math.min(width * 0.03, 12),
   },
   statText: {
-    ...TYPOGRAPHY.caption,
+    fontSize: Math.min(width * 0.028, 11),
     color: COLORS.textSecondary,
     marginLeft: 2,
+    fontWeight: '500',
   },
   scoreContainer: {
     alignItems: 'center',
+    minWidth: Math.min(width * 0.15, 60),
   },
   scoreValue: {
-    ...TYPOGRAPHY.bodyLarge,
-    fontWeight: '600',
+    fontSize: Math.min(width * 0.04, 16),
+    fontWeight: '700',
     color: COLORS.textPrimary,
+    marginBottom: 2,
   },
   scoreLabel: {
-    ...TYPOGRAPHY.caption,
+    fontSize: Math.min(width * 0.025, 10),
     color: COLORS.textSecondary,
+    fontWeight: '500',
   },
   footer: {
     alignItems: 'center',
     paddingVertical: SIZES.lg,
+    paddingHorizontal: SIZES.screenPadding,
   },
   footerText: {
-    ...TYPOGRAPHY.bodySmallSecondary,
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.textSecondary,
     textAlign: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SIZES.xs || 4,
+    paddingHorizontal: SIZES.screenPadding,
+    marginTop: 0,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h1,
+    fontSize: 16,
+    lineHeight: 22,
+    color: COLORS.textPrimary,
   },
 });
 

@@ -182,7 +182,7 @@ export const BADGES = [
     id: 'first-day',
     name: 'Langkah Pertama',
     description: 'Melakukan check-in pertama kali',
-    icon: 'play-circle',
+    icon: 'play-circle-filled',
     color: '#2ECC71',
     requirement: 'Check-in pertama'
   },
@@ -190,7 +190,7 @@ export const BADGES = [
     id: 'week-warrior',
     name: 'Pejuang Seminggu',
     description: 'Bertahan selama 7 hari',
-    icon: 'calendar-week',
+    icon: 'date-range',
     color: '#3498DB',
     requirement: '7 hari berturut-turut'
   },
@@ -206,7 +206,7 @@ export const BADGES = [
     id: 'streak-master',
     name: 'Master Konsistensi',
     description: 'Mencapai streak 100 hari',
-    icon: 'fire',
+    icon: 'local-fire-department',
     color: '#E67E22',
     requirement: '100 hari berturut-turut'
   },
@@ -222,7 +222,7 @@ export const BADGES = [
     id: 'mission-master',
     name: 'Master Misi',
     description: 'Menyelesaikan 50 misi',
-    icon: 'trophy',
+    icon: 'emoji-events',
     color: '#E74C3C',
     requirement: '50 misi selesai'
   }
@@ -234,7 +234,7 @@ export const HEALTH_MILESTONES = [
     title: '20 Menit',
     description: 'Detak jantung dan tekanan darah mulai normal',
     timeframe: '20 menit',
-    icon: 'heart',
+    icon: 'favorite',
     hours: 0.33
   },
   {
@@ -242,7 +242,7 @@ export const HEALTH_MILESTONES = [
     title: '12 Jam',
     description: 'Kadar karbon monoksida dalam darah normal',
     timeframe: '12 jam',
-    icon: 'lungs',
+    icon: 'air',
     hours: 12
   },
   {
@@ -250,7 +250,7 @@ export const HEALTH_MILESTONES = [
     title: '2 Minggu',
     description: 'Sirkulasi darah membaik, fungsi paru-paru meningkat',
     timeframe: '2 minggu',
-    icon: 'activity',
+    icon: 'directions-run',
     hours: 336
   },
   {
@@ -258,7 +258,7 @@ export const HEALTH_MILESTONES = [
     title: '1 Bulan',
     description: 'Batuk dan sesak nafas berkurang',
     timeframe: '1 bulan',
-    icon: 'wind',
+    icon: 'self-improvement',
     hours: 720
   },
   {
@@ -266,7 +266,7 @@ export const HEALTH_MILESTONES = [
     title: '1 Tahun',
     description: 'Risiko penyakit jantung berkurang 50%',
     timeframe: '1 tahun',
-    icon: 'heart',
+    icon: 'security',
     hours: 8760
   }
 ];

@@ -41,7 +41,7 @@ export const BentoCard: React.FC<BentoCardProps> = ({
 }) => {
   const gap = SIZES.md;
   const cardWidth = (screenWidth - SIZES.screenPadding * 2 - gap) / 2;
-  const spanWidth = span === 2 ? screenWidth - SIZES.screenPadding * 2 : 
+  const spanWidth = span === 2 ? cardWidth * 2 + gap : 
                     span === 3 ? screenWidth - SIZES.screenPadding * 2 : cardWidth;
   
   const heightMap = {
