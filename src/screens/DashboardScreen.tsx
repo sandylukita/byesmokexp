@@ -173,7 +173,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   };
 
   const generateDailyMissions = (): Mission[] => {
-    const missions = STATIC_MISSIONS.slice(0, user?.isPremium ? 3 : 1);
+    const missions = STATIC_MISSIONS.slice(0, user?.isPremium ? 4 : 1);
     const hasCheckedInToday = !canCheckInToday(user?.lastCheckIn);
     
     return missions.map(mission => ({

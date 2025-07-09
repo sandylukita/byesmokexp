@@ -35,8 +35,10 @@ export default function Main() {
 
     // Try to restore demo user from AsyncStorage first
     (async () => {
+      console.log('Main.tsx: Attempting to restore user on app start...');
       const restoredDemoUser = await demoRestoreUser();
       if (restoredDemoUser) {
+        console.log('Main.tsx: Restored demo user, navigating to dashboard');
         setUser(restoredDemoUser as unknown as FirebaseUser);
         setAppState('dashboard');
         return;
@@ -44,10 +46,13 @@ export default function Main() {
 
       const demoUser = demoGetCurrentUser();
       if (demoUser) {
+        console.log('Main.tsx: Found demo user in memory, navigating to dashboard');
         setUser(demoUser as unknown as FirebaseUser); // Cast as FirebaseUser for type compatibility
         setAppState('dashboard');
         return;
       }
+
+      console.log('Main.tsx: No demo user found, checking Firebase...');
 
       // Only set up Firebase listener if no demo user is found
       const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {

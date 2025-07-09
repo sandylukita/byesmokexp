@@ -87,7 +87,12 @@ export const demoSignIn = async (email: string, password: string): Promise<DemoU
       const user = DEMO_USERS.find(u => u.email === email && u.password === password);
       if (user) {
         currentUser = user;
-        await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(user));
+        try {
+          await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(user));
+          console.log('User saved to AsyncStorage:', user.email);
+        } catch (error) {
+          console.error('Error saving user to AsyncStorage:', error);
+        }
         resolve(user);
       } else {
         reject(new Error('Invalid email or password'));
@@ -142,14 +147,18 @@ export const demoLogout = async (): Promise<void> => {
 
 export const demoRestoreUser = async (): Promise<DemoUser | null> => {
   try {
+    console.log('Attempting to restore user from AsyncStorage...');
     const userStr = await AsyncStorage.getItem(DEMO_USER_STORAGE_KEY);
     if (userStr) {
       const user = JSON.parse(userStr);
       currentUser = user;
+      console.log('User restored successfully:', user.email);
       return user;
     }
+    console.log('No user found in AsyncStorage');
     return null;
   } catch (e) {
+    console.error('Error restoring user:', e);
     return null;
   }
 };
@@ -159,14 +168,21 @@ export const demoGetCurrentUser = (): DemoUser | null => {
 };
 
 export const demoUpdateUser = async (userId: string, updates: Partial<User>): Promise<void> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
+  return new Promise(async (resolve) => {
+    setTimeout(async () => {
       if (currentUser && currentUser.id === userId) {
         Object.assign(currentUser, updates);
         // Also update in DEMO_USERS array
         const index = DEMO_USERS.findIndex(u => u.id === userId);
         if (index !== -1) {
           Object.assign(DEMO_USERS[index], updates);
+        }
+        
+        // Save updated user to AsyncStorage
+        try {
+          await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(currentUser));
+        } catch (error) {
+          console.error('Error saving updated user to storage:', error);
         }
       }
       resolve();

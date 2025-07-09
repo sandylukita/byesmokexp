@@ -76,7 +76,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
           <View style={styles.content}>
             <View style={styles.header}>
               <Text style={styles.logo}>🚭</Text>
-              <Text style={styles.title}>Selamat Datang</Text>
+              <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit={true}>
+                Selamat Datang
+              </Text>
               <Text style={styles.subtitle}>Masuk ke akun ByeSmoke XP</Text>
             </View>
 
@@ -157,7 +159,10 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TYPOGRAPHY.h1White,
+    fontSize: 28, // Reduced from 32 to fit better on iPhone
+    lineHeight: 34, // Adjusted line height
     marginBottom: SIZES.spacingSm,
+    textAlign: 'center' as const,
   },
   subtitle: {
     ...TYPOGRAPHY.bodyLargeWhite,
@@ -165,7 +170,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    marginTop: SIZES.lg,
+    marginTop: SIZES.md,
   },
   input: {
     backgroundColor: COLORS.white,

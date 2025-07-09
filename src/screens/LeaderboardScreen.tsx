@@ -35,35 +35,59 @@ const LeaderboardScreen: React.FC = () => {
     loadUserAndLeaderboardData();
   }, []);
 
+  // Update rank when tab changes or data loads
+  useEffect(() => {
+    if (currentUserId) {
+      const leaders = selectedTab === 'weekly' ? weeklyLeaders : allTimeLeaders;
+      if (leaders.length > 0) {
+        const currentUser = leaders.find(user => user.id === currentUserId);
+        console.log('Setting rank for user:', currentUserId, 'in', selectedTab, 'tab. Found user:', currentUser);
+        setCurrentUserRank(currentUser?.rank || null);
+      }
+    }
+  }, [selectedTab, currentUserId, weeklyLeaders, allTimeLeaders]);
+
   const loadUserAndLeaderboardData = async () => {
     try {
+      let userId: string | null = null;
+      
       // Try to get demo user first
       const restoredUser = await demoRestoreUser();
       if (restoredUser) {
+        console.log('Leaderboard: Found restored user:', restoredUser.id);
+        userId = restoredUser.id;
         setCurrentUserId(restoredUser.id);
       } else {
         const demoUser = demoGetCurrentUser();
         if (demoUser) {
+          console.log('Leaderboard: Found demo user:', demoUser.id);
+          userId = demoUser.id;
           setCurrentUserId(demoUser.id);
         } else {
           // Fallback to Firebase
           const user = auth.currentUser;
           if (user) {
+            console.log('Leaderboard: Found Firebase user:', user.uid);
+            userId = user.uid;
             setCurrentUserId(user.uid);
+          } else {
+            console.log('Leaderboard: No user found');
           }
         }
       }
-      await loadLeaderboardData();
+      
+      // Pass the userId directly to loadLeaderboardData
+      await loadLeaderboardData(userId);
     } catch (error) {
       console.error('Error loading user and leaderboard data:', error);
     }
   };
 
-  const loadLeaderboardData = async () => {
+  const loadLeaderboardData = async (userId?: string) => {
     try {
       // In a real app, you'd have proper queries for weekly and all-time data
       // For now, we'll simulate with sample data and real user data
-      await loadSampleData();
+      await loadSampleData(userId);
     } catch (error) {
       console.error('Error loading leaderboard data:', error);
     } finally {
@@ -71,7 +95,8 @@ const LeaderboardScreen: React.FC = () => {
     }
   };
 
-  const loadSampleData = async () => {
+  const loadSampleData = async (userId?: string) => {
+    const currentUser = userId || currentUserId;
     // Generate sample leaderboard data
     const sampleWeeklyData: LeaderboardEntry[] = [
       {
@@ -169,66 +194,109 @@ const LeaderboardScreen: React.FC = () => {
       },
     ];
 
-    // Try to get real user data and insert into leaderboard
-    try {
-      const usersRef = collection(db, 'users');
-      const usersQuery = query(usersRef, orderBy('totalDays', 'desc'), limit(20));
-      const usersSnapshot = await getDocs(usersQuery);
-      
-      const realUsers: LeaderboardEntry[] = [];
-      usersSnapshot.forEach((doc) => {
-        const userData = doc.data();
-        const levelInfo = calculateLevel(userData.xp || 0);
-        realUsers.push({
-          id: doc.id,
-          displayName: userData.displayName || 'User',
-          totalDays: userData.totalDays || 0,
-          streak: userData.streak || 0,
-          xp: userData.xp || 0,
-          level: levelInfo.level,
-          rank: 0, // Will be set after sorting
-        });
+    // For demo mode, skip Firebase query and use demo user data
+    const realUsers: LeaderboardEntry[] = [];
+    
+    // Add current demo user to leaderboard if available
+    const demoUser = demoGetCurrentUser();
+    if (demoUser) {
+      const levelInfo = calculateLevel(demoUser.xp || 0);
+      realUsers.push({
+        id: demoUser.id,
+        displayName: demoUser.displayName || 'User',
+        totalDays: demoUser.totalDays || 0,
+        streak: demoUser.streak || 0,
+        xp: demoUser.xp || 0,
+        level: levelInfo.level,
+        rank: 0, // Will be set after sorting
       });
+    }
 
-      // Combine real users with sample data for demo purposes
-      const combinedWeekly = [...realUsers, ...sampleWeeklyData]
-        .sort((a, b) => {
-          // Sort by weekly performance (combination of streak and XP)
-          const aScore = a.streak * 10 + a.xp;
-          const bScore = b.streak * 10 + b.xp;
-          return bScore - aScore;
-        })
-        .map((user, index) => ({ ...user, rank: index + 1 }));
+    // If we have a currentUser but no demo user, create a basic entry for them
+    if (!demoUser && currentUser) {
+      console.log('Creating basic entry for Firebase user:', currentUser);
+      realUsers.push({
+        id: currentUser,
+        displayName: 'You',
+        totalDays: 5, // Default values for Firebase users
+        streak: 3,
+        xp: 50,
+        level: 1,
+        rank: 0, // Will be set after sorting
+      });
+    }
 
-      const combinedAllTime = [...realUsers, ...sampleAllTimeData]
-        .sort((a, b) => b.totalDays - a.totalDays)
-        .map((user, index) => ({ ...user, rank: index + 1 }));
-
-      setWeeklyLeaders(combinedWeekly.slice(0, 10));
-      setAllTimeLeaders(combinedAllTime.slice(0, 10));
-
-      // Find current user rank
-      if (currentUserId) {
-        const currentUserWeekly = combinedWeekly.find(user => user.id === currentUserId);
-        const currentUserAllTime = combinedAllTime.find(user => user.id === currentUserId);
+    // Only try Firebase if not in demo mode and we want to get other users
+    if (!demoUser) {
+      try {
+        const usersRef = collection(db, 'users');
+        const usersQuery = query(usersRef, orderBy('totalDays', 'desc'), limit(20));
+        const usersSnapshot = await getDocs(usersQuery);
         
-        if (selectedTab === 'weekly' && currentUserWeekly) {
-          setCurrentUserRank(currentUserWeekly.rank);
-        } else if (selectedTab === 'allTime' && currentUserAllTime) {
-          setCurrentUserRank(currentUserAllTime.rank);
-        }
+        usersSnapshot.forEach((doc) => {
+          const userData = doc.data();
+          const levelInfo = calculateLevel(userData.xp || 0);
+          realUsers.push({
+            id: doc.id,
+            displayName: userData.displayName || 'User',
+            totalDays: userData.totalDays || 0,
+            streak: userData.streak || 0,
+            xp: userData.xp || 0,
+            level: levelInfo.level,
+            rank: 0, // Will be set after sorting
+          });
+        });
+      } catch (firebaseError) {
+        console.log('Firebase query failed (expected in demo mode):', firebaseError);
+        // Continue without Firebase data
       }
-    } catch (error) {
-      console.error('Error fetching real user data:', error);
-      // Fallback to sample data
-      setWeeklyLeaders(sampleWeeklyData);
-      setAllTimeLeaders(sampleAllTimeData);
+    }
+
+    // Combine real users with sample data for demo purposes
+    const combinedWeekly = [...realUsers, ...sampleWeeklyData]
+      .sort((a, b) => {
+        // Sort by weekly performance (combination of streak and XP)
+        const aScore = a.streak * 10 + a.xp;
+        const bScore = b.streak * 10 + b.xp;
+        return bScore - aScore;
+      })
+      .map((user, index) => ({ ...user, rank: index + 1 }));
+
+    const combinedAllTime = [...realUsers, ...sampleAllTimeData]
+      .sort((a, b) => b.totalDays - a.totalDays)
+      .map((user, index) => ({ ...user, rank: index + 1 }));
+
+    setWeeklyLeaders(combinedWeekly.slice(0, 10));
+    setAllTimeLeaders(combinedAllTime.slice(0, 10));
+
+    // Find current user rank
+    if (currentUser) {
+      console.log('Looking for user:', currentUser, 'in leaderboards');
+      const currentUserWeekly = combinedWeekly.find(user => user.id === currentUser);
+      const currentUserAllTime = combinedAllTime.find(user => user.id === currentUser);
+      
+      console.log('Weekly user found:', currentUserWeekly);
+      console.log('All-time user found:', currentUserAllTime);
+      console.log('Current tab:', selectedTab);
+      
+      // Set rank based on current tab (default to weekly on initial load)
+      if (selectedTab === 'weekly') {
+        const rank = currentUserWeekly?.rank || null;
+        console.log('Setting weekly rank:', rank);
+        setCurrentUserRank(rank);
+      } else {
+        const rank = currentUserAllTime?.rank || null;
+        console.log('Setting all-time rank:', rank);
+        setCurrentUserRank(rank);
+      }
+    } else {
+      console.log('No currentUser provided to loadSampleData');
     }
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadLeaderboardData();
+    await loadLeaderboardData(currentUserId);
     setRefreshing(false);
   };
 
