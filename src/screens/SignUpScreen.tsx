@@ -151,15 +151,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: SIZES.screenPadding,
+    paddingHorizontal: SIZES.xl,
+    maxWidth: 350,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: SIZES.xxl,
+    marginBottom: SIZES.lg,
   },
   logo: {
-    fontSize: 60,
-    marginBottom: SIZES.lg,
+    fontSize: 48,
+    marginBottom: SIZES.sm,
   },
   title: {
     ...TYPOGRAPHY.h1White,
@@ -171,24 +174,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    marginTop: SIZES.xl,
+    marginTop: SIZES.lg,
   },
   input: {
     backgroundColor: COLORS.white,
-    borderRadius: SIZES.borderRadius,
-    padding: SIZES.md,
-    marginBottom: SIZES.md,
-    fontSize: SIZES.md,
+    borderRadius: SIZES.inputRadius,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    marginBottom: SIZES.sm,
+    fontSize: SIZES.bodyMedium,
     color: COLORS.textPrimary,
-    minHeight: SIZES.buttonHeight,
+    height: 48,
   },
   button: {
     backgroundColor: COLORS.secondary,
-    borderRadius: SIZES.borderRadius,
-    padding: SIZES.md,
+    borderRadius: SIZES.buttonRadius,
+    paddingVertical: SIZES.sm,
     alignItems: 'center',
-    marginTop: SIZES.md,
-    minHeight: SIZES.buttonHeight,
+    marginTop: SIZES.sm,
+    height: 48,
     justifyContent: 'center',
   },
   buttonDisabled: {
@@ -201,7 +205,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: SIZES.xl,
+    marginTop: SIZES.lg,
   },
   footerText: {
     ...TYPOGRAPHY.bodyMediumWhite,

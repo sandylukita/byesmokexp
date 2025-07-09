@@ -23,7 +23,9 @@
       "Bash(npx expo install expo-modules-core@~2.4.2)",
       "Bash(npx expo install:*)",
       "Bash(node:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(claude doctor)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   }

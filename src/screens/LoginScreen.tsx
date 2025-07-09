@@ -62,22 +62,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
     }
   };
 
-  const handleTestLogin = async () => {
-    console.log('Test login button clicked');
-    setEmail('admin@byerokok.app');
-    setPassword('password123');
-    console.log('Credentials set, calling handleLogin directly');
-    
-    // Call login directly without timeout
-    try {
-      console.log('Trying demo authentication directly...');
-      await demoSignIn('admin@byerokok.app', 'password123');
-      console.log('Demo authentication successful, calling onLogin');
-      onLogin();
-    } catch (error) {
-      console.log('Demo auth failed:', error);
-    }
-  };
 
   return (
     <KeyboardAvoidingView
@@ -127,12 +111,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.testButton}
-                onPress={handleTestLogin}
-              >
-                <Text style={styles.testButtonText}>Login Admin (Test)</Text>
-              </TouchableOpacity>
 
               <View style={styles.footer}>
                 <Text style={styles.footerText}>Belum punya akun? </Text>
@@ -164,15 +142,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: SIZES.screenPadding,
+    paddingHorizontal: SIZES.xl,
+    maxWidth: 350,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: SIZES.xxl,
+    marginBottom: SIZES.lg,
   },
   logo: {
-    fontSize: 60,
-    marginBottom: SIZES.spacingLg,
+    fontSize: 48,
+    marginBottom: SIZES.sm,
   },
   title: {
     ...TYPOGRAPHY.h1White,
@@ -184,24 +165,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    marginTop: SIZES.xl,
+    marginTop: SIZES.lg,
   },
   input: {
     backgroundColor: COLORS.white,
-    borderRadius: SIZES.buttonRadius || 16,
-    padding: SIZES.md,
-    marginBottom: SIZES.md,
-    fontSize: SIZES.md,
+    borderRadius: SIZES.inputRadius,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    marginBottom: SIZES.sm,
+    fontSize: SIZES.bodyMedium,
     color: COLORS.textPrimary,
-    minHeight: SIZES.buttonHeight,
+    height: 48,
   },
   button: {
     backgroundColor: COLORS.secondary,
-    borderRadius: SIZES.buttonRadius || 16,
-    padding: SIZES.md,
+    borderRadius: SIZES.buttonRadius,
+    paddingVertical: SIZES.sm,
     alignItems: 'center',
-    marginTop: SIZES.md,
-    minHeight: SIZES.buttonHeight,
+    marginTop: SIZES.sm,
+    height: 48,
     justifyContent: 'center',
   },
   buttonDisabled: {
@@ -211,26 +193,10 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.button,
     color: COLORS.white,
   },
-  testButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: COLORS.white,
-    borderRadius: SIZES.buttonRadius || 16,
-    padding: SIZES.md,
-    alignItems: 'center',
-    marginTop: SIZES.md,
-    minHeight: SIZES.buttonHeight,
-    justifyContent: 'center',
-  },
-  testButtonText: {
-    ...TYPOGRAPHY.bodyMedium,
-    color: COLORS.white,
-    fontWeight: '500',
-  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: SIZES.xl,
+    marginTop: SIZES.lg,
   },
   footerText: {
     ...TYPOGRAPHY.bodyMediumWhite,
