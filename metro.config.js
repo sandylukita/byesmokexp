@@ -23,4 +23,7 @@ config.resolver.alias = {
   'firebase/storage': 'firebase/storage',
 };
 
+// Fix AsyncStorage mergeOptions issue
+config.resolver.sourceExts = [...config.resolver.sourceExts, 'jsx', 'js', 'ts', 'tsx'];
+
 module.exports = config;

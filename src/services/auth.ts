@@ -9,7 +9,7 @@ import {
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { User } from '../types';
 
-export const signUp = async (email: string, password: string, displayName: string) => {
+export const signUp = async (email: string, password: string, displayName: string, username: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -18,7 +18,7 @@ export const signUp = async (email: string, password: string, displayName: strin
     await updateProfile(user, { displayName });
     
     // Create user document in Firestore
-    await createUserDocument(user, displayName);
+    await createUserDocument(user, displayName, username);
     
     return user;
   } catch (error) {
@@ -43,12 +43,13 @@ export const logout = async () => {
   }
 };
 
-export const createUserDocument = async (user: FirebaseUser, displayName: string) => {
+export const createUserDocument = async (user: FirebaseUser, displayName: string, username: string) => {
   const userDoc = doc(db, 'users', user.uid);
   const userData: Partial<User> = {
     id: user.uid,
     email: user.email!,
     displayName,
+    username,
     isPremium: user.email === 'admin@byerokok.app', // Admin account gets premium
     quitDate: new Date(),
     cigarettesPerDay: 0,
@@ -64,7 +65,8 @@ export const createUserDocument = async (user: FirebaseUser, displayName: string
       darkMode: false,
       notifications: true,
       language: 'id',
-      reminderTime: '09:00'
+      reminderTime: '09:00',
+      leaderboardDisplayPreference: 'username'
     }
   };
   

@@ -1,10 +1,12 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import SwipeableTabNavigator from '../components/SwipeableTabNavigator';
 import { COLORS, SIZES } from '../utils/constants';
 
 const Tab = createBottomTabNavigator();
@@ -12,6 +14,32 @@ const Tab = createBottomTabNavigator();
 interface AppNavigatorProps {
   onLogout: () => void;
 }
+
+const TAB_ROUTES = ['Dashboard', 'Progress', 'Leaderboard', 'Profile'];
+
+const getCurrentTabIndex = (routeName: string): number => {
+  return TAB_ROUTES.indexOf(routeName);
+};
+
+interface SwipeableScreenProps {
+  children: React.ReactNode;
+  routeName: string;
+  navigation: any;
+}
+
+const SwipeableScreen: React.FC<SwipeableScreenProps> = ({ children, routeName, navigation }) => {
+  const currentTabIndex = getCurrentTabIndex(routeName);
+  
+  return (
+    <SwipeableTabNavigator
+      navigation={navigation}
+      currentTabIndex={currentTabIndex}
+      tabRoutes={TAB_ROUTES}
+    >
+      {children}
+    </SwipeableTabNavigator>
+  );
+};
 
 const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
   return (
@@ -62,24 +90,38 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
             tabBarLabel: 'Beranda',
           }}
         >
-          {() => <DashboardScreen onLogout={onLogout} />}
+          {({ navigation }) => (
+            <SwipeableScreen routeName="Dashboard" navigation={navigation}>
+              <DashboardScreen onLogout={onLogout} />
+            </SwipeableScreen>
+          )}
         </Tab.Screen>
         
         <Tab.Screen 
           name="Progress" 
-          component={ProgressScreen}
           options={{ 
             tabBarLabel: 'Progress',
           }}
-        />
+        >
+          {({ navigation }) => (
+            <SwipeableScreen routeName="Progress" navigation={navigation}>
+              <ProgressScreen />
+            </SwipeableScreen>
+          )}
+        </Tab.Screen>
         
         <Tab.Screen 
           name="Leaderboard" 
-          component={LeaderboardScreen}
           options={{ 
             tabBarLabel: 'Leaderboard',
           }}
-        />
+        >
+          {({ navigation }) => (
+            <SwipeableScreen routeName="Leaderboard" navigation={navigation}>
+              <LeaderboardScreen />
+            </SwipeableScreen>
+          )}
+        </Tab.Screen>
         
         <Tab.Screen 
           name="Profile" 
@@ -87,7 +129,11 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
             tabBarLabel: 'Profil',
           }}
         >
-          {() => <ProfileScreen onLogout={onLogout} />}
+          {({ navigation }) => (
+            <SwipeableScreen routeName="Profile" navigation={navigation}>
+              <ProfileScreen onLogout={onLogout} />
+            </SwipeableScreen>
+          )}
         </Tab.Screen>
       </Tab.Navigator>
   );

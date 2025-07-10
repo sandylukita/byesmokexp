@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  username: string;
   isPremium: boolean;
   quitDate: Date;
   cigarettesPerDay: number;
@@ -42,6 +43,7 @@ export interface UserSettings {
   notifications: boolean;
   language: string;
   reminderTime: string;
+  leaderboardDisplayPreference: 'username' | 'displayName';
 }
 
 export interface HealthMilestone {
@@ -62,6 +64,7 @@ export interface ProgressData {
 export interface LeaderboardEntry {
   id: string;
   displayName: string;
+  username: string;
   totalDays: number;
   streak: number;
   xp: number;

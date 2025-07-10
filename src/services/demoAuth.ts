@@ -13,6 +13,7 @@ const DEMO_USERS: DemoUser[] = [
     email: 'admin@byerokok.app',
     password: 'password123',
     displayName: 'Admin User',
+    username: 'admin_hero',
     isPremium: true,
     quitDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
     cigarettesPerDay: 20,
@@ -49,7 +50,8 @@ const DEMO_USERS: DemoUser[] = [
       darkMode: false,
       notifications: true,
       language: 'id',
-      reminderTime: '09:00'
+      reminderTime: '09:00',
+      leaderboardDisplayPreference: 'username'
     }
   },
   {
@@ -57,6 +59,7 @@ const DEMO_USERS: DemoUser[] = [
     email: 'test@example.com',
     password: 'test123',
     displayName: 'Test User',
+    username: 'test_warrior',
     isPremium: false,
     quitDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
     cigarettesPerDay: 12,
@@ -72,7 +75,8 @@ const DEMO_USERS: DemoUser[] = [
       darkMode: false,
       notifications: true,
       language: 'id',
-      reminderTime: '09:00'
+      reminderTime: '09:00',
+      leaderboardDisplayPreference: 'username'
     }
   }
 ];
@@ -101,7 +105,7 @@ export const demoSignIn = async (email: string, password: string): Promise<DemoU
   });
 };
 
-export const demoSignUp = async (email: string, password: string, displayName: string): Promise<DemoUser> => {
+export const demoSignUp = async (email: string, password: string, displayName: string, username: string): Promise<DemoUser> => {
   return new Promise(async (resolve) => {
     setTimeout(async () => {
       const newUser: DemoUser = {
@@ -109,6 +113,7 @@ export const demoSignUp = async (email: string, password: string, displayName: s
         email,
         password,
         displayName,
+        username,
         isPremium: false,
         quitDate: new Date(),
         cigarettesPerDay: 0,
@@ -124,7 +129,8 @@ export const demoSignUp = async (email: string, password: string, displayName: s
           darkMode: false,
           notifications: true,
           language: 'id',
-          reminderTime: '09:00'
+          reminderTime: '09:00',
+          leaderboardDisplayPreference: 'username'
         }
       };
       DEMO_USERS.push(newUser);
@@ -190,10 +196,11 @@ export const demoUpdateUser = async (userId: string, updates: Partial<User>): Pr
   });
 };
 
-export const demoCreateUserDocument = async (email: string, displayName: string): Promise<Partial<User>> => {
+export const demoCreateUserDocument = async (email: string, displayName: string, username: string): Promise<Partial<User>> => {
   const userData: Partial<User> = {
     email,
     displayName,
+    username,
     isPremium: email === 'admin@byerokok.app',
     quitDate: new Date(),
     cigarettesPerDay: 0,
@@ -209,7 +216,8 @@ export const demoCreateUserDocument = async (email: string, displayName: string)
       darkMode: false,
       notifications: true,
       language: 'id',
-      reminderTime: '09:00'
+      reminderTime: '09:00',
+      leaderboardDisplayPreference: 'username'
     }
   };
   

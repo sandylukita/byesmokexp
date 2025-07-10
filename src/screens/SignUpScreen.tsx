@@ -23,13 +23,14 @@ interface SignUpScreenProps {
 
 const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !username || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Silakan isi semua field');
       return;
     }
@@ -46,7 +47,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
 
     setLoading(true);
     try {
-      await signUp(email, password, name);
+      await signUp(email, password, name, username);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Alert.alert('Berhasil', 'Akun berhasil dibuat!', [
         { text: 'OK', onPress: onSignUp }
@@ -84,6 +85,15 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
                 onChangeText={setName}
                 autoCapitalize="words"
                 autoComplete="name"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Username"
+                placeholderTextColor={COLORS.gray}
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoComplete="username"
               />
               <TextInput
                 style={styles.input}

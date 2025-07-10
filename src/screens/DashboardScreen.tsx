@@ -43,6 +43,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [completedMissions, setCompletedMissions] = useState<string[]>([]);
 
   useEffect(() => {
     loadUserData();
@@ -57,6 +58,28 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     
     return () => clearTimeout(timeout);
   }, []);
+
+  // Reset mission completion state daily
+  useEffect(() => {
+    if (user) {
+      const checkMissionReset = async () => {
+        const today = new Date().toDateString();
+        try {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+          const lastResetDate = await AsyncStorage.getItem('lastMissionReset');
+          
+          if (lastResetDate !== today) {
+            setCompletedMissions([]);
+            await AsyncStorage.setItem('lastMissionReset', today);
+          }
+        } catch (error) {
+          console.error('Error checking mission reset:', error);
+        }
+      };
+      
+      checkMissionReset();
+    }
+  }, [user]);
 
   const loadUserData = async () => {
     console.log('Starting loadUserData...');
@@ -159,6 +182,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         ...updates,
       });
 
+      // Mark check-in mission as completed
+      if (!completedMissions.includes('daily-checkin')) {
+        setCompletedMissions(prev => [...prev, 'daily-checkin']);
+      }
+
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Alert.alert(
         'Selamat!', 
@@ -178,11 +206,27 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     
     return missions.map(mission => ({
       ...mission,
-      id: generateMissionId(),
-      isCompleted: mission.id === 'daily-checkin' ? hasCheckedInToday : false,
-      completedAt: mission.id === 'daily-checkin' && hasCheckedInToday ? new Date() : null,
+      id: mission.id, // Keep original ID for tracking
+      isCompleted: mission.id === 'daily-checkin' ? hasCheckedInToday : completedMissions.includes(mission.id),
+      completedAt: mission.id === 'daily-checkin' && hasCheckedInToday ? new Date() : 
+                   completedMissions.includes(mission.id) ? new Date() : null,
       isAIGenerated: false,
     }));
+  };
+
+  const handleMissionToggle = async (mission: Mission) => {
+    if (mission.id === 'daily-checkin') {
+      // If it's the daily check-in mission, trigger the check-in process
+      await handleCheckIn();
+    } else {
+      // For other missions, toggle completion status
+      if (mission.isCompleted) {
+        setCompletedMissions(prev => prev.filter(id => id !== mission.id));
+      } else {
+        setCompletedMissions(prev => [...prev, mission.id]);
+        // TODO: Add XP reward for completing mission
+      }
+    }
   };
 
   if (loading) {
@@ -293,7 +337,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               <MaterialIcons name="calendar-today" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.statValue}>{formatNumber(daysSinceQuit)}</Text>
-            <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">Total Hari</Text>
+            <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">Hari</Text>
           </View>
         </View>
 
@@ -322,16 +366,34 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           end={{ x: 1, y: 1 }}
           style={styles.missionCardGradient}
         >
-        {dailyMissions.filter(mission => !mission.isCompleted).map((mission) => (
-          <View key={mission.id} style={styles.missionItem}>
+        {dailyMissions.map((mission) => (
+          <TouchableOpacity 
+            key={mission.id} 
+            style={styles.missionItem}
+            onPress={() => handleMissionToggle(mission)}
+            disabled={mission.id === 'daily-checkin' && mission.isCompleted}
+          >
+            <View style={styles.missionCheckbox}>
+              <MaterialIcons 
+                name={mission.isCompleted ? "check-circle" : "radio-button-unchecked"} 
+                size={24} 
+                color={mission.isCompleted ? COLORS.secondary : COLORS.gray} 
+              />
+            </View>
             <View style={styles.missionInfo}>
-              <Text style={styles.missionTitle}>{mission.title}</Text>
-              <Text style={styles.missionDescription}>{mission.description}</Text>
+              <Text style={[styles.missionTitle, mission.isCompleted && styles.missionTitleCompleted]}>
+                {mission.title}
+              </Text>
+              <Text style={[styles.missionDescription, mission.isCompleted && styles.missionDescriptionCompleted]}>
+                {mission.description}
+              </Text>
             </View>
             <View style={styles.missionReward}>
-              <Text style={styles.missionXP}>+{mission.xpReward} XP</Text>
+              <Text style={[styles.missionXP, mission.isCompleted && styles.missionXPCompleted]}>
+                +{mission.xpReward} XP
+              </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
         
         {!user.isPremium && (
@@ -537,11 +599,13 @@ const styles = StyleSheet.create({
   },
   missionItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: SIZES.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGray,
+  },
+  missionCheckbox: {
+    marginRight: SIZES.sm,
   },
   missionInfo: {
     flex: 1,
@@ -551,9 +615,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.textPrimary,
   },
+  missionTitleCompleted: {
+    textDecorationLine: 'line-through',
+    color: COLORS.textSecondary,
+  },
   missionDescription: {
     ...TYPOGRAPHY.bodySmallSecondary,
     marginTop: SIZES.spacingXs,
+  },
+  missionDescriptionCompleted: {
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
   },
   missionReward: {
     backgroundColor: COLORS.primary,
@@ -565,6 +637,9 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodySmall,
     color: COLORS.white,
     fontWeight: '600',
+  },
+  missionXPCompleted: {
+    opacity: 0.6,
   },
   motivationText: {
     ...TYPOGRAPHY.bodyMedium,

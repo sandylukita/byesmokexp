@@ -101,7 +101,8 @@ const LeaderboardScreen: React.FC = () => {
     const sampleWeeklyData: LeaderboardEntry[] = [
       {
         id: 'user1',
-        displayName: 'Sarah M.',
+        displayName: 'smokefree_sarah',
+        username: 'smokefree_sarah',
         totalDays: 45,
         streak: 12,
         xp: 890,
@@ -110,7 +111,8 @@ const LeaderboardScreen: React.FC = () => {
       },
       {
         id: 'user2',
-        displayName: 'Ahmad R.',
+        displayName: 'healthy_ahmad',
+        username: 'healthy_ahmad',
         totalDays: 38,
         streak: 8,
         xp: 720,
@@ -119,7 +121,8 @@ const LeaderboardScreen: React.FC = () => {
       },
       {
         id: 'user3',
-        displayName: 'Maya L.',
+        displayName: 'maya_warrior',
+        username: 'maya_warrior',
         totalDays: 32,
         streak: 15,
         xp: 650,
@@ -128,7 +131,8 @@ const LeaderboardScreen: React.FC = () => {
       },
       {
         id: 'user4',
-        displayName: 'Budi S.',
+        displayName: 'budi_strong',
+        username: 'budi_strong',
         totalDays: 28,
         streak: 7,
         xp: 580,
@@ -137,7 +141,8 @@ const LeaderboardScreen: React.FC = () => {
       },
       {
         id: 'user5',
-        displayName: 'Rina P.',
+        displayName: 'rina_champion',
+        username: 'rina_champion',
         totalDays: 25,
         streak: 10,
         xp: 520,
@@ -149,7 +154,8 @@ const LeaderboardScreen: React.FC = () => {
     const sampleAllTimeData: LeaderboardEntry[] = [
       {
         id: 'user6',
-        displayName: 'David K.',
+        displayName: 'david_legend',
+        username: 'david_legend',
         totalDays: 365,
         streak: 365,
         xp: 4500,
@@ -158,7 +164,8 @@ const LeaderboardScreen: React.FC = () => {
       },
       {
         id: 'user7',
-        displayName: 'Linda W.',
+        displayName: 'linda_hero',
+        username: 'linda_hero',
         totalDays: 280,
         streak: 45,
         xp: 3200,
@@ -167,7 +174,8 @@ const LeaderboardScreen: React.FC = () => {
       },
       {
         id: 'user8',
-        displayName: 'Michael T.',
+        displayName: 'michael_titan',
+        username: 'michael_titan',
         totalDays: 195,
         streak: 85,
         xp: 2800,
@@ -176,7 +184,8 @@ const LeaderboardScreen: React.FC = () => {
       },
       {
         id: 'user1',
-        displayName: 'Sarah M.',
+        displayName: 'smokefree_sarah',
+        username: 'smokefree_sarah',
         totalDays: 145,
         streak: 12,
         xp: 1890,
@@ -185,7 +194,8 @@ const LeaderboardScreen: React.FC = () => {
       },
       {
         id: 'user9',
-        displayName: 'Anna B.',
+        displayName: 'anna_brave',
+        username: 'anna_brave',
         totalDays: 120,
         streak: 30,
         xp: 1650,
@@ -201,9 +211,15 @@ const LeaderboardScreen: React.FC = () => {
     const demoUser = demoGetCurrentUser();
     if (demoUser) {
       const levelInfo = calculateLevel(demoUser.xp || 0);
+      // Use username for privacy by default, fallback to displayName if no username
+      const displayName = demoUser.settings?.leaderboardDisplayPreference === 'displayName' 
+        ? demoUser.displayName || 'User'
+        : demoUser.username || demoUser.displayName || 'User';
+      
       realUsers.push({
         id: demoUser.id,
-        displayName: demoUser.displayName || 'User',
+        displayName,
+        username: demoUser.username || demoUser.displayName || 'User',
         totalDays: demoUser.totalDays || 0,
         streak: demoUser.streak || 0,
         xp: demoUser.xp || 0,
@@ -218,6 +234,7 @@ const LeaderboardScreen: React.FC = () => {
       realUsers.push({
         id: currentUser,
         displayName: 'You',
+        username: 'You',
         totalDays: 5, // Default values for Firebase users
         streak: 3,
         xp: 50,
@@ -236,9 +253,15 @@ const LeaderboardScreen: React.FC = () => {
         usersSnapshot.forEach((doc) => {
           const userData = doc.data();
           const levelInfo = calculateLevel(userData.xp || 0);
+          // Use username for privacy by default, fallback to displayName if no username
+          const displayName = userData.settings?.leaderboardDisplayPreference === 'displayName' 
+            ? userData.displayName || 'User'
+            : userData.username || userData.displayName || 'User';
+          
           realUsers.push({
             id: doc.id,
-            displayName: userData.displayName || 'User',
+            displayName,
+            username: userData.username || userData.displayName || 'User',
             totalDays: userData.totalDays || 0,
             streak: userData.streak || 0,
             xp: userData.xp || 0,

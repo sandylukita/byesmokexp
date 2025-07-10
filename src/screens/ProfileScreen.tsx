@@ -13,7 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { logout } from '../services/auth';
+import { logout, updateUserDocument } from '../services/auth';
 
 import { COLORS, SIZES, BADGES } from '../utils/constants';
 import { User, Badge } from '../types';
@@ -125,6 +125,34 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
       'Aplikasi ini dibuat untuk membantu Anda dalam perjalanan berhenti merokok. Lacak progres Anda, selesaikan misi harian, dan dapatkan lencana untuk setiap pencapaian.\n\nIngat, setiap hari tanpa rokok adalah kemenangan. Anda lebih kuat dari yang Anda kira!\n\nDibuat dengan semangat dan harapan.',
       [{ text: 'OK' }]
     );
+  };
+
+  const handlePrivacyToggle = async () => {
+    if (!user) return;
+    
+    const newPreference = user.settings.leaderboardDisplayPreference === 'username' ? 'displayName' : 'username';
+    
+    try {
+      const updatedSettings = {
+        ...user.settings,
+        leaderboardDisplayPreference: newPreference
+      };
+      
+      await updateUserDocument(user.id, { settings: updatedSettings });
+      
+      setUser({
+        ...user,
+        settings: updatedSettings
+      });
+      
+      Alert.alert(
+        'Pengaturan Privasi',
+        `Leaderboard akan menampilkan ${newPreference === 'username' ? 'username' : 'nama lengkap'} Anda.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Gagal mengubah pengaturan privasi');
+    }
   };
 
   if (loading || !user) {
@@ -247,6 +275,19 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
             {!user.isPremium && (
               <MaterialIcons name="lock" size={16} color={COLORS.gray} />
             )}
+          </TouchableOpacity>
+
+          <View style={styles.settingDivider} />
+
+          <TouchableOpacity style={styles.settingItem} onPress={handlePrivacyToggle}>
+            <MaterialIcons name="privacy-tip" size={24} color={COLORS.primary} />
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingTitle}>Privasi Leaderboard</Text>
+              <Text style={styles.settingSubtitle}>
+                Tampilkan {user.settings.leaderboardDisplayPreference === 'username' ? 'username' : 'nama lengkap'} di leaderboard
+              </Text>
+            </View>
+            <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.gray} />
           </TouchableOpacity>
 
           <View style={styles.settingDivider} />
