@@ -6,6 +6,7 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -13,7 +14,9 @@ import {
     View,
 } from 'react-native';
 import { auth, db } from '../services/firebase';
+import { demoGetCurrentUser, demoUpdateOnboardingData } from '../services/demoAuth';
 import { COLORS, SIZES } from '../utils/constants';
+import { generatePersonalizedGreeting } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
 
 interface OnboardingScreenProps {
@@ -25,13 +28,24 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   const [quitDate, setQuitDate] = useState(new Date());
   const [cigarettesPerDay, setCigarettesPerDay] = useState('');
   const [cigarettePrice, setCigarettePrice] = useState('');
+  const [smokingYears, setSmokingYears] = useState('');
+  const [quitReason, setQuitReason] = useState('');
+  const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
+  const [previousAttempts, setPreviousAttempts] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [personalizedGreeting, setPersonalizedGreeting] = useState<any>(null);
 
   const steps = [
     {
-      title: 'Kapan Kamu Mulai Berhenti?',
-      subtitle: 'Pilih tanggal mulai perjalanan sehat',
-      component: 'date'
+      title: 'Selamat Datang!',
+      subtitle: 'Mari mulai perjalanan bebas rokok bersama',
+      component: 'welcome'
+    },
+    {
+      title: 'Berapa Lama Merokok?',
+      subtitle: 'Berapa tahun Anda sudah merokok?',
+      component: 'years'
     },
     {
       title: 'Berapa Batang Per Hari?',
@@ -42,38 +56,141 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
       title: 'Berapa Harga Per Bungkus?',
       subtitle: 'Untuk menghitung penghematan',
       component: 'price'
+    },
+    {
+      title: 'Mengapa Ingin Berhenti?',
+      subtitle: 'Pilih alasan utama Anda',
+      component: 'reasons'
+    },
+    {
+      title: 'Pernah Mencoba Berhenti?',
+      subtitle: 'Berapa kali Anda sudah mencoba?',
+      component: 'attempts'
+    },
+    {
+      title: 'Kapan Mulai Berhenti?',
+      subtitle: 'Pilih tanggal mulai perjalanan sehat',
+      component: 'date'
+    },
+    {
+      title: 'Selamat!',
+      subtitle: 'Perjalanan hidup sehat Anda dimulai sekarang',
+      component: 'completion'
     }
   ];
 
+  const validateCurrentStep = () => {
+    const step = steps[currentStep];
+    
+    switch (step.component) {
+      case 'welcome':
+        return true; // Welcome step doesn't need validation
+      case 'years':
+        if (!smokingYears || smokingYears.trim() === '') {
+          Alert.alert('Field Required', 'Silakan masukkan berapa lama Anda sudah merokok');
+          return false;
+        }
+        return true;
+      case 'cigarettes':
+        if (!cigarettesPerDay || cigarettesPerDay.trim() === '') {
+          Alert.alert('Field Required', 'Silakan masukkan jumlah rokok per hari');
+          return false;
+        }
+        return true;
+      case 'price':
+        if (!cigarettePrice || cigarettePrice.trim() === '') {
+          Alert.alert('Field Required', 'Silakan masukkan harga per bungkus rokok');
+          return false;
+        }
+        return true;
+      case 'reasons':
+        if (selectedReasons.length === 0) {
+          Alert.alert('Field Required', 'Silakan pilih minimal satu alasan untuk berhenti merokok');
+          return false;
+        }
+        return true;
+      case 'attempts':
+        if (!previousAttempts) {
+          Alert.alert('Field Required', 'Silakan pilih berapa kali Anda sudah mencoba berhenti');
+          return false;
+        }
+        return true;
+      case 'date':
+        return true; // Date has default value
+      case 'completion':
+        return true; // Completion step doesn't need validation
+      default:
+        return true;
+    }
+  };
+
   const handleNext = async () => {
     if (currentStep < steps.length - 1) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setCurrentStep(currentStep + 1);
+      // Validate current step before proceeding
+      if (validateCurrentStep()) {
+        // Generate personalized greeting when moving to completion step
+        if (currentStep === steps.length - 2) {
+          const greeting = generatePersonalizedGreeting({
+            smokingYears: parseInt(smokingYears) || 0,
+            cigarettesPerDay: parseInt(cigarettesPerDay) || 0,
+            cigarettePrice: parseFloat(cigarettePrice) || 0,
+            quitReasons: selectedReasons,
+            previousAttempts: parseInt(previousAttempts) || 0
+          });
+          setPersonalizedGreeting(greeting);
+        }
+        
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setCurrentStep(currentStep + 1);
+      }
     } else {
       await handleComplete();
     }
   };
 
   const handleComplete = async () => {
-    if (!cigarettesPerDay || !cigarettePrice) {
-      Alert.alert('Error', 'Silakan isi semua data');
+    // Final validation before completing onboarding
+    const missingFields = [];
+    if (!smokingYears || smokingYears.trim() === '') missingFields.push('Lama merokok');
+    if (!cigarettesPerDay || cigarettesPerDay.trim() === '') missingFields.push('Jumlah rokok per hari');
+    if (!cigarettePrice || cigarettePrice.trim() === '') missingFields.push('Harga per bungkus');
+    if (selectedReasons.length === 0) missingFields.push('Alasan berhenti merokok');
+    if (!previousAttempts) missingFields.push('Jumlah percobaan sebelumnya');
+    
+    if (missingFields.length > 0) {
+      Alert.alert('Data Belum Lengkap', `Silakan lengkapi: ${missingFields.join(', ')}`);
       return;
     }
 
     setLoading(true);
     try {
-      const user = auth.currentUser;
-      if (user) {
-        const userDoc = doc(db, 'users', user.uid);
-        await updateDoc(userDoc, {
-          quitDate: quitDate.toISOString(),
-          cigarettesPerDay: parseInt(cigarettesPerDay) || 0,
-          cigarettePrice: parseFloat(cigarettePrice) || 0,
-        });
-        
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        onComplete();
+      const onboardingData = {
+        quitDate: quitDate.toISOString(),
+        cigarettesPerDay: parseInt(cigarettesPerDay) || 0,
+        cigarettePrice: parseFloat(cigarettePrice) || 0,
+        smokingYears: parseInt(smokingYears) || 0,
+        quitReasons: selectedReasons,
+        previousAttempts: parseInt(previousAttempts) || 0,
+        onboardingCompleted: true,
+        onboardingDate: new Date().toISOString()
+      };
+
+      // Check if it's a demo user or Firebase user
+      const demoUser = demoGetCurrentUser();
+      if (demoUser) {
+        // Save to demo user data
+        await demoUpdateOnboardingData(onboardingData);
+      } else {
+        // Save to Firebase
+        const user = auth.currentUser;
+        if (user) {
+          const userDoc = doc(db, 'users', user.uid);
+          await updateDoc(userDoc, onboardingData);
+        }
       }
+      
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onComplete();
     } catch (error) {
       Alert.alert('Error', 'Gagal menyimpan data');
     } finally {
@@ -91,7 +208,105 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   const renderStepContent = () => {
     const step = steps[currentStep];
     
+    const quitReasonOptions = [
+      { id: 'health', label: 'Kesehatan' },
+      { id: 'family', label: 'Keluarga' },
+      { id: 'money', label: 'Keuangan' },
+      { id: 'fitness', label: 'Kebugaran' },
+      { id: 'appearance', label: 'Penampilan' },
+      { id: 'pregnancy', label: 'Kehamilan' }
+    ];
+    
     switch (step.component) {
+      case 'welcome':
+        return (
+          <View style={styles.stepContent}>
+            <Text style={styles.emoji}>🎉</Text>
+            <Text style={styles.welcomeText}>
+              Selamat! Anda telah mengambil langkah pertama menuju hidup yang lebih sehat.
+            </Text>
+          </View>
+        );
+      case 'years':
+        return (
+          <View style={styles.stepContent}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder={focusedInput === 'years' || smokingYears ? '' : ''}
+                placeholderTextColor="transparent"
+                value={smokingYears}
+                onChangeText={setSmokingYears}
+                onFocus={() => setFocusedInput('years')}
+                onBlur={() => setFocusedInput(null)}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+              {focusedInput !== 'years' && !smokingYears && (
+                <Text style={styles.placeholderText}>5</Text>
+              )}
+            </View>
+            <Text style={styles.inputLabel}>tahun *</Text>
+            <Text style={styles.requiredText}>Wajib diisi</Text>
+          </View>
+        );
+      case 'reasons':
+        return (
+          <View style={styles.stepContent}>
+            <View style={styles.reasonsGrid}>
+              {quitReasonOptions.map((reason) => (
+                <TouchableOpacity
+                  key={reason.id}
+                  style={[
+                    styles.reasonButton,
+                    selectedReasons.includes(reason.id) && styles.reasonButtonSelected
+                  ]}
+                  onPress={() => {
+                    if (selectedReasons.includes(reason.id)) {
+                      setSelectedReasons(selectedReasons.filter(r => r !== reason.id));
+                    } else {
+                      setSelectedReasons([...selectedReasons, reason.id]);
+                    }
+                  }}
+                >
+                  <Text style={[
+                    styles.reasonButtonText,
+                    selectedReasons.includes(reason.id) && styles.reasonButtonTextSelected
+                  ]}>
+                    {reason.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.hintText}>Pilih satu atau lebih *</Text>
+            <Text style={styles.requiredText}>Wajib dipilih</Text>
+          </View>
+        );
+      case 'attempts':
+        return (
+          <View style={styles.stepContent}>
+            <View style={styles.attemptsContainer}>
+              {['0', '1-2', '3-5', '5+'].map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.attemptButton,
+                    previousAttempts === option && styles.attemptButtonSelected
+                  ]}
+                  onPress={() => setPreviousAttempts(option)}
+                >
+                  <Text style={[
+                    styles.attemptButtonText,
+                    previousAttempts === option && styles.attemptButtonTextSelected
+                  ]}>
+                    {option === '0' ? 'Belum pernah' : `${option} kali`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.requiredText}>Wajib dipilih</Text>
+          </View>
+        );
       case 'date':
         return (
           <View style={styles.stepContent}>
@@ -108,19 +323,67 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
             </Text>
           </View>
         );
+      case 'completion':
+        return (
+          <ScrollView 
+            style={styles.completionScrollView}
+            contentContainerStyle={styles.completionContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.completionEmoji}>🎉</Text>
+            
+            <Text style={styles.completionHeadline}>
+              {personalizedGreeting?.headline || 'Selamat! Perjalanan Anda dimulai!'}
+            </Text>
+            
+            <Text style={styles.completionMessage}>
+              {personalizedGreeting?.message || 'Anda telah mengambil langkah pertama menuju hidup yang lebih sehat.'}
+            </Text>
+            
+            {personalizedGreeting && (
+              <View style={styles.highlightsContainer}>
+                <View style={styles.highlightCard}>
+                  <Text style={styles.highlightIcon}>💰</Text>
+                  <Text style={styles.highlightText}>
+                    {personalizedGreeting.financialHighlight}
+                  </Text>
+                </View>
+                
+                <View style={styles.highlightCard}>
+                  <Text style={styles.highlightIcon}>❤️</Text>
+                  <Text style={styles.highlightText}>
+                    {personalizedGreeting.healthHighlight}
+                  </Text>
+                </View>
+              </View>
+            )}
+            
+            <Text style={styles.motivationalNote}>
+              {personalizedGreeting?.motivationalNote || 'Mari mulai perjalanan sehat bersama ByeSmoke XP!'}
+            </Text>
+          </ScrollView>
+        );
       case 'cigarettes':
         return (
           <View style={styles.stepContent}>
-            <TextInput
-              style={styles.input}
-              placeholder="Contoh: 12"
-              placeholderTextColor={COLORS.gray}
-              value={cigarettesPerDay}
-              onChangeText={setCigarettesPerDay}
-              keyboardType="numeric"
-              maxLength={2}
-            />
-            <Text style={styles.inputLabel}>batang per hari</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder={focusedInput === 'cigarettes' || cigarettesPerDay ? '' : ''}
+                placeholderTextColor="transparent"
+                value={cigarettesPerDay}
+                onChangeText={setCigarettesPerDay}
+                onFocus={() => setFocusedInput('cigarettes')}
+                onBlur={() => setFocusedInput(null)}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+              {focusedInput !== 'cigarettes' && !cigarettesPerDay && (
+                <Text style={styles.placeholderText}>12</Text>
+              )}
+            </View>
+            <Text style={styles.inputLabel}>batang per hari *</Text>
+            <Text style={styles.requiredText}>Wajib diisi</Text>
           </View>
         );
       case 'price':
@@ -128,17 +391,25 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
           <View style={styles.stepContent}>
             <View style={styles.priceContainer}>
               <Text style={styles.currencySymbol}>Rp</Text>
-              <TextInput
-                style={styles.priceInput}
-                placeholder="25000"
-                placeholderTextColor={COLORS.gray}
-                value={cigarettePrice}
-                onChangeText={setCigarettePrice}
-                keyboardType="numeric"
-                maxLength={6}
-              />
+              <View style={styles.priceInputContainer}>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder={focusedInput === 'price' || cigarettePrice ? '' : ''}
+                  placeholderTextColor="transparent"
+                  value={cigarettePrice}
+                  onChangeText={setCigarettePrice}
+                  onFocus={() => setFocusedInput('price')}
+                  onBlur={() => setFocusedInput(null)}
+                  keyboardType="numeric"
+                  maxLength={6}
+                />
+                {focusedInput !== 'price' && !cigarettePrice && (
+                  <Text style={styles.pricePlaceholderText}>25000</Text>
+                )}
+              </View>
             </View>
-            <Text style={styles.inputLabel}>per bungkus</Text>
+            <Text style={styles.inputLabel}>per bungkus *</Text>
+            <Text style={styles.requiredText}>Wajib diisi</Text>
           </View>
         );
       default:
@@ -198,7 +469,9 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
               >
                 <Text style={styles.nextButtonText}>
                   {currentStep === steps.length - 1 
-                    ? (loading ? 'Menyimpan...' : 'Mulai Perjalanan') 
+                    ? (loading ? 'Menyimpan...' : 'Mulai Perjalanan Sehat') 
+                    : currentStep === steps.length - 2
+                    ? 'Lihat Ringkasan'
                     : 'Lanjut'
                   }
                 </Text>
@@ -249,6 +522,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 100, // Add space for button
   },
   title: {
     ...TYPOGRAPHY.h1White,
@@ -265,6 +539,200 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
+  emoji: {
+    fontSize: 72,
+    marginBottom: SIZES.spacingLg,
+  },
+  welcomeText: {
+    ...TYPOGRAPHY.bodyLargeWhite,
+    opacity: 0.9,
+    textAlign: 'center',
+    lineHeight: 28,
+    paddingHorizontal: SIZES.spacingLg,
+  },
+  reasonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: SIZES.spacingMd,
+    paddingHorizontal: SIZES.spacingMd,
+  },
+  reasonButton: {
+    backgroundColor: COLORS.neutral,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    margin: 6,
+    borderWidth: 1,
+    borderColor: COLORS.neutralDark,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reasonButtonSelected: {
+    backgroundColor: COLORS.secondary,
+    borderColor: COLORS.secondary,
+  },
+  reasonButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.neutralDark,
+    textAlign: 'center',
+  },
+  reasonButtonTextSelected: {
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+  hintText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.white,
+    opacity: 0.9,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  requiredText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: COLORS.white,
+    opacity: 0.7,
+    marginTop: 4,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  inputContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeholderText: {
+    position: 'absolute',
+    fontSize: 20,
+    fontWeight: '400',
+    color: COLORS.gray,
+    opacity: 0.6,
+    textAlign: 'center',
+    pointerEvents: 'none',
+    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
+  },
+  priceInputContainer: {
+    position: 'relative',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pricePlaceholderText: {
+    position: 'absolute',
+    fontSize: 20,
+    fontWeight: '400',
+    color: COLORS.gray,
+    opacity: 0.6,
+    textAlign: 'center',
+    pointerEvents: 'none',
+    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: COLORS.white,
+    opacity: 0.8,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  completionScrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  completionContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  completionEmoji: {
+    fontSize: 60,
+    marginBottom: 20,
+  },
+  completionHeadline: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.white,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 28,
+  },
+  completionMessage: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: COLORS.white,
+    opacity: 0.9,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  highlightsContainer: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  highlightCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  highlightIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  highlightText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.white,
+    opacity: 0.9,
+    flex: 1,
+    lineHeight: 18,
+  },
+  motivationalNote: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.white,
+    opacity: 0.8,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    lineHeight: 20,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  attemptsContainer: {
+    width: '100%',
+  },
+  attemptButton: {
+    backgroundColor: COLORS.neutral,
+    borderRadius: 12,
+    paddingVertical: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutralDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attemptButtonSelected: {
+    backgroundColor: COLORS.secondary,
+    borderColor: COLORS.secondary,
+  },
+  attemptButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.neutralDark,
+    textAlign: 'center',
+  },
+  attemptButtonTextSelected: {
+    color: COLORS.white,
+    fontWeight: '600',
+  },
   dateText: {
     ...TYPOGRAPHY.h4White,
     textAlign: 'center',
@@ -277,12 +745,14 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: COLORS.white,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: 12,
     padding: SIZES.spacingLg,
-    ...TYPOGRAPHY.h1,
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.textPrimary,
     textAlign: 'center',
     minWidth: 120,
+    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
   },
   inputLabel: {
     ...TYPOGRAPHY.bodyLargeWhite,
@@ -293,20 +763,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.white,
-    borderRadius: SIZES.borderRadius,
+    borderRadius: 12,
     paddingHorizontal: SIZES.lg,
     paddingVertical: SIZES.md,
   },
   currencySymbol: {
-    ...TYPOGRAPHY.h1,
+    fontSize: 28,
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginRight: SIZES.spacingSm,
   },
   priceInput: {
-    ...TYPOGRAPHY.h1,
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.textPrimary,
     minWidth: 150,
     textAlign: 'center',
+    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
   },
   footer: {
     paddingBottom: 50,
@@ -315,35 +788,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
   },
   backButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: COLORS.white,
-    borderRadius: SIZES.borderRadius,
-    paddingHorizontal: SIZES.xl,
-    paddingVertical: SIZES.md,
-    minHeight: SIZES.buttonHeight,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    minHeight: 50,
     justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
   },
   backButtonText: {
-    ...TYPOGRAPHY.button,
+    fontSize: 16,
+    fontWeight: '600',
     color: COLORS.white,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   nextButton: {
     backgroundColor: COLORS.secondary,
-    borderRadius: SIZES.borderRadius,
-    paddingHorizontal: SIZES.xl,
-    paddingVertical: SIZES.md,
-    minHeight: SIZES.buttonHeight,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    minHeight: 50,
     justifyContent: 'center',
+    alignItems: 'center',
     flex: 1,
-    marginLeft: SIZES.md,
+    marginLeft: 12,
   },
   nextButtonText: {
-    ...TYPOGRAPHY.button,
+    fontSize: 16,
+    fontWeight: '600',
     color: COLORS.white,
     textAlign: 'center',
+    lineHeight: 20,
   },
   buttonDisabled: {
     opacity: 0.7,

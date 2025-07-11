@@ -33,36 +33,41 @@ export default function Main() {
     // Only check for users after splash screen finishes
     if (!splashFinished) return;
 
-    // Try to restore demo user from AsyncStorage first
+    // Check Firebase authentication first for real users
     (async () => {
       console.log('Main.tsx: Attempting to restore user on app start...');
-      const restoredDemoUser = await demoRestoreUser();
-      if (restoredDemoUser) {
-        console.log('Main.tsx: Restored demo user, navigating to dashboard');
-        setUser(restoredDemoUser as unknown as FirebaseUser);
-        setAppState('dashboard');
-        return;
-      }
-
-      const demoUser = demoGetCurrentUser();
-      if (demoUser) {
-        console.log('Main.tsx: Found demo user in memory, navigating to dashboard');
-        setUser(demoUser as unknown as FirebaseUser); // Cast as FirebaseUser for type compatibility
-        setAppState('dashboard');
-        return;
-      }
-
-      console.log('Main.tsx: No demo user found, checking Firebase...');
-
-      // Only set up Firebase listener if no demo user is found
-      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        setUser(firebaseUser);
+      
+      // First, set up Firebase listener for real users
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
+          console.log('Main.tsx: Found Firebase user, navigating to dashboard/onboarding');
+          setUser(firebaseUser);
           // Check if user needs onboarding
           checkOnboardingStatus(firebaseUser);
-        } else {
-          setAppState('login');
+          return;
         }
+        
+        // If no Firebase user, fallback to demo users for development/testing
+        console.log('Main.tsx: No Firebase user, checking demo users...');
+        const restoredDemoUser = await demoRestoreUser();
+        if (restoredDemoUser) {
+          console.log('Main.tsx: Found demo user in storage, navigating to dashboard');
+          setUser(restoredDemoUser as unknown as FirebaseUser);
+          setAppState('dashboard');
+          return;
+        }
+
+        const demoUser = demoGetCurrentUser();
+        if (demoUser) {
+          console.log('Main.tsx: Found demo user in memory, navigating to dashboard');
+          setUser(demoUser as unknown as FirebaseUser);
+          setAppState('dashboard');
+          return;
+        }
+
+        // No users found, show login
+        console.log('Main.tsx: No users found, showing login screen');
+        setAppState('login');
       });
 
       // Clean up Firebase listener on unmount

@@ -49,9 +49,8 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
     try {
       await signUp(email, password, name, username);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      Alert.alert('Berhasil', 'Akun berhasil dibuat!', [
-        { text: 'OK', onPress: onSignUp }
-      ]);
+      // Don't show alert, directly go to onboarding
+      onSignUp();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Gagal membuat akun');
     } finally {

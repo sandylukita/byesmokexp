@@ -1,7 +1,8 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     ActivityIndicator,
     Dimensions,
@@ -35,6 +36,20 @@ const LeaderboardScreen: React.FC = () => {
     loadUserAndLeaderboardData();
   }, []);
 
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('LeaderboardScreen focused, reloading data...');
+      
+      // Add a small delay to ensure any pending updates from other screens are completed
+      const timeoutId = setTimeout(() => {
+        loadUserAndLeaderboardData();
+      }, 100); // 100ms delay
+      
+      return () => clearTimeout(timeoutId);
+    }, [])
+  );
+
   // Update rank when tab changes or data loads
   useEffect(() => {
     if (currentUserId) {
@@ -51,18 +66,19 @@ const LeaderboardScreen: React.FC = () => {
     try {
       let userId: string | null = null;
       
-      // Try to get demo user first
-      const restoredUser = await demoRestoreUser();
-      if (restoredUser) {
-        console.log('Leaderboard: Found restored user:', restoredUser.id);
-        userId = restoredUser.id;
-        setCurrentUserId(restoredUser.id);
+      // Check current demo user in memory first (most recent data)
+      const demoUser = demoGetCurrentUser();
+      if (demoUser) {
+        console.log('Leaderboard: Found demo user in memory:', demoUser.id, 'XP:', demoUser.xp);
+        userId = demoUser.id;
+        setCurrentUserId(demoUser.id);
       } else {
-        const demoUser = demoGetCurrentUser();
-        if (demoUser) {
-          console.log('Leaderboard: Found demo user:', demoUser.id);
-          userId = demoUser.id;
-          setCurrentUserId(demoUser.id);
+        // Try to restore demo user from storage as backup
+        const restoredUser = await demoRestoreUser();
+        if (restoredUser) {
+          console.log('Leaderboard: Found restored user from storage:', restoredUser.id, 'XP:', restoredUser.xp);
+          userId = restoredUser.id;
+          setCurrentUserId(restoredUser.id);
         } else {
           // Fallback to Firebase
           const user = auth.currentUser;
@@ -207,29 +223,41 @@ const LeaderboardScreen: React.FC = () => {
     // For demo mode, skip Firebase query and use demo user data
     const realUsers: LeaderboardEntry[] = [];
     
-    // Add current demo user to leaderboard if available
-    const demoUser = demoGetCurrentUser();
-    if (demoUser) {
-      const levelInfo = calculateLevel(demoUser.xp || 0);
+    // Always get the current demo user data (most up-to-date)
+    const currentDemoUser = demoGetCurrentUser();
+    if (currentDemoUser) {
+      const levelInfo = calculateLevel(currentDemoUser.xp || 0);
       // Use username for privacy by default, fallback to displayName if no username
-      const displayName = demoUser.settings?.leaderboardDisplayPreference === 'displayName' 
-        ? demoUser.displayName || 'User'
-        : demoUser.username || demoUser.displayName || 'User';
+      const displayName = currentDemoUser.settings?.leaderboardDisplayPreference === 'displayName' 
+        ? currentDemoUser.displayName || 'User'
+        : currentDemoUser.username || currentDemoUser.displayName || 'User';
       
       realUsers.push({
-        id: demoUser.id,
+        id: currentDemoUser.id,
         displayName,
-        username: demoUser.username || demoUser.displayName || 'User',
-        totalDays: demoUser.totalDays || 0,
-        streak: demoUser.streak || 0,
-        xp: demoUser.xp || 0,
+        username: currentDemoUser.username || currentDemoUser.displayName || 'User',
+        totalDays: currentDemoUser.totalDays || 0,
+        streak: currentDemoUser.streak || 0,
+        xp: currentDemoUser.xp || 0,
         level: levelInfo.level,
         rank: 0, // Will be set after sorting
       });
+      
+      console.log('✓ Current demo user stats for leaderboard:', {
+        id: currentDemoUser.id,
+        displayName,
+        totalDays: currentDemoUser.totalDays || 0,
+        streak: currentDemoUser.streak || 0,
+        xp: currentDemoUser.xp || 0,
+        level: levelInfo.level,
+        weeklyScore: (currentDemoUser.streak || 0) * 10 + (currentDemoUser.xp || 0)
+      });
+    } else {
+      console.log('⚠️ No current demo user found in loadSampleData');
     }
 
     // If we have a currentUser but no demo user, create a basic entry for them
-    if (!demoUser && currentUser) {
+    if (!currentDemoUser && currentUser) {
       console.log('Creating basic entry for Firebase user:', currentUser);
       realUsers.push({
         id: currentUser,
@@ -244,7 +272,7 @@ const LeaderboardScreen: React.FC = () => {
     }
 
     // Only try Firebase if not in demo mode and we want to get other users
-    if (!demoUser) {
+    if (!currentDemoUser) {
       try {
         const usersRef = collection(db, 'users');
         const usersQuery = query(usersRef, orderBy('totalDays', 'desc'), limit(20));
@@ -275,8 +303,51 @@ const LeaderboardScreen: React.FC = () => {
       }
     }
 
-    // Combine real users with sample data for demo purposes
-    const combinedWeekly = [...realUsers, ...sampleWeeklyData]
+    // Create dynamic sample data with more realistic ranges for user progression
+    const currentUserXP = currentDemoUser?.xp || 0;
+    const currentUserDays = currentDemoUser?.totalDays || 0;
+    
+    const adjustedSampleWeekly = sampleWeeklyData.map((user, index) => {
+      // Create a wider range to allow user progression
+      let xpRange, streakRange;
+      
+      if (currentUserXP < 100) {
+        // For new users, create achievable targets
+        xpRange = Math.floor(Math.random() * 200) - 50; // -50 to +150
+        streakRange = Math.floor(Math.random() * 10) - 2; // -2 to +8
+      } else {
+        // For established users, maintain competitive range
+        xpRange = Math.floor(Math.random() * 300) - 100; // -100 to +200
+        streakRange = Math.floor(Math.random() * 15) - 5; // -5 to +10
+      }
+      
+      return {
+        ...user,
+        xp: Math.max(10, user.xp + xpRange),
+        streak: Math.max(1, user.streak + streakRange)
+      };
+    });
+
+    const adjustedSampleAllTime = sampleAllTimeData.map((user, index) => {
+      // Create wider range for total days to allow user progression
+      let dayRange;
+      
+      if (currentUserDays < 10) {
+        // For new users, create achievable targets
+        dayRange = Math.floor(Math.random() * 50) - 10; // -10 to +40
+      } else {
+        // For established users, maintain competitive range
+        dayRange = Math.floor(Math.random() * 100) - 30; // -30 to +70
+      }
+      
+      return {
+        ...user,
+        totalDays: Math.max(1, user.totalDays + dayRange)
+      };
+    });
+
+    // Combine real users with adjusted sample data
+    const combinedWeekly = [...realUsers, ...adjustedSampleWeekly]
       .sort((a, b) => {
         // Sort by weekly performance (combination of streak and XP)
         const aScore = a.streak * 10 + a.xp;
@@ -285,9 +356,24 @@ const LeaderboardScreen: React.FC = () => {
       })
       .map((user, index) => ({ ...user, rank: index + 1 }));
 
-    const combinedAllTime = [...realUsers, ...sampleAllTimeData]
+    const combinedAllTime = [...realUsers, ...adjustedSampleAllTime]
       .sort((a, b) => b.totalDays - a.totalDays)
       .map((user, index) => ({ ...user, rank: index + 1 }));
+
+    console.log('Weekly leaderboard rankings:');
+    combinedWeekly.forEach((user, index) => {
+      if (index < 10) {
+        const score = user.streak * 10 + user.xp;
+        console.log(`#${user.rank}: ${user.displayName} (Score: ${score}, Streak: ${user.streak}, XP: ${user.xp})`);
+      }
+    });
+
+    console.log('All-time leaderboard rankings:');
+    combinedAllTime.forEach((user, index) => {
+      if (index < 10) {
+        console.log(`#${user.rank}: ${user.displayName} (Days: ${user.totalDays})`);
+      }
+    });
 
     setWeeklyLeaders(combinedWeekly.slice(0, 10));
     setAllTimeLeaders(combinedAllTime.slice(0, 10));

@@ -19,6 +19,7 @@ import { auth, db } from '../services/firebase';
 import { BentoCard, BentoGrid } from '../components/BentoGrid';
 import { Mission, User } from '../types';
 import { COLORS, SIZES, STATIC_MISSIONS } from '../utils/constants';
+import { completeMission, checkAndAwardBadges } from '../services/gamification';
 import {
     calculateDaysSinceQuit,
     calculateLevel,
@@ -59,6 +60,23 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     return () => clearTimeout(timeout);
   }, []);
 
+  // Auto-sync totalDays for existing users if outdated
+  useEffect(() => {
+    if (user) {
+      const calculatedDays = calculateDaysSinceQuit(new Date(user.quitDate));
+      if (calculatedDays > user.totalDays + 1) {
+        const demoUser = demoGetCurrentUser();
+        if (demoUser && demoUser.id === user.id) {
+          demoUpdateUser(user.id, { totalDays: calculatedDays });
+        } else {
+          // For Firebase users, update on next check-in
+          console.log('totalDays will be synced on next check-in');
+        }
+        setUser({ ...user, totalDays: calculatedDays });
+      }
+    }
+  }, [user?.quitDate, user?.totalDays]);
+
   // Reset mission completion state daily
   useEffect(() => {
     if (user) {
@@ -84,22 +102,22 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const loadUserData = async () => {
     console.log('Starting loadUserData...');
     try {
-      // Try to restore demo user from storage first
-      console.log('Attempting to restore demo user from storage...');
-      const restoredUser = await demoRestoreUser();
-      if (restoredUser) {
-        console.log('Demo user restored from storage:', restoredUser.email);
-        setUser(restoredUser);
-        setLoading(false);
-        return;
-      }
-      
-      // Check current demo user in memory
+      // Check current demo user in memory first (most recent data)
       console.log('Checking for demo user in memory...');
       const demoUser = demoGetCurrentUser();
       if (demoUser) {
         console.log('Demo user found in memory:', demoUser.email);
         setUser(demoUser);
+        setLoading(false);
+        return;
+      }
+      
+      // Try to restore demo user from storage as backup
+      console.log('Attempting to restore demo user from storage...');
+      const restoredUser = await demoRestoreUser();
+      if (restoredUser) {
+        console.log('Demo user restored from storage:', restoredUser.email);
+        setUser(restoredUser);
         setLoading(false);
         return;
       }
@@ -177,22 +195,89 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         });
       }
 
-      setUser({
+      const updatedUser = {
         ...user,
         ...updates,
-      });
+      };
+      
+      // Check for new badges after check-in
+      try {
+        const newBadges = await checkAndAwardBadges(user.id, updatedUser);
+        if (newBadges.length > 0) {
+          updatedUser.badges = [...user.badges, ...newBadges];
+          
+          // Update demo user in-memory data with new badges
+          const demoUser = demoGetCurrentUser();
+          if (demoUser && demoUser.id === user.id) {
+            await demoUpdateUser(user.id, {
+              badges: updatedUser.badges,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking badges:', error);
+      }
 
-      // Mark check-in mission as completed
+      setUser(updatedUser);
+
+      // Mark check-in mission as completed and record it permanently
       if (!completedMissions.includes('daily-checkin')) {
         setCompletedMissions(prev => [...prev, 'daily-checkin']);
+        
+        // Find the daily check-in mission and complete it
+        const checkInMission = generateDailyMissions().find(m => m.id === 'daily-checkin');
+        if (checkInMission) {
+          try {
+            const demoUser = demoGetCurrentUser();
+            
+            if (demoUser && demoUser.id === user.id) {
+              // Handle demo user check-in mission
+              const completedMission = {
+                ...checkInMission,
+                isCompleted: true,
+                completedAt: new Date(),
+              };
+              
+              updatedUser.completedMissions = [...(updatedUser.completedMissions || []), completedMission];
+              
+              // Update demo user with completed mission
+              await demoUpdateUser(user.id, {
+                completedMissions: updatedUser.completedMissions,
+              });
+              
+              setUser(updatedUser);
+            } else {
+              // Handle Firebase user
+              const result = await completeMission(user.id, checkInMission, updatedUser);
+              if (result.success) {
+                // Update user with completed mission
+                updatedUser.completedMissions = [...(updatedUser.completedMissions || []), {
+                  ...checkInMission,
+                  isCompleted: true,
+                  completedAt: new Date(),
+                }];
+                if (result.newBadges.length > 0) {
+                  updatedUser.badges = [...updatedUser.badges, ...result.newBadges];
+                }
+                setUser(updatedUser);
+              }
+            }
+          } catch (error) {
+            console.error('Error recording check-in mission:', error);
+          }
+        }
       }
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      Alert.alert(
-        'Selamat!', 
-        `Check-in berhasil! +10 XP\nStreak: ${newStreak} hari`,
-        [{ text: 'OK' }]
-      );
+      
+      // Show success message with badge notification if any
+      let message = `Check-in berhasil! +10 XP\nStreak: ${newStreak} hari`;
+      if (updatedUser.badges.length > user.badges.length) {
+        const newBadgesCount = updatedUser.badges.length - user.badges.length;
+        message += `\n🏆 Badge baru: ${newBadgesCount}`;
+      }
+      
+      Alert.alert('Selamat!', message, [{ text: 'OK' }]);
     } catch (error) {
       Alert.alert('Error', 'Gagal melakukan check-in');
     } finally {
@@ -224,7 +309,90 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         setCompletedMissions(prev => prev.filter(id => id !== mission.id));
       } else {
         setCompletedMissions(prev => [...prev, mission.id]);
-        // TODO: Add XP reward for completing mission
+        
+        // Actually complete the mission
+        try {
+          // Check if demo user
+          const demoUser = demoGetCurrentUser();
+          
+          if (demoUser && demoUser.id === user.id) {
+            // Handle demo user mission completion
+            const completedMission = {
+              ...mission,
+              isCompleted: true,
+              completedAt: new Date(),
+            };
+            
+            const newXP = user.xp + mission.xpReward;
+            const updatedCompletedMissions = [...(user.completedMissions || []), completedMission];
+            
+            // Check for new badges
+            const updatedUser = {
+              ...user,
+              xp: newXP,
+              completedMissions: updatedCompletedMissions,
+            };
+            
+            const newBadges = await checkAndAwardBadges(user.id, updatedUser);
+            
+            // Update demo user with new data
+            await demoUpdateUser(user.id, {
+              xp: newXP,
+              completedMissions: updatedCompletedMissions,
+              badges: [...user.badges, ...newBadges],
+            });
+            console.log('Demo user updated after mission completion:', {
+              xp: newXP,
+              missionsCount: updatedCompletedMissions.length,
+              badgesCount: [...user.badges, ...newBadges].length
+            });
+            
+            // Update local state
+            setUser({
+              ...updatedUser,
+              badges: [...user.badges, ...newBadges],
+            });
+            console.log('Local state updated after mission completion');
+            
+            if (mission.xpReward > 0) {
+              Alert.alert('Misi Selesai!', `Kamu mendapat ${mission.xpReward} XP!`);
+            }
+            
+            if (newBadges.length > 0) {
+              Alert.alert('Badge Baru!', `Kamu mendapat ${newBadges.length} badge baru!`);
+            }
+          } else {
+            // Handle Firebase user
+            const result = await completeMission(user.id, mission, user);
+            if (result.success) {
+              // Update user data to reflect XP and badge changes
+              const updatedUser = {
+                ...user,
+                xp: user.xp + result.xpAwarded,
+                completedMissions: [...(user.completedMissions || []), {
+                  ...mission,
+                  isCompleted: true,
+                  completedAt: new Date(),
+                }],
+                badges: [...user.badges, ...result.newBadges],
+              };
+              setUser(updatedUser);
+              
+              // Show success message if XP was awarded
+              if (result.xpAwarded > 0) {
+                Alert.alert('Misi Selesai!', `Kamu mendapat ${result.xpAwarded} XP!`);
+              }
+              
+              // Show badge notification if new badges were earned
+              if (result.newBadges.length > 0) {
+                Alert.alert('Badge Baru!', `Kamu mendapat ${result.newBadges.length} badge baru!`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error completing mission:', error);
+          Alert.alert('Error', 'Gagal menyelesaikan misi');
+        }
       }
     }
   };
@@ -249,7 +417,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   }
 
   const levelInfo = calculateLevel(user.xp);
-  const daysSinceQuit = calculateDaysSinceQuit(new Date(user.quitDate));
+  // For existing users, sync totalDays with calculated value if they differ significantly
+  const calculatedDays = calculateDaysSinceQuit(new Date(user.quitDate));
+  const daysSinceQuit = Math.max(user.totalDays, calculatedDays); // Use the higher value
+  
+  
   const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
   const canCheckIn = canCheckInToday(user.lastCheckIn);
   const dailyMissions = generateDailyMissions();

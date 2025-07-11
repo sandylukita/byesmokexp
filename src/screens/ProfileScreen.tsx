@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -35,25 +36,51 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     loadUserData();
   }, []);
 
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('ProfileScreen focused, reloading data...');
+      
+      // Add a small delay to ensure any pending updates from other screens are completed
+      const timeoutId = setTimeout(() => {
+        loadUserData();
+      }, 100); // 100ms delay
+      
+      return () => clearTimeout(timeoutId);
+    }, [])
+  );
+
   const loadUserData = async () => {
     console.log('Starting loadUserData in ProfileScreen...');
     try {
-      // Try to restore demo user from storage first
-      console.log('Attempting to restore demo user from storage...');
-      const restoredUser = await demoRestoreUser();
-      if (restoredUser) {
-        console.log('Demo user restored from storage:', restoredUser.email);
-        setUser(restoredUser);
+      // Check current demo user in memory first (most recent data)
+      console.log('Checking for demo user in memory...');
+      const demoUser = demoGetCurrentUser();
+      if (demoUser) {
+        console.log('✓ Demo user found in memory:', {
+          email: demoUser.email,
+          completedMissions: demoUser.completedMissions?.length || 0,
+          badges: demoUser.badges?.length || 0,
+          xp: demoUser.xp,
+          totalDays: demoUser.totalDays
+        });
+        setUser(demoUser);
         setLoading(false);
         return;
       }
       
-      // Check current demo user in memory
-      console.log('Checking for demo user in memory...');
-      const demoUser = demoGetCurrentUser();
-      if (demoUser) {
-        console.log('Demo user found in memory:', demoUser.email);
-        setUser(demoUser);
+      // Try to restore demo user from storage as backup
+      console.log('No demo user in memory, checking storage...');
+      const restoredUser = await demoRestoreUser();
+      if (restoredUser) {
+        console.log('✓ Demo user restored from storage:', {
+          email: restoredUser.email,
+          completedMissions: restoredUser.completedMissions?.length || 0,
+          badges: restoredUser.badges?.length || 0,
+          xp: restoredUser.xp,
+          totalDays: restoredUser.totalDays
+        });
+        setUser(restoredUser);
         setLoading(false);
         return;
       }
@@ -179,17 +206,39 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
         <View style={styles.badgeGrid}>
           {BADGES.map((badge) => {
             const isEarned = earnedBadges.some(earned => earned.id === badge.id);
+            const isPremiumBadge = badge.isPremium;
+            const canViewPremiumBadge = user.isPremium || isEarned;
+            
             return (
-              <View key={badge.id} style={styles.badgeCard}>
+              <View key={badge.id} style={[
+                styles.badgeCard,
+                isPremiumBadge && styles.premiumBadgeCard
+              ]}>
+                {isPremiumBadge && (
+                  <View style={styles.premiumBadgeIndicator}>
+                    <MaterialIcons name="star" size={12} color={COLORS.accent} />
+                  </View>
+                )}
                 <View style={[
                   styles.badgeIcon,
-                  { backgroundColor: isEarned ? badge.color : COLORS.lightGray }
+                  { backgroundColor: isEarned ? badge.color : COLORS.lightGray },
+                  isPremiumBadge && !canViewPremiumBadge && styles.lockedBadgeIcon,
+                  isEarned && styles.earnedBadgeIcon
                 ]}>
-                  <MaterialIcons 
-                    name={badge.icon as any} 
-                    size={24} 
-                    color={isEarned ? COLORS.white : COLORS.gray} 
-                  />
+                  {isPremiumBadge && !canViewPremiumBadge ? (
+                    <MaterialIcons name="lock" size={24} color={COLORS.gray} />
+                  ) : (
+                    <MaterialIcons 
+                      name={badge.icon as any} 
+                      size={24} 
+                      color={isEarned ? COLORS.white : COLORS.gray} 
+                    />
+                  )}
+                  {isEarned && (
+                    <View style={styles.earnedBadgeIndicator}>
+                      <MaterialIcons name="check" size={16} color={COLORS.success} />
+                    </View>
+                  )}
                 </View>
                 <Text style={[
                   styles.badgeName,
@@ -205,7 +254,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
                 </Text>
                 {!isEarned && (
                   <Text style={styles.badgeRequirement}>
-                    {badge.requirement}
+                    {isPremiumBadge && !user.isPremium ? 'Premium Only' : badge.requirement}
                   </Text>
                 )}
               </View>
@@ -504,6 +553,53 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 10,
     elevation: 4,
+  },
+  premiumBadgeCard: {
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.surface,
+  },
+  premiumBadgeIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  lockedBadgeIcon: {
+    backgroundColor: COLORS.lightGray,
+    opacity: 0.5,
+  },
+  earnedBadgeIcon: {
+    borderWidth: 3,
+    borderColor: COLORS.success,
+    shadowColor: COLORS.success,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  earnedBadgeIndicator: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.success,
   },
   badgeIcon: {
     width: 48,

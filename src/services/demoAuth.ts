@@ -174,26 +174,23 @@ export const demoGetCurrentUser = (): DemoUser | null => {
 };
 
 export const demoUpdateUser = async (userId: string, updates: Partial<User>): Promise<void> => {
-  return new Promise(async (resolve) => {
-    setTimeout(async () => {
-      if (currentUser && currentUser.id === userId) {
-        Object.assign(currentUser, updates);
-        // Also update in DEMO_USERS array
-        const index = DEMO_USERS.findIndex(u => u.id === userId);
-        if (index !== -1) {
-          Object.assign(DEMO_USERS[index], updates);
-        }
-        
-        // Save updated user to AsyncStorage
-        try {
-          await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(currentUser));
-        } catch (error) {
-          console.error('Error saving updated user to storage:', error);
-        }
-      }
-      resolve();
-    }, 500);
-  });
+  if (currentUser && currentUser.id === userId) {
+    Object.assign(currentUser, updates);
+    // Also update in DEMO_USERS array
+    const index = DEMO_USERS.findIndex(u => u.id === userId);
+    if (index !== -1) {
+      Object.assign(DEMO_USERS[index], updates);
+    }
+    
+    // Save updated user to AsyncStorage immediately
+    try {
+      await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(currentUser));
+      console.log('Demo user data saved to storage immediately');
+    } catch (error) {
+      console.error('Error saving updated user to storage:', error);
+      throw error; // Throw error so caller can handle it
+    }
+  }
 };
 
 export const demoCreateUserDocument = async (email: string, displayName: string, username: string): Promise<Partial<User>> => {
@@ -222,4 +219,40 @@ export const demoCreateUserDocument = async (email: string, displayName: string,
   };
   
   return userData;
+};
+
+export const demoUpdateOnboardingData = async (onboardingData: {
+  quitDate: string;
+  cigarettesPerDay: number;
+  cigarettePrice: number;
+  smokingYears: number;
+  quitReasons: string[];
+  previousAttempts: number;
+  onboardingCompleted: boolean;
+  onboardingDate: string;
+}): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    setTimeout(async () => {
+      if (currentUser) {
+        try {
+          // Update current user in memory
+          Object.assign(currentUser, onboardingData);
+          
+          // Update in DEMO_USERS array
+          const index = DEMO_USERS.findIndex(u => u.id === currentUser?.id);
+          if (index !== -1) {
+            Object.assign(DEMO_USERS[index], onboardingData);
+          }
+          
+          // Save updated user to AsyncStorage
+          await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(currentUser));
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      } else {
+        reject(new Error('No current user found'));
+      }
+    }, 500);
+  });
 };

@@ -25,6 +25,7 @@ export interface Badge {
   color: string;
   unlockedAt: Date | null;
   requirement: string;
+  isPremium?: boolean;
 }
 
 export interface Mission {

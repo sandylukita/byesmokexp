@@ -225,6 +225,115 @@ export const BADGES = [
     icon: 'emoji-events',
     color: '#E74C3C',
     requirement: '50 misi selesai'
+  },
+  // Premium Badges
+  {
+    id: 'elite-year',
+    name: 'Elite Setahun',
+    description: 'Bertahan selama 365 hari',
+    icon: 'workspace-premium',
+    color: '#FFD700',
+    requirement: '365 hari berturut-turut',
+    isPremium: true
+  },
+  {
+    id: 'diamond-streak',
+    name: 'Diamond Streak',
+    description: 'Mencapai streak 500 hari',
+    icon: 'diamond',
+    color: '#00D4FF',
+    requirement: '500 hari berturut-turut',
+    isPremium: true
+  },
+  {
+    id: 'legendary-master',
+    name: 'Master Legendaris',
+    description: 'Mencapai streak 1000 hari',
+    icon: 'military-tech',
+    color: '#8A2BE2',
+    requirement: '1000 hari berturut-turut',
+    isPremium: true
+  },
+  {
+    id: 'xp-elite',
+    name: 'Elite XP',
+    description: 'Mengumpulkan 5000 XP',
+    icon: 'auto-awesome',
+    color: '#FF6B35',
+    requirement: '5000 XP',
+    isPremium: true
+  },
+  {
+    id: 'xp-master-premium',
+    name: 'XP Master Premium',
+    description: 'Mengumpulkan 10000 XP',
+    icon: 'stars',
+    color: '#FF1493',
+    requirement: '10000 XP',
+    isPremium: true
+  },
+  {
+    id: 'xp-legend',
+    name: 'Legenda XP',
+    description: 'Mengumpulkan 25000 XP',
+    icon: 'whatshot',
+    color: '#DC143C',
+    requirement: '25000 XP',
+    isPremium: true
+  },
+  {
+    id: 'mission-legend',
+    name: 'Legenda Misi',
+    description: 'Menyelesaikan 100 misi',
+    icon: 'trophy',
+    color: '#32CD32',
+    requirement: '100 misi selesai',
+    isPremium: true
+  },
+  {
+    id: 'mission-champion',
+    name: 'Juara Misi',
+    description: 'Menyelesaikan 250 misi',
+    icon: 'emoji-events',
+    color: '#FF4500',
+    requirement: '250 misi selesai',
+    isPremium: true
+  },
+  {
+    id: 'money-saver-elite',
+    name: 'Elite Hemat',
+    description: 'Hemat 5 juta rupiah',
+    icon: 'savings',
+    color: '#228B22',
+    requirement: 'Hemat 5 juta rupiah',
+    isPremium: true
+  },
+  {
+    id: 'money-master-premium',
+    name: 'Master Keuangan',
+    description: 'Hemat 10 juta rupiah',
+    icon: 'account-balance',
+    color: '#DAA520',
+    requirement: 'Hemat 10 juta rupiah',
+    isPremium: true
+  },
+  {
+    id: 'health-transformer',
+    name: 'Transformasi Sehat',
+    description: 'Mencapai semua milestone kesehatan',
+    icon: 'health-and-safety',
+    color: '#20B2AA',
+    requirement: 'Semua milestone kesehatan',
+    isPremium: true
+  },
+  {
+    id: 'perfect-month',
+    name: 'Bulan Sempurna',
+    description: 'Streak 30 hari + 500 XP dalam sebulan',
+    icon: 'verified',
+    color: '#9370DB',
+    requirement: '30 hari + 500 XP dalam sebulan',
+    isPremium: true
   }
 ];
 

@@ -2,22 +2,26 @@ import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from './firebase';
 import { BADGES } from '../utils/constants';
 import { User, Badge, Mission } from '../types';
-import { calculateLevel } from '../utils/helpers';
+import { calculateLevel, calculateMoneySaved } from '../utils/helpers';
 
 export const checkAndAwardBadges = async (userId: string, user: User): Promise<Badge[]> => {
   const newBadges: Badge[] = [];
-  const userBadgeIds = user.badges.map(badge => badge.id);
+  const userBadgeIds = (user.badges || []).map(badge => badge.id);
 
   for (const badgeTemplate of BADGES) {
     // Skip if user already has this badge
     if (userBadgeIds.includes(badgeTemplate.id)) continue;
+
+    // Skip premium badges if user is not premium
+    if (badgeTemplate.isPremium && !user.isPremium) continue;
 
     let shouldAward = false;
 
     // Check badge requirements
     switch (badgeTemplate.id) {
       case 'first-day':
-        shouldAward = user.totalDays >= 1;
+        // Award badge after first check-in (when user has done at least one check-in)
+        shouldAward = user.lastCheckIn !== null && user.lastCheckIn !== undefined;
         break;
       case 'week-warrior':
         shouldAward = user.streak >= 7;
@@ -33,6 +37,46 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
         break;
       case 'mission-master':
         shouldAward = (user.completedMissions?.length || 0) >= 50;
+        break;
+      // Premium Badges
+      case 'elite-year':
+        shouldAward = user.totalDays >= 365;
+        break;
+      case 'diamond-streak':
+        shouldAward = user.streak >= 500;
+        break;
+      case 'legendary-master':
+        shouldAward = user.streak >= 1000;
+        break;
+      case 'xp-elite':
+        shouldAward = user.xp >= 5000;
+        break;
+      case 'xp-master-premium':
+        shouldAward = user.xp >= 10000;
+        break;
+      case 'xp-legend':
+        shouldAward = user.xp >= 25000;
+        break;
+      case 'mission-legend':
+        shouldAward = (user.completedMissions?.length || 0) >= 100;
+        break;
+      case 'mission-champion':
+        shouldAward = (user.completedMissions?.length || 0) >= 250;
+        break;
+      case 'money-saver-elite':
+        shouldAward = calculateMoneySaved(user.totalDays, user.cigarettesPerDay || 0, user.cigarettePrice || 0) >= 5000000;
+        break;
+      case 'money-master-premium':
+        shouldAward = calculateMoneySaved(user.totalDays, user.cigarettesPerDay || 0, user.cigarettePrice || 0) >= 10000000;
+        break;
+      case 'health-transformer':
+        // Check if user has been smoke-free for 1 year (all health milestones achieved)
+        shouldAward = user.totalDays >= 365;
+        break;
+      case 'perfect-month':
+        // Check if user has 30+ day streak AND gained 500+ XP in the last 30 days
+        // For simplicity, we'll check if they have 30+ streak and 500+ total XP
+        shouldAward = user.streak >= 30 && user.xp >= 500;
         break;
       default:
         break;
@@ -56,6 +100,7 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
       });
     } catch (error) {
       console.error('Error awarding badges:', error);
+      // Don't throw - this might be a demo user
     }
   }
 

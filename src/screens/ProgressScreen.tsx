@@ -1,9 +1,11 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     Dimensions,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -29,30 +31,57 @@ const ProgressScreen: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [selectedTab, setSelectedTab] = useState<'health' | 'savings' | 'stats'>('health');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadUserData();
   }, []);
 
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('ProgressScreen focused, reloading data...');
+      
+      // Add a small delay to ensure any pending updates from other screens are completed
+      const timeoutId = setTimeout(() => {
+        loadUserData();
+      }, 100); // 100ms delay
+      
+      return () => clearTimeout(timeoutId);
+    }, [])
+  );
+
   const loadUserData = async () => {
     console.log('Starting loadUserData in ProgressScreen...');
     try {
-      // Try to restore demo user from storage first
-      console.log('Attempting to restore demo user from storage...');
-      const restoredUser = await demoRestoreUser();
-      if (restoredUser) {
-        console.log('Demo user restored from storage:', restoredUser.email);
-        setUser(restoredUser);
+      // Check current demo user in memory first (most recent data)
+      console.log('Checking for demo user in memory...');
+      const demoUser = demoGetCurrentUser();
+      if (demoUser) {
+        console.log('✓ Demo user found in memory:', {
+          email: demoUser.email,
+          completedMissions: demoUser.completedMissions?.length || 0,
+          badges: demoUser.badges?.length || 0,
+          xp: demoUser.xp,
+          totalDays: demoUser.totalDays
+        });
+        setUser(demoUser);
         setLoading(false);
         return;
       }
       
-      // Check current demo user in memory
-      console.log('Checking for demo user in memory...');
-      const demoUser = demoGetCurrentUser();
-      if (demoUser) {
-        console.log('Demo user found in memory:', demoUser.email);
-        setUser(demoUser);
+      // Try to restore demo user from storage as backup
+      console.log('No demo user in memory, checking storage...');
+      const restoredUser = await demoRestoreUser();
+      if (restoredUser) {
+        console.log('✓ Demo user restored from storage:', {
+          email: restoredUser.email,
+          completedMissions: restoredUser.completedMissions?.length || 0,
+          badges: restoredUser.badges?.length || 0,
+          xp: restoredUser.xp,
+          totalDays: restoredUser.totalDays
+        });
+        setUser(restoredUser);
         setLoading(false);
         return;
       }
@@ -86,6 +115,12 @@ const ProgressScreen: React.FC = () => {
       console.log('Setting loading to false');
       setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadUserData();
+    setRefreshing(false);
   };
 
   if (loading || !user) {
@@ -560,7 +595,13 @@ const ProgressScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {renderTabContent()}
       </ScrollView>
     </View>
