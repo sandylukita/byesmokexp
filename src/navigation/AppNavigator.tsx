@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProgressScreen from '../screens/ProgressScreen';
-import LeaderboardScreen from '../screens/LeaderboardScreen';
+import BadgeStatisticsScreen from '../screens/BadgeStatisticsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SwipeableTabNavigator from '../components/SwipeableTabNavigator';
 import { COLORS, SIZES } from '../utils/constants';
@@ -15,7 +15,7 @@ interface AppNavigatorProps {
   onLogout: () => void;
 }
 
-const TAB_ROUTES = ['Dashboard', 'Progress', 'Leaderboard', 'Profile'];
+const TAB_ROUTES = ['Dashboard', 'Progress', 'BadgeStats', 'Profile'];
 
 const getCurrentTabIndex = (routeName: string): number => {
   return TAB_ROUTES.indexOf(routeName);
@@ -55,7 +55,7 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
               case 'Progress':
                 iconName = 'trending-up';
                 break;
-              case 'Leaderboard':
+              case 'BadgeStats':
                 iconName = 'emoji-events';
                 break;
               case 'Profile':
@@ -111,14 +111,14 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
         </Tab.Screen>
         
         <Tab.Screen 
-          name="Leaderboard" 
+          name="BadgeStats" 
           options={{ 
-            tabBarLabel: 'Leaderboard',
+            tabBarLabel: 'Badge Stats',
           }}
         >
           {({ navigation }) => (
-            <SwipeableScreen routeName="Leaderboard" navigation={navigation}>
-              <LeaderboardScreen />
+            <SwipeableScreen routeName="BadgeStats" navigation={navigation}>
+              <BadgeStatisticsScreen />
             </SwipeableScreen>
           )}
         </Tab.Screen>

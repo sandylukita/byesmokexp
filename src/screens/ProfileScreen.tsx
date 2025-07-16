@@ -53,8 +53,40 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   const loadUserData = async () => {
     console.log('Starting loadUserData in ProfileScreen...');
     try {
-      // Check current demo user in memory first (most recent data)
-      console.log('Checking for demo user in memory...');
+      // First priority: Check Firebase authentication for real users
+      console.log('Checking Firebase auth first...');
+      try {
+        const currentUser = auth.currentUser;
+        console.log('Firebase currentUser:', currentUser?.email);
+        
+        if (currentUser) {
+          console.log('Getting user doc from Firestore...');
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = { id: currentUser.uid, ...userDoc.data() } as User;
+            console.log('✓ Firebase user data loaded:', {
+              email: userData.email,
+              completedMissions: userData.completedMissions?.length || 0,
+              badges: userData.badges?.length || 0,
+              xp: userData.xp,
+              totalDays: userData.totalDays
+            });
+            setUser(userData);
+            setLoading(false);
+            return;
+          } else {
+            console.log('User doc does not exist in Firestore');
+          }
+        } else {
+          console.log('No current user in Firebase auth');
+        }
+      } catch (firebaseError) {
+        console.error('Firebase error, falling back to demo:', firebaseError);
+        // Continue to demo fallback
+      }
+
+      // Fallback to demo data for development/testing
+      console.log('No Firebase user, checking for demo user in memory...');
       const demoUser = demoGetCurrentUser();
       if (demoUser) {
         console.log('✓ Demo user found in memory:', {
@@ -69,7 +101,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
         return;
       }
       
-      // Try to restore demo user from storage as backup
+      // Try to restore demo user from storage as last resort
       console.log('No demo user in memory, checking storage...');
       const restoredUser = await demoRestoreUser();
       if (restoredUser) {
@@ -85,29 +117,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
         return;
       }
 
-      // Fallback to Firebase
-      console.log('No demo user, checking Firebase auth...');
-      try {
-        const currentUser = auth.currentUser;
-        console.log('Firebase currentUser:', currentUser?.email);
-        
-        if (currentUser) {
-          console.log('Getting user doc from Firestore...');
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userDoc.exists()) {
-            const userData = { id: currentUser.uid, ...userDoc.data() } as User;
-            console.log('User data loaded:', userData.email);
-            setUser(userData);
-          } else {
-            console.log('User doc does not exist');
-          }
-        } else {
-          console.log('No current user in Firebase auth');
-        }
-      } catch (firebaseError) {
-        console.error('Firebase error (non-fatal):', firebaseError);
-        // Don't throw, just continue without Firebase user
-      }
+      console.log('No user found in any data source');
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {

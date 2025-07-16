@@ -1,8 +1,145 @@
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, increment, collection, getDocs, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { BADGES } from '../utils/constants';
 import { User, Badge, Mission } from '../types';
+import { demoGetCurrentUser, demoUpdateUser } from './demoAuth';
 import { calculateLevel, calculateMoneySaved } from '../utils/helpers';
+
+// Baseline badge statistics to make the app feel established
+const BASELINE_BADGE_STATS: {[badgeId: string]: number} = {
+  // Common badges - most users achieve these
+  'first-day': 2847,
+  'week-warrior': 1623,
+  
+  // Medium difficulty badges
+  'month-master': 943,
+  'xp-collector': 721,
+  'mission-master': 387,
+  
+  // Hard badges - fewer users
+  'streak-master': 234,
+  
+  // Premium badges - moderate numbers
+  'elite-year': 156,
+  'xp-elite': 198,
+  'mission-legend': 134,
+  'money-saver-elite': 167,
+  'health-transformer': 89,
+  'perfect-month': 52,
+  
+  // Ultra rare premium badges
+  'diamond-streak': 43,
+  'legendary-master': 28,
+  'xp-master-premium': 76,
+  'xp-legend': 34,
+  'mission-champion': 61,
+  'money-master-premium': 45,
+};
+
+export const initializeBadgeStatistics = async (): Promise<void> => {
+  console.log('🚀 Initializing baseline badge statistics...');
+  
+  for (const badge of BADGES) {
+    const baselineCount = BASELINE_BADGE_STATS[badge.id] || Math.floor(Math.random() * 100) + 50;
+    
+    try {
+      const badgeStatsDoc = doc(db, 'badgeStats', badge.id);
+      await setDoc(badgeStatsDoc, { 
+        count: baselineCount,
+        baseline: baselineCount,
+        realUsers: 0
+      }, { merge: true });
+      
+      console.log(`✓ Initialized ${badge.id}: ${baselineCount} baseline`);
+    } catch (error) {
+      console.log(`⚠️ Could not initialize ${badge.id} baseline:`, error.message);
+    }
+  }
+  
+  console.log('✅ Badge statistics baseline initialization complete');
+};
+
+export const incrementBadgeCount = async (badgeId: string): Promise<void> => {
+  try {
+    const badgeStatsDoc = doc(db, 'badgeStats', badgeId);
+    
+    // Try to increment both total count and real users count
+    await updateDoc(badgeStatsDoc, {
+      count: increment(1),
+      realUsers: increment(1)
+    });
+    console.log(`✓ Badge counter incremented for: ${badgeId} (real user)`);
+  } catch (error) {
+    // If document doesn't exist, initialize with baseline + 1
+    try {
+      const baselineCount = BASELINE_BADGE_STATS[badgeId] || 50;
+      const badgeStatsDoc = doc(db, 'badgeStats', badgeId);
+      await setDoc(badgeStatsDoc, { 
+        count: baselineCount + 1,
+        baseline: baselineCount,
+        realUsers: 1
+      });
+      console.log(`✓ Badge counter created for: ${badgeId} (baseline: ${baselineCount} + 1 real user)`);
+    } catch (createError) {
+      // If we can't access Firebase, just log and continue
+      console.log(`⚠️ Unable to increment badge count for ${badgeId} (permissions/demo mode):`, createError.message);
+    }
+  }
+};
+
+export const getBadgeStatistics = async (): Promise<{[badgeId: string]: number}> => {
+  try {
+    const badgeStatsRef = collection(db, 'badgeStats');
+    const snapshot = await getDocs(badgeStatsRef);
+    
+    const firebaseStats: {[badgeId: string]: number} = {};
+    snapshot.forEach((doc) => {
+      firebaseStats[doc.id] = doc.data().count || 0;
+    });
+    
+    // Merge Firebase data with baseline, ensuring all badges have statistics
+    const stats = mergeWithBaseline(firebaseStats);
+    
+    console.log('✓ Badge statistics loaded from Firebase:', Object.keys(firebaseStats).length, 'badges, merged with baseline');
+    return stats;
+  } catch (error) {
+    console.error('Error loading badge statistics from Firebase, using baseline data:', error);
+    
+    // Return baseline statistics if Firebase fails
+    return getBaselineStats();
+  }
+};
+
+const mergeWithBaseline = (firebaseStats: {[badgeId: string]: number}): {[badgeId: string]: number} => {
+  const mergedStats: {[badgeId: string]: number} = {};
+  
+  BADGES.forEach(badge => {
+    const firebaseCount = firebaseStats[badge.id];
+    const baselineCount = BASELINE_BADGE_STATS[badge.id] || 50;
+    
+    if (firebaseCount !== undefined) {
+      // Use Firebase data if available
+      mergedStats[badge.id] = firebaseCount;
+    } else {
+      // Use baseline if no Firebase data
+      mergedStats[badge.id] = baselineCount;
+    }
+  });
+  
+  return mergedStats;
+};
+
+const getBaselineStats = (): {[badgeId: string]: number} => {
+  const stats: {[badgeId: string]: number} = {};
+  
+  BADGES.forEach(badge => {
+    stats[badge.id] = BASELINE_BADGE_STATS[badge.id] || Math.floor(Math.random() * 100) + 50;
+  });
+  
+  console.log('✓ Using baseline badge statistics for', Object.keys(stats).length, 'badges');
+  return stats;
+};
+
 
 export const checkAndAwardBadges = async (userId: string, user: User): Promise<Badge[]> => {
   const newBadges: Badge[] = [];
@@ -94,13 +231,37 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
   // Update user document with new badges
   if (newBadges.length > 0) {
     try {
+      // Try Firebase first
       const userDoc = doc(db, 'users', userId);
       await updateDoc(userDoc, {
         badges: arrayUnion(...newBadges)
       });
+      console.log('✓ Firebase: Successfully awarded badges:', newBadges.length);
+      
+      // Increment badge counters for statistics
+      for (const badge of newBadges) {
+        await incrementBadgeCount(badge.id);
+      }
     } catch (error) {
-      console.error('Error awarding badges:', error);
-      // Don't throw - this might be a demo user
+      console.error('Firebase error awarding badges, trying demo fallback:', error);
+      
+      // Fallback to demo user update
+      try {
+        const demoUser = demoGetCurrentUser();
+        if (demoUser && demoUser.id === userId) {
+          const updatedBadges = [...(demoUser.badges || []), ...newBadges];
+          await demoUpdateUser(userId, { badges: updatedBadges });
+          console.log('✓ Demo: Successfully awarded badges as fallback:', newBadges.length);
+          
+          // Increment badge counters for demo users too
+          for (const badge of newBadges) {
+            await incrementBadgeCount(badge.id);
+          }
+        }
+      } catch (demoError) {
+        console.error('Both Firebase and demo badge awarding failed:', demoError);
+        // Don't throw - better to continue without badges than crash
+      }
     }
   }
 
@@ -142,12 +303,30 @@ export const completeMission = async (
       completedMissions: [...(currentUser.completedMissions || []), completedMission],
     };
 
-    // Update user document
-    const userDoc = doc(db, 'users', userId);
-    await updateDoc(userDoc, {
-      xp: newXP,
-      completedMissions: arrayUnion(completedMission),
-    });
+    try {
+      // Try Firebase first
+      const userDoc = doc(db, 'users', userId);
+      await updateDoc(userDoc, {
+        xp: newXP,
+        completedMissions: arrayUnion(completedMission),
+      });
+      console.log('✓ Firebase: Successfully completed mission');
+    } catch (firebaseError) {
+      console.error('Firebase error completing mission, trying demo fallback:', firebaseError);
+      
+      // Fallback to demo user update
+      const demoUser = demoGetCurrentUser();
+      if (demoUser && demoUser.id === userId) {
+        const updatedCompletedMissions = [...(demoUser.completedMissions || []), completedMission];
+        await demoUpdateUser(userId, {
+          xp: newXP,
+          completedMissions: updatedCompletedMissions,
+        });
+        console.log('✓ Demo: Successfully completed mission as fallback');
+      } else {
+        throw firebaseError; // Re-throw if no demo fallback available
+      }
+    }
 
     // Check for new badges
     const newBadges = await checkAndAwardBadges(userId, updatedUser);
@@ -158,7 +337,7 @@ export const completeMission = async (
       newBadges,
     };
   } catch (error) {
-    console.error('Error completing mission:', error);
+    console.error('Error completing mission (all methods failed):', error);
     return {
       success: false,
       xpAwarded: 0,

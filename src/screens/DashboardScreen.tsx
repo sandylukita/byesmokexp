@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -60,6 +60,35 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     return () => clearTimeout(timeout);
   }, []);
 
+  // Set up real-time listener for Firebase user data
+  useEffect(() => {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      console.log('Setting up real-time listener for Firebase user data...');
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      
+      const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          const userData = { id: firebaseUser.uid, ...doc.data() } as User;
+          console.log('Real-time update received for user data:', {
+            email: userData.email,
+            xp: userData.xp,
+            totalDays: userData.totalDays,
+            streak: userData.streak
+          });
+          setUser(userData);
+        }
+      }, (error) => {
+        console.error('Error in real-time listener:', error);
+      });
+      
+      return () => {
+        console.log('Cleaning up real-time listener');
+        unsubscribe();
+      };
+    }
+  }, [auth.currentUser]);
+
   // Auto-sync totalDays for existing users if outdated
   useEffect(() => {
     if (user) {
@@ -102,28 +131,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const loadUserData = async () => {
     console.log('Starting loadUserData...');
     try {
-      // Check current demo user in memory first (most recent data)
-      console.log('Checking for demo user in memory...');
-      const demoUser = demoGetCurrentUser();
-      if (demoUser) {
-        console.log('Demo user found in memory:', demoUser.email);
-        setUser(demoUser);
-        setLoading(false);
-        return;
-      }
-      
-      // Try to restore demo user from storage as backup
-      console.log('Attempting to restore demo user from storage...');
-      const restoredUser = await demoRestoreUser();
-      if (restoredUser) {
-        console.log('Demo user restored from storage:', restoredUser.email);
-        setUser(restoredUser);
-        setLoading(false);
-        return;
-      }
-
-      // Fallback to Firebase
-      console.log('No demo user, checking Firebase auth...');
+      // First priority: Check Firebase authentication for real users
+      console.log('Checking Firebase auth first...');
       try {
         const currentUser = auth.currentUser;
         console.log('Firebase currentUser:', currentUser?.email);
@@ -133,18 +142,42 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
           if (userDoc.exists()) {
             const userData = { id: currentUser.uid, ...userDoc.data() } as User;
-            console.log('User data loaded:', userData.email);
+            console.log('Firebase user data loaded:', userData.email);
             setUser(userData);
+            setLoading(false);
+            return;
           } else {
-            console.log('User doc does not exist');
+            console.log('User doc does not exist in Firestore');
           }
         } else {
           console.log('No current user in Firebase auth');
         }
       } catch (firebaseError) {
-        console.error('Firebase error (non-fatal):', firebaseError);
-        // Don't throw, just continue without Firebase user
+        console.error('Firebase error, falling back to demo:', firebaseError);
+        // Continue to demo fallback
       }
+
+      // Fallback to demo data for development/testing
+      console.log('No Firebase user, checking for demo user in memory...');
+      const demoUser = demoGetCurrentUser();
+      if (demoUser) {
+        console.log('Demo user found in memory:', demoUser.email);
+        setUser(demoUser);
+        setLoading(false);
+        return;
+      }
+      
+      // Try to restore demo user from storage as last resort
+      console.log('Attempting to restore demo user from storage...');
+      const restoredUser = await demoRestoreUser();
+      if (restoredUser) {
+        console.log('Demo user restored from storage:', restoredUser.email);
+        setUser(restoredUser);
+        setLoading(false);
+        return;
+      }
+
+      console.log('No user found in any data source');
     } catch (error) {
       console.error('Error loading user data:', error);
       Alert.alert('Error', 'Failed to load user data. Please try logging in again.');
@@ -180,19 +213,37 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         xp: newXP,
       };
 
-      // Try demo update first
-      const demoUser = demoGetCurrentUser();
-      if (demoUser) {
-        await demoUpdateUser(user.id, updates);
+      // Try Firebase update first for real users
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        try {
+          const userDoc = doc(db, 'users', user.id);
+          await updateDoc(userDoc, {
+            lastCheckIn: new Date().toISOString(),
+            streak: newStreak,
+            totalDays: newTotalDays,
+            xp: newXP,
+          });
+          console.log('✓ Firebase: Check-in data updated successfully');
+        } catch (firebaseError) {
+          console.error('Firebase error during check-in, trying demo fallback:', firebaseError);
+          
+          // Fallback to demo update if Firebase fails
+          const demoUser = demoGetCurrentUser();
+          if (demoUser) {
+            await demoUpdateUser(user.id, updates);
+            console.log('✓ Demo: Check-in data updated as fallback');
+          } else {
+            throw firebaseError; // Re-throw if no fallback available
+          }
+        }
       } else {
-        // Fallback to Firebase
-        const userDoc = doc(db, 'users', user.id);
-        await updateDoc(userDoc, {
-          lastCheckIn: new Date().toISOString(),
-          streak: newStreak,
-          totalDays: newTotalDays,
-          xp: newXP,
-        });
+        // Fallback to demo update for development/testing
+        const demoUser = demoGetCurrentUser();
+        if (demoUser) {
+          await demoUpdateUser(user.id, updates);
+          console.log('✓ Demo: Check-in data updated (development mode)');
+        }
       }
 
       const updatedUser = {
@@ -206,12 +257,19 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         if (newBadges.length > 0) {
           updatedUser.badges = [...user.badges, ...newBadges];
           
-          // Update demo user in-memory data with new badges
-          const demoUser = demoGetCurrentUser();
-          if (demoUser && demoUser.id === user.id) {
-            await demoUpdateUser(user.id, {
-              badges: updatedUser.badges,
-            });
+          // Update badges in Firebase for Firebase users, demo for others
+          const firebaseUser = auth.currentUser;
+          if (firebaseUser) {
+            // Firebase users are already updated by checkAndAwardBadges
+            console.log('New badges awarded to Firebase user:', newBadges.length);
+          } else {
+            // Update demo user in-memory data with new badges
+            const demoUser = demoGetCurrentUser();
+            if (demoUser && demoUser.id === user.id) {
+              await demoUpdateUser(user.id, {
+                badges: updatedUser.badges,
+              });
+            }
           }
         }
       } catch (error) {
@@ -228,26 +286,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         const checkInMission = generateDailyMissions().find(m => m.id === 'daily-checkin');
         if (checkInMission) {
           try {
-            const demoUser = demoGetCurrentUser();
+            const firebaseUser = auth.currentUser;
             
-            if (demoUser && demoUser.id === user.id) {
-              // Handle demo user check-in mission
-              const completedMission = {
-                ...checkInMission,
-                isCompleted: true,
-                completedAt: new Date(),
-              };
-              
-              updatedUser.completedMissions = [...(updatedUser.completedMissions || []), completedMission];
-              
-              // Update demo user with completed mission
-              await demoUpdateUser(user.id, {
-                completedMissions: updatedUser.completedMissions,
-              });
-              
-              setUser(updatedUser);
-            } else {
-              // Handle Firebase user
+            if (firebaseUser) {
+              // Handle Firebase user check-in mission
               const result = await completeMission(user.id, checkInMission, updatedUser);
               if (result.success) {
                 // Update user with completed mission
@@ -259,6 +301,25 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 if (result.newBadges.length > 0) {
                   updatedUser.badges = [...updatedUser.badges, ...result.newBadges];
                 }
+                setUser(updatedUser);
+              }
+            } else {
+              // Handle demo user check-in mission
+              const demoUser = demoGetCurrentUser();
+              if (demoUser && demoUser.id === user.id) {
+                const completedMission = {
+                  ...checkInMission,
+                  isCompleted: true,
+                  completedAt: new Date(),
+                };
+                
+                updatedUser.completedMissions = [...(updatedUser.completedMissions || []), completedMission];
+                
+                // Update demo user with completed mission
+                await demoUpdateUser(user.id, {
+                  completedMissions: updatedUser.completedMissions,
+                });
+                
                 setUser(updatedUser);
               }
             }
@@ -312,57 +373,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         
         // Actually complete the mission
         try {
-          // Check if demo user
-          const demoUser = demoGetCurrentUser();
+          // Check if Firebase user first
+          const firebaseUser = auth.currentUser;
           
-          if (demoUser && demoUser.id === user.id) {
-            // Handle demo user mission completion
-            const completedMission = {
-              ...mission,
-              isCompleted: true,
-              completedAt: new Date(),
-            };
-            
-            const newXP = user.xp + mission.xpReward;
-            const updatedCompletedMissions = [...(user.completedMissions || []), completedMission];
-            
-            // Check for new badges
-            const updatedUser = {
-              ...user,
-              xp: newXP,
-              completedMissions: updatedCompletedMissions,
-            };
-            
-            const newBadges = await checkAndAwardBadges(user.id, updatedUser);
-            
-            // Update demo user with new data
-            await demoUpdateUser(user.id, {
-              xp: newXP,
-              completedMissions: updatedCompletedMissions,
-              badges: [...user.badges, ...newBadges],
-            });
-            console.log('Demo user updated after mission completion:', {
-              xp: newXP,
-              missionsCount: updatedCompletedMissions.length,
-              badgesCount: [...user.badges, ...newBadges].length
-            });
-            
-            // Update local state
-            setUser({
-              ...updatedUser,
-              badges: [...user.badges, ...newBadges],
-            });
-            console.log('Local state updated after mission completion');
-            
-            if (mission.xpReward > 0) {
-              Alert.alert('Misi Selesai!', `Kamu mendapat ${mission.xpReward} XP!`);
-            }
-            
-            if (newBadges.length > 0) {
-              Alert.alert('Badge Baru!', `Kamu mendapat ${newBadges.length} badge baru!`);
-            }
-          } else {
-            // Handle Firebase user
+          if (firebaseUser) {
+            // Handle Firebase user mission completion
             const result = await completeMission(user.id, mission, user);
             if (result.success) {
               // Update user data to reflect XP and badge changes
@@ -386,6 +401,55 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               // Show badge notification if new badges were earned
               if (result.newBadges.length > 0) {
                 Alert.alert('Badge Baru!', `Kamu mendapat ${result.newBadges.length} badge baru!`);
+              }
+            }
+          } else {
+            // Handle demo user mission completion
+            const demoUser = demoGetCurrentUser();
+            if (demoUser && demoUser.id === user.id) {
+              const completedMission = {
+                ...mission,
+                isCompleted: true,
+                completedAt: new Date(),
+              };
+              
+              const newXP = user.xp + mission.xpReward;
+              const updatedCompletedMissions = [...(user.completedMissions || []), completedMission];
+              
+              // Check for new badges
+              const updatedUser = {
+                ...user,
+                xp: newXP,
+                completedMissions: updatedCompletedMissions,
+              };
+              
+              const newBadges = await checkAndAwardBadges(user.id, updatedUser);
+              
+              // Update demo user with new data
+              await demoUpdateUser(user.id, {
+                xp: newXP,
+                completedMissions: updatedCompletedMissions,
+                badges: [...user.badges, ...newBadges],
+              });
+              console.log('Demo user updated after mission completion:', {
+                xp: newXP,
+                missionsCount: updatedCompletedMissions.length,
+                badgesCount: [...user.badges, ...newBadges].length
+              });
+              
+              // Update local state
+              setUser({
+                ...updatedUser,
+                badges: [...user.badges, ...newBadges],
+              });
+              console.log('Local state updated after mission completion');
+              
+              if (mission.xpReward > 0) {
+                Alert.alert('Misi Selesai!', `Kamu mendapat ${mission.xpReward} XP!`);
+              }
+              
+              if (newBadges.length > 0) {
+                Alert.alert('Badge Baru!', `Kamu mendapat ${newBadges.length} badge baru!`);
               }
             }
           }
