@@ -12,6 +12,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { User } from '../types';
@@ -25,11 +27,9 @@ import {
 } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
 
-const { width } = Dimensions.get('window');
-
 const ProgressScreen: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [selectedTab, setSelectedTab] = useState<'health' | 'savings' | 'stats'>('health');
+  const [selectedTab, setSelectedTab] = useState<'health' | 'savings' | 'stats'>('stats');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -70,7 +70,8 @@ const ProgressScreen: React.FC = () => {
               completedMissions: userData.completedMissions?.length || 0,
               badges: userData.badges?.length || 0,
               xp: userData.xp,
-              totalDays: userData.totalDays
+              totalDays: userData.totalDays,
+              dailyXP: userData.dailyXP
             });
             setUser(userData);
             setLoading(false);
@@ -95,7 +96,8 @@ const ProgressScreen: React.FC = () => {
           completedMissions: demoUser.completedMissions?.length || 0,
           badges: demoUser.badges?.length || 0,
           xp: demoUser.xp,
-          totalDays: demoUser.totalDays
+          totalDays: demoUser.totalDays,
+          dailyXP: demoUser.dailyXP
         });
         setUser(demoUser);
         setLoading(false);
@@ -357,56 +359,6 @@ const ProgressScreen: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.progressSection}>
-        <LinearGradient
-          colors={[COLORS.info + '20', COLORS.info + '10']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.progressSectionGradient}
-        >
-          <Text style={styles.progressTitle}>Progress Harian</Text>
-          <Text style={styles.progressSubtitle}>7 hari terakhir check-in kamu</Text>
-          
-          <View style={styles.progressWeek}>
-            {Array.from({ length: 7 }, (_, i) => {
-              const date = new Date();
-              date.setDate(date.getDate() - (6 - i));
-              const isToday = i === 6;
-              
-              // Better logic: random but realistic check-in pattern
-              const daysSinceQuit = calculateDaysSinceQuit(new Date(user.quitDate));
-              const hasCheckedIn = daysSinceQuit > (6 - i) && (i < 6 || user.streak > 0);
-              
-              return (
-                <View key={i} style={styles.progressDay}>
-                  <Text style={styles.progressDayLabel}>
-                    {date.toLocaleDateString('id-ID', { weekday: 'short' })}
-                  </Text>
-                  <Text style={styles.progressDayDate}>
-                    {date.getDate()}
-                  </Text>
-                  <View style={[
-                    styles.progressDayCircle,
-                    hasCheckedIn && styles.progressDayComplete,
-                    isToday && styles.progressDayToday
-                  ]}>
-                    {hasCheckedIn ? (
-                      <MaterialIcons name="check" size={16} color={COLORS.white} />
-                    ) : isToday ? (
-                      <MaterialIcons name="today" size={16} color={COLORS.primary} />
-                    ) : (
-                      <View style={styles.progressDayEmpty} />
-                    )}
-                  </View>
-                  {isToday && (
-                    <Text style={styles.progressTodayLabel}>Hari ini</Text>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </LinearGradient>
-      </View>
       
       <View style={styles.monthlySection}>
         <LinearGradient
@@ -415,7 +367,7 @@ const ProgressScreen: React.FC = () => {
           end={{ x: 1, y: 1 }}
           style={styles.monthlySectionGradient}
         >
-          <Text style={styles.progressTitle}>Progress Bulanan</Text>
+          <Text style={styles.progressTitle}>Progress Harian</Text>
           <Text style={styles.progressSubtitle}>
             {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
           </Text>
@@ -458,35 +410,35 @@ const ProgressScreen: React.FC = () => {
                   const isToday = day === today.getDate();
                   const isFuture = date > today;
                   
-                  // Calculate activity for this day
+                  // Calculate activity for this day based on XP earned
                   let intensity = 0;
                   
                   if (!isFuture && date >= quitDate) {
-                    const daysSinceQuit = calculateDaysSinceQuit(quitDate);
-                    const daysFromQuitToThisDate = Math.floor((date.getTime() - quitDate.getTime()) / (1000 * 60 * 60 * 24));
+                    // Use local timezone for date key to match how daily XP is stored
+                    const dateKey = date.getFullYear() + '-' + 
+                                  String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                                  String(date.getDate()).padStart(2, '0');
+                    const dailyXP = user.dailyXP?.[dateKey] || 0;
                     
-                    // Calculate realistic engagement score
-                    let activityScore = 0;
-                    
-                    // Check-in activity (40% of score)
-                    const hasCheckedIn = daysFromQuitToThisDate <= user.streak && daysFromQuitToThisDate >= 0;
-                    if (hasCheckedIn) activityScore += 0.4;
-                    
-                    // Mission completion simulation (30% of score)
-                    if (hasCheckedIn && daysFromQuitToThisDate > 0) {
-                      const missionsCompleted = Math.min(Math.floor(Math.random() * 3), 2);
-                      activityScore += (missionsCompleted / 2) * 0.3;
+                    // Debug logging for today
+                    if (isToday) {
+                      console.log('📅 Today heatmap calculation:', {
+                        dateKey,
+                        dailyXP,
+                        allDailyXP: user.dailyXP
+                      });
                     }
                     
-                    // Consistency bonus (30% of score)
-                    if (daysFromQuitToThisDate <= user.streak) {
-                      activityScore += 0.3;
+                    // Convert XP to intensity levels
+                    if (dailyXP >= 50) {
+                      intensity = 3; // High activity: 50+ XP
+                    } else if (dailyXP >= 20) {
+                      intensity = 2; // Medium activity: 20-49 XP
+                    } else if (dailyXP >= 10) {
+                      intensity = 1; // Low activity: 10-19 XP
+                    } else {
+                      intensity = 0; // No activity: 0-9 XP
                     }
-                    
-                    // Convert to intensity levels
-                    if (activityScore > 0.7) intensity = 3;
-                    else if (activityScore > 0.5) intensity = 2;
-                    else if (activityScore > 0.2) intensity = 1;
                   }
                   
                   calendarDays.push(
@@ -554,6 +506,23 @@ const ProgressScreen: React.FC = () => {
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
+          style={[styles.tab, selectedTab === 'stats' && styles.activeTab]}
+          onPress={() => setSelectedTab('stats')}
+        >
+          <MaterialIcons 
+            name="bar-chart" 
+            size={Math.min(width * 0.045, 18)} 
+            color={selectedTab === 'stats' ? COLORS.white : COLORS.gray} 
+          />
+          <Text style={[
+            styles.tabText,
+            selectedTab === 'stats' && styles.activeTabText
+          ]}>
+            Statistik
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
           style={[styles.tab, selectedTab === 'health' && styles.activeTab]}
           onPress={() => setSelectedTab('health')}
         >
@@ -586,23 +555,6 @@ const ProgressScreen: React.FC = () => {
             Uang
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === 'stats' && styles.activeTab]}
-          onPress={() => setSelectedTab('stats')}
-        >
-          <MaterialIcons 
-            name="bar-chart" 
-            size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'stats' ? COLORS.white : COLORS.gray} 
-          />
-          <Text style={[
-            styles.tabText,
-            selectedTab === 'stats' && styles.activeTabText
-          ]}>
-            Statistik
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -629,8 +581,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: SIZES.xl,
+    paddingTop: Math.max(50, height * 0.06), // Responsive top padding for mobile
+    paddingBottom: Math.max(SIZES.xl, height * 0.08), // Responsive bottom padding for floating card
     paddingHorizontal: SIZES.screenPadding,
     alignItems: 'center',
   },
@@ -947,83 +899,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
-  progressSection: {
-    backgroundColor: COLORS.surface,
-    borderRadius: SIZES.buttonRadius || 12,
-    marginHorizontal: SIZES.screenPadding,
-    marginBottom: SIZES.xs || 4,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  progressSectionGradient: {
-    padding: SIZES.sm,
-  },
-  progressTitle: {
-    ...TYPOGRAPHY.h5,
-    marginBottom: SIZES.xs || 4,
-    textAlign: 'center',
-    color: COLORS.textPrimary,
-    fontWeight: '600',
-  },
-  progressSubtitle: {
-    fontSize: Math.min(width * 0.03, 12),
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: SIZES.md,
-  },
-  progressWeek: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: SIZES.md,
-  },
-  progressDay: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  progressDayLabel: {
-    fontSize: Math.min(width * 0.025, 10),
-    color: COLORS.textSecondary,
-    marginBottom: 2,
-    fontWeight: '500',
-  },
-  progressDayDate: {
-    fontSize: Math.min(width * 0.03, 12),
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.xs || 4,
-    fontWeight: '600',
-  },
-  progressDayCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.lightGray,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  progressDayComplete: {
-    backgroundColor: COLORS.secondary,
-  },
-  progressDayToday: {
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.white,
-  },
-  progressDayEmpty: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.gray,
-  },
-  progressTodayLabel: {
-    fontSize: Math.min(width * 0.022, 9),
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
   monthlySection: {
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
@@ -1038,6 +913,21 @@ const styles = StyleSheet.create({
   },
   monthlySectionGradient: {
     padding: SIZES.sm,
+  },
+  progressTitle: {
+    ...TYPOGRAPHY.h1,
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: SIZES.xs || 4,
+    textAlign: 'center',
+    color: COLORS.textPrimary,
+    fontWeight: '700', // Made bold
+  },
+  progressSubtitle: {
+    fontSize: Math.min(width * 0.03, 12),
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SIZES.md,
   },
   monthlyHeatmap: {
     backgroundColor: COLORS.white + '80',

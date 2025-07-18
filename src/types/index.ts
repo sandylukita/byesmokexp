@@ -15,6 +15,8 @@ export interface User {
   badges: Badge[];
   completedMissions: Mission[];
   settings: UserSettings;
+  onboardingCompleted?: boolean;
+  dailyXP?: { [date: string]: number }; // Track XP earned per day
 }
 
 export interface Badge {

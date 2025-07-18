@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { demoGetCurrentUser, demoRestoreUser, demoUpdateUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
+import { upgradeUserToPremium } from '../services/auth';
 
 import { BentoCard, BentoGrid } from '../components/BentoGrid';
 import { Mission, User } from '../types';
@@ -31,8 +33,11 @@ import {
     generateMissionId,
     getGreeting,
     getRandomMotivation,
+    addDailyXP,
 } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
+
+const { width, height } = Dimensions.get('window');
 
 interface DashboardScreenProps {
   onLogout: () => void;
@@ -68,7 +73,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       
       const unsubscribe = onSnapshot(userDocRef, (doc) => {
-        if (doc.exists()) {
+        // Check if user is still authenticated before processing
+        if (auth.currentUser && doc.exists()) {
           const userData = { id: firebaseUser.uid, ...doc.data() } as User;
           console.log('Real-time update received for user data:', {
             email: userData.email,
@@ -79,7 +85,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           setUser(userData);
         }
       }, (error) => {
-        console.error('Error in real-time listener:', error);
+        // Only log error if user is still authenticated
+        if (auth.currentUser) {
+          console.error('Error in real-time listener:', error);
+        }
       });
       
       return () => {
@@ -204,13 +213,16 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       const streakInfo = calculateStreak(user.lastCheckIn);
       const newStreak = streakInfo.streakReset ? 1 : user.streak + 1;
       const newTotalDays = calculateDaysSinceQuit(new Date(user.quitDate));
-      const newXP = user.xp + 10; // Base XP for check-in
+      const checkInXP = 10; // Base XP for check-in
+      const newXP = user.xp + checkInXP;
+      const updatedDailyXP = addDailyXP(user.dailyXP, checkInXP);
       
       const updates = {
         lastCheckIn: new Date(),
         streak: newStreak,
         totalDays: newTotalDays,
         xp: newXP,
+        dailyXP: updatedDailyXP,
       };
 
       // Try Firebase update first for real users
@@ -223,6 +235,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             streak: newStreak,
             totalDays: newTotalDays,
             xp: newXP,
+            dailyXP: updatedDailyXP,
           });
           console.log('✓ Firebase: Check-in data updated successfully');
         } catch (firebaseError) {
@@ -338,6 +351,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         message += `\n🏆 Badge baru: ${newBadgesCount}`;
       }
       
+      // Debug: Show daily XP info
+      const today = new Date();
+      const todayKey = today.getFullYear() + '-' + 
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(today.getDate()).padStart(2, '0');
+      const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
+      message += `\nDebug: Daily XP today: ${todayXP}`;
+      
       Alert.alert('Selamat!', message, [{ text: 'OK' }]);
     } catch (error) {
       Alert.alert('Error', 'Gagal melakukan check-in');
@@ -380,10 +401,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             // Handle Firebase user mission completion
             const result = await completeMission(user.id, mission, user);
             if (result.success) {
-              // Update user data to reflect XP and badge changes
+              // Update user data to reflect XP and badge changes including daily XP
+              const updatedDailyXP = addDailyXP(user.dailyXP, result.xpAwarded);
               const updatedUser = {
                 ...user,
                 xp: user.xp + result.xpAwarded,
+                dailyXP: updatedDailyXP,
                 completedMissions: [...(user.completedMissions || []), {
                   ...mission,
                   isCompleted: true,
@@ -395,7 +418,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               
               // Show success message if XP was awarded
               if (result.xpAwarded > 0) {
-                Alert.alert('Misi Selesai!', `Kamu mendapat ${result.xpAwarded} XP!`);
+                // Debug: Show updated daily XP
+                const today = new Date();
+                const todayKey = today.getFullYear() + '-' + 
+                                String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                                String(today.getDate()).padStart(2, '0');
+                const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
+                
+                Alert.alert('Misi Selesai!', `Kamu mendapat ${result.xpAwarded} XP!\nDebug: Daily XP today: ${todayXP}`);
               }
               
               // Show badge notification if new badges were earned
@@ -414,12 +444,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               };
               
               const newXP = user.xp + mission.xpReward;
+              const updatedDailyXP = addDailyXP(user.dailyXP, mission.xpReward);
               const updatedCompletedMissions = [...(user.completedMissions || []), completedMission];
               
               // Check for new badges
               const updatedUser = {
                 ...user,
                 xp: newXP,
+                dailyXP: updatedDailyXP,
                 completedMissions: updatedCompletedMissions,
               };
               
@@ -428,6 +460,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               // Update demo user with new data
               await demoUpdateUser(user.id, {
                 xp: newXP,
+                dailyXP: updatedDailyXP,
                 completedMissions: updatedCompletedMissions,
                 badges: [...user.badges, ...newBadges],
               });
@@ -445,7 +478,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               console.log('Local state updated after mission completion');
               
               if (mission.xpReward > 0) {
-                Alert.alert('Misi Selesai!', `Kamu mendapat ${mission.xpReward} XP!`);
+                // Debug: Show updated daily XP for demo users too
+                const today = new Date();
+                const todayKey = today.getFullYear() + '-' + 
+                                String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                                String(today.getDate()).padStart(2, '0');
+                const todayXP = updatedDailyXP?.[todayKey] || 0;
+                
+                Alert.alert('Misi Selesai!', `Kamu mendapat ${mission.xpReward} XP!\nDebug: Daily XP today: ${todayXP}`);
               }
               
               if (newBadges.length > 0) {
@@ -457,6 +497,21 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           console.error('Error completing mission:', error);
           Alert.alert('Error', 'Gagal menyelesaikan misi');
         }
+      }
+    }
+  };
+
+  const handleUpgradeToPremium = async () => {
+    if (user?.email === 'sandy@mail.com') {
+      try {
+        const success = await upgradeUserToPremium(user.email);
+        if (success) {
+          Alert.alert('Success', 'Account upgraded to premium!');
+          // Reload user data to reflect changes
+          await loadUserData();
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to upgrade to premium');
       }
     }
   };
@@ -555,6 +610,16 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      {/* Temporary upgrade button for sandy@mail.com */}
+      {user?.email === 'sandy@mail.com' && !user?.isPremium && (
+        <TouchableOpacity
+          style={styles.upgradeButton}
+          onPress={handleUpgradeToPremium}
+        >
+          <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Statistics Row - Two cards side by side */}
       <View style={styles.statsRowContainer}>
@@ -709,8 +774,8 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: SIZES.xs || 4,
+    paddingTop: Math.max(50, height * 0.06), // Responsive top padding for mobile
+    paddingBottom: Math.max(SIZES.xl, height * 0.08), // Responsive bottom padding for floating card
     paddingHorizontal: SIZES.screenPadding,
   },
   headerContent: {
@@ -720,26 +785,34 @@ const styles = StyleSheet.create({
   },
   headerTextContainer: {
     flex: 1,
+    alignItems: 'center', // Center the text horizontally
   },
   greeting: {
     ...TYPOGRAPHY.h1White,
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: Math.min(width * 0.055, 22), // Responsive font size for mobile
+    lineHeight: Math.min(width * 0.07, 28),
     marginBottom: SIZES.xs || 4,
+    textAlign: 'center',
   },
   headerSubtext: {
     ...TYPOGRAPHY.bodyMedium,
+    fontSize: Math.min(width * 0.04, 16), // Responsive font size
     color: COLORS.white,
     opacity: 0.9,
     marginBottom: SIZES.xs || 2,
+    textAlign: 'center',
   },
   headerMotivation: {
     ...TYPOGRAPHY.bodySmall,
+    fontSize: Math.min(width * 0.035, 14), // Responsive font size
     color: COLORS.white,
     opacity: 0.8,
+    textAlign: 'center',
   },
   logoutButton: {
-    padding: SIZES.sm,
+    padding: Math.max(SIZES.sm, width * 0.03), // Responsive padding for better mobile touch target
+    borderRadius: SIZES.buttonRadius / 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle background for better visibility
   },
   content: {
     paddingHorizontal: SIZES.screenPadding,
@@ -902,19 +975,19 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Level Card - Final structure with next level
+  // Level Card - Final structure with next level (floating design optimized for mobile)
   levelCardFinal: {
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
-    marginTop: SIZES.md,
-    marginBottom: SIZES.xs || 4,
-    padding: SIZES.sm,
+    marginTop: -Math.max(SIZES.lg, height * 0.04), // Responsive negative margin for floating effect
+    marginBottom: Math.max(SIZES.md, height * 0.025), // Responsive bottom margin
+    padding: Math.max(SIZES.sm, width * 0.04), // Responsive padding
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.15, // Slightly increased shadow for better mobile visibility
+    shadowRadius: 12, // Increased shadow radius
+    elevation: 6, // Increased elevation for Android
   },
   levelTopRow: {
     flexDirection: 'row',
@@ -1203,6 +1276,19 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.white,
     marginLeft: SIZES.sm,
+    fontWeight: '600',
+  },
+  upgradeButton: {
+    backgroundColor: COLORS.primary,
+    marginHorizontal: SIZES.screenPadding,
+    marginBottom: SIZES.sm,
+    padding: SIZES.sm,
+    borderRadius: SIZES.buttonRadius || 12,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.white,
     fontWeight: '600',
   },
 });

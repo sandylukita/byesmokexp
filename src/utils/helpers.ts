@@ -58,6 +58,12 @@ export const calculateMoneySaved = (totalDays: number, cigarettesPerDay: number,
   return Math.floor(dailySavings * totalDays);
 };
 
+export const isOnboardingComplete = (user: any): boolean => {
+  return user.onboardingCompleted === true && 
+         user.cigarettesPerDay > 0 && 
+         user.cigarettePrice > 0;
+};
+
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -92,6 +98,15 @@ export const canCheckInToday = (lastCheckIn: Date | null): boolean => {
   const lastCheckInDate = new Date(lastCheckIn);
   
   return today.toDateString() !== lastCheckInDate.toDateString();
+};
+
+export const hasCheckedInToday = (lastCheckIn: Date | null): boolean => {
+  if (!lastCheckIn) return false;
+  
+  const today = new Date();
+  const lastCheckInDate = new Date(lastCheckIn);
+  
+  return today.toDateString() === lastCheckInDate.toDateString();
 };
 
 export const calculateStreak = (lastCheckIn: Date | null): { canContinue: boolean; streakReset: boolean } => {
@@ -249,4 +264,19 @@ export const getWeekNumber = (date: Date): number => {
   const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
   const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
   return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+};
+
+export const addDailyXP = (dailyXP: { [date: string]: number } | undefined, xpAmount: number): { [date: string]: number } => {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const currentDailyXP = dailyXP || {};
+  
+  return {
+    ...currentDailyXP,
+    [today]: (currentDailyXP[today] || 0) + xpAmount
+  };
+};
+
+export const getDailyXP = (dailyXP: { [date: string]: number } | undefined, date: Date): number => {
+  const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  return dailyXP?.[dateKey] || 0;
 };

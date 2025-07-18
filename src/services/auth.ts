@@ -50,7 +50,7 @@ export const createUserDocument = async (user: FirebaseUser, displayName: string
     email: user.email!,
     displayName,
     username,
-    isPremium: user.email === 'admin@byerokok.app', // Admin account gets premium
+    isPremium: user.email === 'admin@byerokok.app' || user.email === 'sandy@mail.com', // Admin and sandy get premium
     quitDate: new Date(),
     cigarettesPerDay: 0,
     cigarettePrice: 0,
@@ -61,6 +61,8 @@ export const createUserDocument = async (user: FirebaseUser, displayName: string
     lastCheckIn: null,
     badges: [],
     completedMissions: [],
+    onboardingCompleted: false, // New users need to complete onboarding
+    dailyXP: {}, // Initialize empty daily XP tracking
     settings: {
       darkMode: false,
       notifications: true,
@@ -95,6 +97,22 @@ export const updateUserDocument = async (uid: string, data: Partial<User>) => {
     await updateDoc(userDoc, data);
   } catch (error) {
     console.error('Error updating user document:', error);
+    throw error;
+  }
+};
+
+export const upgradeUserToPremium = async (email: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (currentUser && currentUser.email === email) {
+      const userDoc = doc(db, 'users', currentUser.uid);
+      await updateDoc(userDoc, { isPremium: true });
+      console.log(`✓ User ${email} upgraded to premium`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error upgrading user to premium:', error);
     throw error;
   }
 };

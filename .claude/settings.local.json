@@ -25,7 +25,9 @@
       "Bash(node:*)",
       "Bash(rg:*)",
       "Bash(claude doctor)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npx expo run:android:*)",
+      "Bash(echo $ANDROID_HOME)"
     ],
     "deny": []
   }

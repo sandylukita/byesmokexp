@@ -1,27 +1,27 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Dimensions,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    Alert,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { logout } from '../services/auth';
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { logout, updateUserDocument } from '../services/auth';
 
-import { COLORS, SIZES, BADGES } from '../utils/constants';
-import { User, Badge } from '../types';
-import { calculateLevel, formatNumber } from '../utils/helpers';
+import { User } from '../types';
+import { COLORS, SIZES } from '../utils/constants';
+import { calculateLevel } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface ProfileScreenProps {
   onLogout: () => void;
@@ -30,7 +30,6 @@ interface ProfileScreenProps {
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'badges' | 'settings'>('badges');
 
   useEffect(() => {
     loadUserData();
@@ -164,34 +163,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     );
   };
 
-  const handlePrivacyToggle = async () => {
-    if (!user) return;
-    
-    const newPreference = user.settings.leaderboardDisplayPreference === 'username' ? 'displayName' : 'username';
-    
-    try {
-      const updatedSettings = {
-        ...user.settings,
-        leaderboardDisplayPreference: newPreference
-      };
-      
-      await updateUserDocument(user.id, { settings: updatedSettings });
-      
-      setUser({
-        ...user,
-        settings: updatedSettings
-      });
-      
-      Alert.alert(
-        'Pengaturan Privasi',
-        `Leaderboard akan menampilkan ${newPreference === 'username' ? 'username' : 'nama lengkap'} Anda.`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert('Error', 'Gagal mengubah pengaturan privasi');
-    }
-  };
-
   if (loading || !user) {
     return (
       <View style={styles.loadingContainer}>
@@ -201,102 +172,32 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   }
 
   const levelInfo = calculateLevel(user.xp);
-  const earnedBadges = BADGES.filter(badge => 
-    user.badges?.some(userBadge => userBadge.id === badge.id)
-  );
-
-  const renderBadges = () => (
-    <View style={styles.tabContent}>
-      <View style={styles.subtitleContainer}>
-        <Text style={styles.sectionSubtitle}>
-          Koleksi pencapaian yang sudah kamu raih
-        </Text>
-      </View>
-      <View style={styles.badgeSection}>
-        <View style={styles.badgeGrid}>
-          {BADGES.map((badge) => {
-            const isEarned = earnedBadges.some(earned => earned.id === badge.id);
-            const isPremiumBadge = badge.isPremium;
-            const canViewPremiumBadge = user.isPremium || isEarned;
-            
-            return (
-              <View key={badge.id} style={[
-                styles.badgeCard,
-                isPremiumBadge && styles.premiumBadgeCard
-              ]}>
-                {isPremiumBadge && (
-                  <View style={styles.premiumBadgeIndicator}>
-                    <MaterialIcons name="star" size={12} color={COLORS.accent} />
-                  </View>
-                )}
-                <View style={[
-                  styles.badgeIcon,
-                  { backgroundColor: isEarned ? badge.color : COLORS.lightGray },
-                  isPremiumBadge && !canViewPremiumBadge && styles.lockedBadgeIcon,
-                  isEarned && styles.earnedBadgeIcon
-                ]}>
-                  {isPremiumBadge && !canViewPremiumBadge ? (
-                    <MaterialIcons name="lock" size={24} color={COLORS.gray} />
-                  ) : (
-                    <MaterialIcons 
-                      name={badge.icon as any} 
-                      size={24} 
-                      color={isEarned ? COLORS.white : COLORS.gray} 
-                    />
-                  )}
-                  {isEarned && (
-                    <View style={styles.earnedBadgeIndicator}>
-                      <MaterialIcons name="check" size={16} color={COLORS.success} />
-                    </View>
-                  )}
-                </View>
-                <Text style={[
-                  styles.badgeName,
-                  !isEarned && styles.badgeNameDisabled
-                ]}>
-                  {badge.name}
-                </Text>
-                <Text style={[
-                  styles.badgeDescription,
-                  !isEarned && styles.badgeDescriptionDisabled
-                ]}>
-                  {badge.description}
-                </Text>
-                {!isEarned && (
-                  <Text style={styles.badgeRequirement}>
-                    {isPremiumBadge && !user.isPremium ? 'Premium Only' : badge.requirement}
-                  </Text>
-                )}
-              </View>
-            );
-          })}
-        </View>
-      </View>
-    </View>
-  );
 
   const renderSettings = () => (
     <View style={styles.tabContent}>
       <View style={styles.settingsSection}>
-        {!user.isPremium && (
-          <TouchableOpacity style={styles.upgradeCard} onPress={handleUpgrade}>
-            <LinearGradient
-              colors={[COLORS.accent, COLORS.accentDark]}
-              style={styles.upgradeGradient}
-            >
-              <MaterialIcons name="star" size={24} color={COLORS.white} />
-              <View style={styles.upgradeInfo}>
-                <Text style={styles.upgradeTitle}>Upgrade ke Premium</Text>
-                <Text style={styles.upgradeSubtitle}>
-                  Nikmati fitur lengkap ByeSmoke XP
-                </Text>
-              </View>
-              <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.white} />
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-
         <View style={styles.settingsCard}>
+          {!user.isPremium && (
+            <>
+              <TouchableOpacity style={styles.upgradeItem} onPress={handleUpgrade}>
+                <LinearGradient
+                  colors={[COLORS.accent, COLORS.accentDark]}
+                  style={styles.upgradeGradient}
+                >
+                  <MaterialIcons name="star" size={24} color={COLORS.white} />
+                  <View style={styles.upgradeInfo}>
+                    <Text style={styles.upgradeTitle}>Upgrade ke Premium</Text>
+                    <Text style={styles.upgradeSubtitle}>
+                      Nikmati fitur lengkap ByeSmoke XP
+                    </Text>
+                  </View>
+                  <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.white} />
+                </LinearGradient>
+              </TouchableOpacity>
+              <View style={styles.settingDivider} />
+            </>
+          )}
+
           <TouchableOpacity style={styles.settingItem}>
             <MaterialIcons name="notifications" size={24} color={COLORS.primary} />
             <View style={styles.settingInfo}>
@@ -338,19 +239,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
 
           <View style={styles.settingDivider} />
 
-          <TouchableOpacity style={styles.settingItem} onPress={handlePrivacyToggle}>
-            <MaterialIcons name="privacy-tip" size={24} color={COLORS.primary} />
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingTitle}>Privasi Leaderboard</Text>
-              <Text style={styles.settingSubtitle}>
-                Tampilkan {user.settings.leaderboardDisplayPreference === 'username' ? 'username' : 'nama lengkap'} di leaderboard
-              </Text>
-            </View>
-            <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.gray} />
-          </TouchableOpacity>
-
-          <View style={styles.settingDivider} />
-
           <TouchableOpacity style={styles.settingItem}>
             <MaterialIcons name="help" size={24} color={COLORS.primary} />
             <View style={styles.settingInfo}>
@@ -387,16 +275,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     </View>
   );
 
-  const renderTabContent = () => {
-    switch (selectedTab) {
-      case 'badges':
-        return renderBadges();
-      case 'settings':
-        return renderSettings();
-      default:
-        return renderBadges();
-    }
-  };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -420,45 +298,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
         </View>
       </LinearGradient>
 
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === 'badges' && styles.activeTab]}
-          onPress={() => setSelectedTab('badges')}
-        >
-          <MaterialIcons 
-            name="emoji-events" 
-            size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'badges' ? COLORS.white : COLORS.gray} 
-          />
-          <Text style={[
-            styles.tabText,
-            selectedTab === 'badges' && styles.activeTabText
-          ]}>
-            Dinding Badge
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === 'settings' && styles.activeTab]}
-          onPress={() => setSelectedTab('settings')}
-        >
-          <MaterialIcons 
-            name="settings" 
-            size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'settings' ? COLORS.white : COLORS.gray} 
-          />
-          <Text style={[
-            styles.tabText,
-            selectedTab === 'settings' && styles.activeTabText
-          ]}>
-            Pengaturan
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.content}>
+        {renderSettings()}
       </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderTabContent()}
-      </ScrollView>
     </ScrollView>
   );
 };
@@ -474,8 +316,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: SIZES.xl,
+    paddingTop: Math.max(50, height * 0.06), // Responsive top padding for mobile
+    paddingBottom: Math.max(SIZES.md, height * 0.03), // Further reduced bottom padding
     paddingHorizontal: SIZES.screenPadding,
     alignItems: 'center',
   },
@@ -525,6 +367,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingTop: SIZES.sm, // Reduced to match Badge Statistics spacing
   },
   sectionTitle: {
     ...TYPOGRAPHY.h1,
@@ -533,132 +376,27 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginBottom: SIZES.xs || 4,
   },
-  subtitleContainer: {
-    paddingHorizontal: SIZES.screenPadding,
-    marginBottom: SIZES.md,
-  },
-  sectionSubtitle: {
-    ...TYPOGRAPHY.bodySmall,
-    color: COLORS.textSecondary,
-  },
-  badgeSection: {
-    paddingBottom: SIZES.xl,
-  },
-  badgeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: SIZES.screenPadding,
-    paddingBottom: SIZES.xl,
-  },
-  badgeCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: SIZES.buttonRadius || 12,
-    padding: SIZES.sm,
-    alignItems: 'center',
-    width: (width - SIZES.screenPadding * 2 - SIZES.xs) / 2,
-    marginBottom: SIZES.xs || 4,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  premiumBadgeCard: {
-    borderWidth: 2,
-    borderColor: COLORS.accent,
-    backgroundColor: COLORS.surface,
-  },
-  premiumBadgeIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: COLORS.white,
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  lockedBadgeIcon: {
-    backgroundColor: COLORS.lightGray,
-    opacity: 0.5,
-  },
-  earnedBadgeIcon: {
-    borderWidth: 3,
-    borderColor: COLORS.success,
-    shadowColor: COLORS.success,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  earnedBadgeIndicator: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.success,
-  },
-  badgeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SIZES.sm,
-  },
-  badgeName: {
-    ...TYPOGRAPHY.bodyMedium,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginBottom: SIZES.xs || 2,
-  },
-  badgeNameDisabled: {
-    color: COLORS.gray,
-  },
-  badgeDescription: {
-    ...TYPOGRAPHY.bodySmall,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  badgeDescriptionDisabled: {
-    color: COLORS.gray,
-  },
-  badgeRequirement: {
-    fontSize: Math.min(width * 0.025, 10),
-    color: COLORS.accent,
-    textAlign: 'center',
-    marginTop: SIZES.xs || 2,
-    fontWeight: '500',
-  },
   settingsSection: {
-    paddingBottom: SIZES.xl,
+    paddingBottom: SIZES.md,
+    paddingTop: SIZES.xs, // Reduced to match Badge Statistics spacing pattern
   },
   upgradeCard: {
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
+    marginTop: SIZES.md, // Normal margin - not floating
     marginBottom: SIZES.xs || 4,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.12, // Standard shadow
+    shadowRadius: 10, // Standard shadow radius
+    elevation: 4, // Standard elevation
     overflow: 'hidden',
+  },
+  upgradeItem: {
+    borderRadius: SIZES.buttonRadius / 2,
+    overflow: 'hidden',
+    marginVertical: SIZES.xs,
   },
   upgradeGradient: {
     flexDirection: 'row',
@@ -683,17 +421,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
-    marginBottom: SIZES.xs || 4,
+    marginTop: -Math.max(SIZES.lg, height * 0.04), // Responsive negative margin for floating effect
+    marginBottom: Math.max(SIZES.md, height * 0.025), // Responsive bottom margin
+    padding: Math.max(SIZES.sm, width * 0.04), // Responsive padding
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.15, // Slightly increased shadow for better mobile visibility
+    shadowRadius: 12, // Increased shadow radius
+    elevation: 6, // Increased elevation for Android
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: SIZES.sm,
+    padding: 0, // Remove padding since parent card now has responsive padding
+    paddingVertical: SIZES.sm,
   },
   settingItemDisabled: {
     opacity: 0.6,
@@ -720,46 +461,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightGray,
     marginLeft: SIZES.screenPadding + 24 + SIZES.md,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    marginHorizontal: SIZES.screenPadding,
-    borderRadius: SIZES.buttonRadius || 12,
-    padding: Math.max(width * 0.015, 6),
-    marginTop: -SIZES.lg,
-    marginBottom: SIZES.md,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Math.max(width * 0.025, 10),
-    paddingHorizontal: Math.max(width * 0.015, 4),
-    borderRadius: SIZES.buttonRadius || 12,
-    minHeight: 60,
-  },
-  activeTab: {
-    backgroundColor: COLORS.primary,
-  },
-  tabText: {
-    fontSize: Math.min(width * 0.032, 12),
-    color: COLORS.gray,
-    marginTop: 2,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: Math.min(width * 0.04, 14),
-  },
-  activeTabText: {
-    color: COLORS.white,
-  },
   tabContent: {
-    paddingBottom: SIZES.xl,
+    paddingBottom: SIZES.md,
   },
 });
 

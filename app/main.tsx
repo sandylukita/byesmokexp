@@ -28,31 +28,36 @@ export default function Main() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [splashFinished, setSplashFinished] = useState(false);
+  const [authStateLoaded, setAuthStateLoaded] = useState(false);
 
   useEffect(() => {
     // Only check for users after splash screen finishes
     if (!splashFinished) return;
 
-    // Check Firebase authentication first for real users
-    (async () => {
-      console.log('Main.tsx: Attempting to restore user on app start...');
+    console.log('Main.tsx: Setting up auth state listener...');
+    
+    // Set up Firebase listener for real users
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Main.tsx: Auth state changed, user:', firebaseUser?.email || 'null');
       
-      // First, set up Firebase listener for real users
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-          console.log('Main.tsx: Found Firebase user, navigating to dashboard/onboarding');
-          setUser(firebaseUser);
-          // Check if user needs onboarding
-          checkOnboardingStatus(firebaseUser);
-          return;
-        }
-        
-        // If no Firebase user, fallback to demo users for development/testing
+      if (firebaseUser) {
+        console.log('Main.tsx: Found Firebase user, navigating to dashboard/onboarding');
+        setUser(firebaseUser);
+        setAuthStateLoaded(true);
+        // Check if user needs onboarding
+        checkOnboardingStatus(firebaseUser);
+        return;
+      }
+      
+      // Only proceed to demo fallback if auth state is definitively null
+      // and we haven't already loaded auth state
+      if (!authStateLoaded) {
         console.log('Main.tsx: No Firebase user, checking demo users...');
         const restoredDemoUser = await demoRestoreUser();
         if (restoredDemoUser) {
           console.log('Main.tsx: Found demo user in storage, navigating to dashboard');
           setUser(restoredDemoUser as unknown as FirebaseUser);
+          setAuthStateLoaded(true);
           setAppState('dashboard');
           return;
         }
@@ -61,31 +66,29 @@ export default function Main() {
         if (demoUser) {
           console.log('Main.tsx: Found demo user in memory, navigating to dashboard');
           setUser(demoUser as unknown as FirebaseUser);
+          setAuthStateLoaded(true);
           setAppState('dashboard');
           return;
         }
 
         // No users found, show login
         console.log('Main.tsx: No users found, showing login screen');
+        setAuthStateLoaded(true);
         setAppState('login');
-      });
+      }
+    });
 
-      // Clean up Firebase listener on unmount
-      return unsubscribe;
-    })();
-  }, [splashFinished]);
+    // Clean up Firebase listener on unmount
+    return unsubscribe;
+  }, [splashFinished, authStateLoaded]);
 
   const checkOnboardingStatus = async (firebaseUser: FirebaseUser) => {
     try {
-      // In a real app, you'd check Firestore for user data
-      // For now, we'll assume new users need onboarding
-      const userCreationTime = new Date(firebaseUser.metadata.creationTime || '');
-      const now = new Date();
-      const timeDiff = now.getTime() - userCreationTime.getTime();
-      const hoursDiff = timeDiff / (1000 * 3600);
+      // Check Firestore for actual onboarding completion status
+      const { getUserDocument } = await import('../src/services/auth');
+      const userData = await getUserDocument(firebaseUser.uid);
       
-      // If account was created less than 1 hour ago, show onboarding
-      if (hoursDiff < 1) {
+      if (userData && userData.onboardingCompleted === false) {
         setNeedsOnboarding(true);
         setAppState('onboarding');
       } else {
@@ -93,6 +96,7 @@ export default function Main() {
       }
     } catch (error) {
       console.error('Error checking onboarding status:', error);
+      // Default to dashboard if there's an error
       setAppState('dashboard');
     }
   };
@@ -119,6 +123,7 @@ export default function Main() {
     try {
       await demoLogout();
       await auth.signOut();
+      setAuthStateLoaded(false);
       setAppState('login');
     } catch (error) {
       console.error('Error signing out:', error);

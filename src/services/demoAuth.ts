@@ -52,7 +52,9 @@ const DEMO_USERS: DemoUser[] = [
       language: 'id',
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
-    }
+    },
+    onboardingCompleted: true,
+    dailyXP: {}
   },
   {
     id: 'demo-user',
@@ -77,7 +79,9 @@ const DEMO_USERS: DemoUser[] = [
       language: 'id',
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
-    }
+    },
+    onboardingCompleted: true,
+    dailyXP: {}
   }
 ];
 
@@ -131,7 +135,8 @@ export const demoSignUp = async (email: string, password: string, displayName: s
           language: 'id',
           reminderTime: '09:00',
           leaderboardDisplayPreference: 'username'
-        }
+        },
+        dailyXP: {}
       };
       DEMO_USERS.push(newUser);
       currentUser = newUser;
@@ -215,7 +220,9 @@ export const demoCreateUserDocument = async (email: string, displayName: string,
       language: 'id',
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
-    }
+    },
+    onboardingCompleted: true,
+    dailyXP: {}
   };
   
   return userData;

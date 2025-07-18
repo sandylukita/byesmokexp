@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { BADGES } from '../utils/constants';
 import { User, Badge, Mission } from '../types';
 import { demoGetCurrentUser, demoUpdateUser } from './demoAuth';
-import { calculateLevel, calculateMoneySaved } from '../utils/helpers';
+import { calculateLevel, calculateMoneySaved, addDailyXP } from '../utils/helpers';
 
 // Baseline badge statistics to make the app feel established
 const BASELINE_BADGE_STATS: {[badgeId: string]: number} = {
@@ -230,37 +230,37 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
 
   // Update user document with new badges
   if (newBadges.length > 0) {
-    try {
-      // Try Firebase first
-      const userDoc = doc(db, 'users', userId);
-      await updateDoc(userDoc, {
-        badges: arrayUnion(...newBadges)
-      });
-      console.log('✓ Firebase: Successfully awarded badges:', newBadges.length);
-      
-      // Increment badge counters for statistics
-      for (const badge of newBadges) {
-        await incrementBadgeCount(badge.id);
-      }
-    } catch (error) {
-      console.error('Firebase error awarding badges, trying demo fallback:', error);
-      
-      // Fallback to demo user update
+    // Check if we're in demo mode first
+    const demoUser = demoGetCurrentUser();
+    const isDemo = demoUser && demoUser.id === userId;
+    
+    if (isDemo) {
+      // Handle demo user directly
       try {
-        const demoUser = demoGetCurrentUser();
-        if (demoUser && demoUser.id === userId) {
-          const updatedBadges = [...(demoUser.badges || []), ...newBadges];
-          await demoUpdateUser(userId, { badges: updatedBadges });
-          console.log('✓ Demo: Successfully awarded badges as fallback:', newBadges.length);
-          
-          // Increment badge counters for demo users too
-          for (const badge of newBadges) {
-            await incrementBadgeCount(badge.id);
-          }
-        }
+        const updatedBadges = [...(demoUser.badges || []), ...newBadges];
+        await demoUpdateUser(userId, { badges: updatedBadges });
+        console.log('✓ Demo: Successfully awarded badges:', newBadges.length);
+        
+        // Skip badge statistics for demo users to avoid Firebase errors
+        console.log('ℹ️ Skipping badge statistics for demo user');
       } catch (demoError) {
-        console.error('Both Firebase and demo badge awarding failed:', demoError);
-        // Don't throw - better to continue without badges than crash
+        console.error('Demo badge awarding failed:', demoError);
+      }
+    } else {
+      // Handle Firebase user
+      try {
+        const userDoc = doc(db, 'users', userId);
+        await updateDoc(userDoc, {
+          badges: arrayUnion(...newBadges)
+        });
+        console.log('✓ Firebase: Successfully awarded badges:', newBadges.length);
+        
+        // Increment badge counters for statistics (Firebase users only)
+        for (const badge of newBadges) {
+          await incrementBadgeCount(badge.id);
+        }
+      } catch (error) {
+        console.error('Firebase error awarding badges:', error);
       }
     }
   }
@@ -297,9 +297,11 @@ export const completeMission = async (
     };
 
     const newXP = currentUser.xp + mission.xpReward;
+    const updatedDailyXP = addDailyXP(currentUser.dailyXP, mission.xpReward);
     const updatedUser: User = {
       ...currentUser,
       xp: newXP,
+      dailyXP: updatedDailyXP,
       completedMissions: [...(currentUser.completedMissions || []), completedMission],
     };
 
@@ -308,6 +310,7 @@ export const completeMission = async (
       const userDoc = doc(db, 'users', userId);
       await updateDoc(userDoc, {
         xp: newXP,
+        dailyXP: updatedDailyXP,
         completedMissions: arrayUnion(completedMission),
       });
       console.log('✓ Firebase: Successfully completed mission');
@@ -320,6 +323,7 @@ export const completeMission = async (
         const updatedCompletedMissions = [...(demoUser.completedMissions || []), completedMission];
         await demoUpdateUser(userId, {
           xp: newXP,
+          dailyXP: updatedDailyXP,
           completedMissions: updatedCompletedMissions,
         });
         console.log('✓ Demo: Successfully completed mission as fallback');
