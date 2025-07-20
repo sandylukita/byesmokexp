@@ -8,6 +8,7 @@ import BadgeStatisticsScreen from '../screens/BadgeStatisticsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SwipeableTabNavigator from '../components/SwipeableTabNavigator';
 import { COLORS, SIZES } from '../utils/constants';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -42,6 +43,7 @@ const SwipeableScreen: React.FC<SwipeableScreenProps> = ({ children, routeName, 
 };
 
 const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
+  const { colors } = useTheme();
   return (
     <Tab.Navigator
         screenOptions={({ route }) => ({
@@ -67,12 +69,12 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
 
             return <MaterialIcons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: COLORS.gray,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.gray,
           tabBarStyle: {
-            backgroundColor: COLORS.white,
+            backgroundColor: colors.surface,
             borderTopWidth: 1,
-            borderTopColor: COLORS.lightGray,
+            borderTopColor: colors.lightGray,
             paddingBottom: 8,
             paddingTop: 8,
             height: 70,
@@ -80,6 +82,7 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
           tabBarLabelStyle: {
             fontSize: SIZES.xs,
             fontWeight: '500',
+            color: colors.textSecondary,
           },
           headerShown: false,
         })}

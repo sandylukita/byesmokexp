@@ -25,6 +25,7 @@ import {
     formatNumber,
     getHealthMilestones,
 } from '../utils/helpers';
+import { useTheme } from '../contexts/ThemeContext';
 import { TYPOGRAPHY } from '../utils/typography';
 
 const ProgressScreen: React.FC = () => {
@@ -32,6 +33,7 @@ const ProgressScreen: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'health' | 'savings' | 'stats'>('stats');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { colors, updateUser } = useTheme();
 
   useEffect(() => {
     loadUserData();
@@ -74,6 +76,7 @@ const ProgressScreen: React.FC = () => {
               dailyXP: userData.dailyXP
             });
             setUser(userData);
+            updateUser(userData);
             setLoading(false);
             return;
           } else {
@@ -100,6 +103,7 @@ const ProgressScreen: React.FC = () => {
           dailyXP: demoUser.dailyXP
         });
         setUser(demoUser);
+        updateUser(demoUser);
         setLoading(false);
         return;
       }
@@ -116,6 +120,7 @@ const ProgressScreen: React.FC = () => {
           totalDays: restoredUser.totalDays
         });
         setUser(restoredUser);
+        updateUser(restoredUser);
         setLoading(false);
         return;
       }
@@ -151,21 +156,21 @@ const ProgressScreen: React.FC = () => {
   const renderHealthMilestones = () => (
     <View style={styles.tabContent}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Milestone Kesehatan</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Milestone Kesehatan</Text>
       </View>
       
       {healthMilestones.map((milestone, index) => {
         const gradientColors = [
-          [COLORS.primary + '20', COLORS.primary + '10'], // Orange gradient
-          [COLORS.secondary + '20', COLORS.secondary + '10'], // Green gradient  
-          [COLORS.info + '20', COLORS.info + '10'], // Blue gradient
-          [COLORS.accent + '20', COLORS.accent + '10'], // Light green gradient
-          [COLORS.accentAlt + '20', COLORS.accentAlt + '10'], // Purple gradient
+          [colors.primary + '20', colors.primary + '10'], // Orange gradient
+          [colors.secondary + '20', colors.secondary + '10'], // Green gradient  
+          [colors.info + '20', colors.info + '10'], // Blue gradient
+          [colors.accent + '20', colors.accent + '10'], // Light green gradient
+          [colors.accentAlt + '20', colors.accentAlt + '10'], // Purple gradient
         ];
-        const iconColors = [COLORS.primary, COLORS.secondary, COLORS.info, COLORS.accent, COLORS.accentAlt];
+        const iconColors = [colors.primary, colors.secondary, colors.info, colors.accent, colors.accentAlt];
         
         return (
-          <View key={milestone.id} style={styles.milestoneCardContainer}>
+          <View key={milestone.id} style={[styles.milestoneCardContainer, { backgroundColor: colors.surface }]}>
             <LinearGradient
               colors={gradientColors[index % gradientColors.length]}
               start={{ x: 0, y: 0 }}
@@ -175,30 +180,32 @@ const ProgressScreen: React.FC = () => {
               <View style={styles.milestoneHeader}>
                 <View style={[
                   styles.milestoneIcon,
-                  { backgroundColor: milestone.isReached ? iconColors[index % iconColors.length] : COLORS.lightGray }
+                  { backgroundColor: milestone.isReached ? iconColors[index % iconColors.length] : colors.lightGray }
                 ]}>
                   <MaterialIcons 
                     name={milestone.icon as any} 
                     size={24} 
-                    color={milestone.isReached ? COLORS.white : COLORS.gray} 
+                    color={milestone.isReached ? colors.white : colors.gray} 
                   />
                 </View>
             <View style={styles.milestoneInfo}>
               <Text style={[
                 styles.milestoneTitle,
-                milestone.isReached && styles.milestoneReached
+                milestone.isReached && styles.milestoneReached,
+                { color: colors.textPrimary }
               ]}>
                 {milestone.title}
               </Text>
-              <Text style={styles.milestoneTime}>{milestone.timeframe}</Text>
+              <Text style={[styles.milestoneTime, { color: colors.textSecondary }]}>{milestone.timeframe}</Text>
             </View>
             {milestone.isReached && (
-              <MaterialIcons name="check-circle" size={20} color={COLORS.secondary} />
+              <MaterialIcons name="check-circle" size={20} color={colors.secondary} />
             )}
           </View>
               <Text style={[
                 styles.milestoneDescription,
-                milestone.isReached && styles.milestoneDescriptionReached
+                milestone.isReached && styles.milestoneDescriptionReached,
+                { color: colors.textSecondary }
               ]}>
                 {milestone.description}
               </Text>
@@ -212,12 +219,12 @@ const ProgressScreen: React.FC = () => {
   const renderSavingsBreakdown = () => (
     <View style={styles.tabContent}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Penghematan Uang</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Penghematan Uang</Text>
       </View>
       
-      <View style={styles.savingsCard}>
+      <View style={[styles.savingsCard, { backgroundColor: colors.surface }]}>
         <LinearGradient
-          colors={[COLORS.secondary, COLORS.secondaryDark]}
+          colors={[colors.secondary, colors.secondaryDark]}
           style={styles.savingsGradient}
         >
           <Text style={styles.savingsAmount}>{formatCurrency(moneySaved)}</Text>
@@ -226,42 +233,42 @@ const ProgressScreen: React.FC = () => {
       </View>
 
       <View style={styles.breakdownContainer}>
-        <View style={styles.breakdownItem}>
+        <View style={[styles.breakdownItem, { backgroundColor: colors.surface }]}>
           <View style={styles.breakdownRow}>
-            <View style={[styles.breakdownIconContainer, { backgroundColor: COLORS.primary + '20' }]}>
-              <MaterialIcons name="today" size={20} color={COLORS.primary} />
+            <View style={[styles.breakdownIconContainer, { backgroundColor: colors.primary + '20' }]}>
+              <MaterialIcons name="today" size={20} color={colors.primary} />
             </View>
             <View style={styles.breakdownTextContainer}>
-              <Text style={styles.breakdownLabel}>Per Hari</Text>
-              <Text style={styles.breakdownValue}>
+              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Per Hari</Text>
+              <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
                 {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20))}
               </Text>
             </View>
           </View>
         </View>
         
-        <View style={styles.breakdownItem}>
+        <View style={[styles.breakdownItem, { backgroundColor: colors.surface }]}>
           <View style={styles.breakdownRow}>
-            <View style={[styles.breakdownIconContainer, { backgroundColor: COLORS.accent + '20' }]}>
-              <MaterialIcons name="date-range" size={20} color={COLORS.accent} />
+            <View style={[styles.breakdownIconContainer, { backgroundColor: colors.accent + '20' }]}>
+              <MaterialIcons name="date-range" size={20} color={colors.accent} />
             </View>
             <View style={styles.breakdownTextContainer}>
-              <Text style={styles.breakdownLabel}>Per Minggu</Text>
-              <Text style={styles.breakdownValue}>
+              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Per Minggu</Text>
+              <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
                 {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 7)}
               </Text>
             </View>
           </View>
         </View>
         
-        <View style={styles.breakdownItem}>
+        <View style={[styles.breakdownItem, { backgroundColor: colors.surface }]}>
           <View style={styles.breakdownRow}>
-            <View style={[styles.breakdownIconContainer, { backgroundColor: COLORS.error + '20' }]}>
-              <MaterialIcons name="calendar-month" size={20} color={COLORS.error} />
+            <View style={[styles.breakdownIconContainer, { backgroundColor: colors.error + '20' }]}>
+              <MaterialIcons name="calendar-month" size={20} color={colors.error} />
             </View>
             <View style={styles.breakdownTextContainer}>
-              <Text style={styles.breakdownLabel}>Per Bulan</Text>
-              <Text style={styles.breakdownValue}>
+              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Per Bulan</Text>
+              <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
                 {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 30)}
               </Text>
             </View>
@@ -269,45 +276,45 @@ const ProgressScreen: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.investmentCard}>
+      <View style={[styles.investmentCard, { backgroundColor: colors.surface }]}>
         <LinearGradient
-          colors={[COLORS.accentAlt + '20', COLORS.accentAlt + '10']}
+          colors={[colors.accentAlt + '20', colors.accentAlt + '10']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.investmentCardGradient}
         >
-          <Text style={styles.investmentTitle}>Apa yang bisa kamu beli?</Text>
-          <Text style={styles.investmentSubtitle}>Dengan uang yang kamu hemat</Text>
+          <Text style={[styles.investmentTitle, { color: colors.textPrimary }]}>Apa yang bisa kamu beli?</Text>
+          <Text style={[styles.investmentSubtitle, { color: colors.textSecondary }]}>Dengan uang yang kamu hemat</Text>
           
           <View style={styles.investmentGrid}>
-            <View style={styles.investmentItemCard}>
+            <View style={[styles.investmentItemCard, { backgroundColor: colors.surface }]}>
               <View style={styles.investmentIconContainer}>
                 <Text style={styles.investmentEmoji}>📱</Text>
               </View>
-              <Text style={styles.investmentNumber}>
+              <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
                 {Math.floor(moneySaved / 3000000)}
               </Text>
-              <Text style={styles.investmentLabel}>Smartphone</Text>
+              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Smartphone</Text>
             </View>
             
-            <View style={styles.investmentItemCard}>
+            <View style={[styles.investmentItemCard, { backgroundColor: colors.surface }]}>
               <View style={styles.investmentIconContainer}>
                 <Text style={styles.investmentEmoji}>🍕</Text>
               </View>
-              <Text style={styles.investmentNumber}>
+              <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
                 {Math.floor(moneySaved / 50000)}
               </Text>
-              <Text style={styles.investmentLabel}>Pizza Keluarga</Text>
+              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Pizza Keluarga</Text>
             </View>
             
-            <View style={styles.investmentItemCard}>
+            <View style={[styles.investmentItemCard, { backgroundColor: colors.surface }]}>
               <View style={styles.investmentIconContainer}>
                 <Text style={styles.investmentEmoji}>⛽</Text>
               </View>
-              <Text style={styles.investmentNumber}>
+              <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
                 {Math.floor(moneySaved / 15000)}
               </Text>
-              <Text style={styles.investmentLabel}>Liter Bensin</Text>
+              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Liter Bensin</Text>
             </View>
           </View>
         </LinearGradient>
@@ -318,57 +325,57 @@ const ProgressScreen: React.FC = () => {
   const renderStatistics = () => (
     <View style={styles.tabContent}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Statistik Lengkap</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Statistik Lengkap</Text>
       </View>
       
       <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <MaterialIcons name="smoke-free" size={32} color={COLORS.primary} />
-          <Text style={styles.statValue}>{formatNumber(cigarettesAvoided)}</Text>
-          <Text style={styles.statLabel}>Rokok Dihindari</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <MaterialIcons name="smoke-free" size={32} color={colors.primary} />
+          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(cigarettesAvoided)}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Rokok Dihindari</Text>
         </View>
         
-        <View style={styles.statCard}>
-          <MaterialIcons name="schedule" size={32} color={COLORS.secondary} />
-          <Text style={styles.statValue}>{formatNumber(cigarettesAvoided * 11)}</Text>
-          <Text style={styles.statLabel}>Menit Hidup Bertambah</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <MaterialIcons name="schedule" size={32} color={colors.secondary} />
+          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(cigarettesAvoided * 11)}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Menit Hidup Bertambah</Text>
         </View>
         
-        <View style={styles.statCard}>
-          <MaterialIcons name="local-fire-department" size={32} color={COLORS.error} />
-          <Text style={styles.statValue}>{user.streak}</Text>
-          <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">Streak Terpanjang</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <MaterialIcons name="local-fire-department" size={32} color={colors.error} />
+          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.longestStreak || user.streak || 0}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">Streak Terpanjang</Text>
         </View>
         
-        <View style={styles.statCard}>
-          <MaterialIcons name="star" size={32} color={COLORS.accent} />
-          <Text style={styles.statValue}>{user.xp}</Text>
-          <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">Total XP</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <MaterialIcons name="star" size={32} color={colors.accent} />
+          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.xp}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">Total XP</Text>
         </View>
         
-        <View style={styles.statCard}>
-          <MaterialIcons name="emoji-events" size={32} color={COLORS.accentAlt} />
-          <Text style={styles.statValue}>{user.badges?.length || 0}</Text>
-          <Text style={styles.statLabel}>Badge Diperoleh</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <MaterialIcons name="emoji-events" size={32} color={colors.accentAlt} />
+          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.badges?.length || 0}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Badge Diperoleh</Text>
         </View>
         
-        <View style={styles.statCard}>
-          <MaterialIcons name="assignment-turned-in" size={32} color={COLORS.info} />
-          <Text style={styles.statValue}>{user.completedMissions?.length || 0}</Text>
-          <Text style={styles.statLabel}>Misi Selesai</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <MaterialIcons name="assignment-turned-in" size={32} color={colors.info} />
+          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.completedMissions?.length || 0}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Misi Selesai</Text>
         </View>
       </View>
 
       
-      <View style={styles.monthlySection}>
+      <View style={[styles.monthlySection, { backgroundColor: colors.surface }]}>
         <LinearGradient
-          colors={[COLORS.accent + '20', COLORS.accent + '10']}
+          colors={[colors.accent + '20', colors.accent + '10']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.monthlySectionGradient}
         >
-          <Text style={styles.progressTitle}>Progress Harian</Text>
-          <Text style={styles.progressSubtitle}>
+          <Text style={[styles.progressTitle, { color: colors.textPrimary }]}>Progress Harian</Text>
+          <Text style={[styles.progressSubtitle, { color: colors.textSecondary }]}>
             {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
           </Text>
           
@@ -377,7 +384,7 @@ const ProgressScreen: React.FC = () => {
             {/* Day labels */}
             <View style={styles.heatmapDayLabels}>
               {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((day) => (
-                <Text key={day} style={styles.heatmapDayLabel}>{day}</Text>
+                <Text key={day} style={[styles.heatmapDayLabel, { color: colors.textPrimary }]}>{day}</Text>
               ))}
             </View>
             
@@ -418,15 +425,13 @@ const ProgressScreen: React.FC = () => {
                     const dateKey = date.getFullYear() + '-' + 
                                   String(date.getMonth() + 1).padStart(2, '0') + '-' + 
                                   String(date.getDate()).padStart(2, '0');
-                    const dailyXP = user.dailyXP?.[dateKey] || 0;
                     
-                    // Debug logging for today
-                    if (isToday) {
-                      console.log('📅 Today heatmap calculation:', {
-                        dateKey,
-                        dailyXP,
-                        allDailyXP: user.dailyXP
-                      });
+                    // Try current format first, then fallback to legacy UTC format
+                    let dailyXP = user.dailyXP?.[dateKey] || 0;
+                    if (dailyXP === 0) {
+                      // Fallback: try UTC format for legacy data
+                      const utcDateKey = date.toISOString().split('T')[0];
+                      dailyXP = user.dailyXP?.[utcDateKey] || 0;
                     }
                     
                     // Convert XP to intensity levels
@@ -438,6 +443,19 @@ const ProgressScreen: React.FC = () => {
                       intensity = 1; // Low activity: 10-19 XP
                     } else {
                       intensity = 0; // No activity: 0-9 XP
+                    }
+                    
+                    // Debug logging for today
+                    if (isToday) {
+                      const utcDateKey = date.toISOString().split('T')[0];
+                      console.log('📅 Today heatmap calculation:', {
+                        localDateKey: dateKey,
+                        utcDateKey,
+                        dailyXP,
+                        intensity,
+                        allDailyXP: user.dailyXP,
+                        availableKeys: Object.keys(user.dailyXP || {})
+                      });
                     }
                   }
                   
@@ -454,7 +472,8 @@ const ProgressScreen: React.FC = () => {
                       ]}>
                         <Text style={[
                           styles.heatmapDayNumber,
-                          (intensity > 1 || isToday) && styles.heatmapDayNumberDark
+                          (intensity > 1 || isToday) && styles.heatmapDayNumberDark,
+                          { color: (intensity > 1 || isToday) ? colors.white : colors.textSecondary }
                         ]}>
                           {day}
                         </Text>
@@ -467,14 +486,14 @@ const ProgressScreen: React.FC = () => {
               })()}
             </View>
             <View style={styles.heatmapLegend}>
-              <Text style={styles.heatmapLegendText}>Kurang</Text>
+              <Text style={[styles.heatmapLegendText, { color: colors.textSecondary }]}>Kurang</Text>
               <View style={styles.heatmapLegendDots}>
                 <View style={[styles.heatmapLegendDot, styles.heatmapEmpty]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapLow]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapMedium]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapHigh]} />
               </View>
-              <Text style={styles.heatmapLegendText}>Aktif</Text>
+              <Text style={[styles.heatmapLegendText, { color: colors.textSecondary }]}>Aktif</Text>
             </View>
           </View>
         </LinearGradient>
@@ -496,61 +515,70 @@ const ProgressScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={[COLORS.primary, COLORS.primaryLight]} style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
         <Text style={styles.headerTitle}>Progress Kamu</Text>
         <Text style={styles.headerSubtitle}>
           "{daysSinceQuit} hari bebas rokok"
         </Text>
       </LinearGradient>
 
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'stats' && styles.activeTab]}
+          style={[
+            styles.tab, 
+            { backgroundColor: selectedTab === 'stats' ? colors.primary : 'transparent' }
+          ]}
           onPress={() => setSelectedTab('stats')}
         >
           <MaterialIcons 
             name="bar-chart" 
             size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'stats' ? COLORS.white : COLORS.gray} 
+            color={selectedTab === 'stats' ? colors.white : colors.gray} 
           />
           <Text style={[
             styles.tabText,
-            selectedTab === 'stats' && styles.activeTabText
+            { color: selectedTab === 'stats' ? colors.white : colors.textSecondary }
           ]}>
             Statistik
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'health' && styles.activeTab]}
+          style={[
+            styles.tab, 
+            { backgroundColor: selectedTab === 'health' ? colors.primary : 'transparent' }
+          ]}
           onPress={() => setSelectedTab('health')}
         >
           <MaterialIcons 
             name="favorite" 
             size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'health' ? COLORS.white : COLORS.gray} 
+            color={selectedTab === 'health' ? colors.white : colors.gray} 
           />
           <Text style={[
             styles.tabText,
-            selectedTab === 'health' && styles.activeTabText
+            { color: selectedTab === 'health' ? colors.white : colors.textSecondary }
           ]}>
             Kesehatan
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'savings' && styles.activeTab]}
+          style={[
+            styles.tab, 
+            { backgroundColor: selectedTab === 'savings' ? colors.primary : 'transparent' }
+          ]}
           onPress={() => setSelectedTab('savings')}
         >
           <MaterialIcons 
             name="savings" 
             size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'savings' ? COLORS.white : COLORS.gray} 
+            color={selectedTab === 'savings' ? colors.white : colors.gray} 
           />
           <Text style={[
             styles.tabText,
-            selectedTab === 'savings' && styles.activeTabText
+            { color: selectedTab === 'savings' ? colors.white : colors.textSecondary }
           ]}>
             Uang
           </Text>
@@ -759,7 +787,6 @@ const styles = StyleSheet.create({
     gap: SIZES.xs || 4,
   },
   breakdownItem: {
-    backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     padding: SIZES.sm,
     marginBottom: SIZES.xs || 4,
@@ -790,13 +817,11 @@ const styles = StyleSheet.create({
   breakdownValue: {
     fontSize: Math.min(width * 0.04, 16),
     fontWeight: '700',
-    color: COLORS.textPrimary,
     marginTop: 2,
     textAlign: 'center',
   },
   breakdownLabel: {
     fontSize: Math.min(width * 0.032, 12),
-    color: COLORS.textSecondary,
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -947,7 +972,6 @@ const styles = StyleSheet.create({
     width: '14.28%',
     textAlign: 'center',
     fontSize: Math.min(width * 0.028, 11),
-    color: COLORS.textSecondary,
     fontWeight: '600',
   },
   heatmapDay: {

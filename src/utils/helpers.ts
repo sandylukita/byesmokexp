@@ -267,16 +267,23 @@ export const getWeekNumber = (date: Date): number => {
 };
 
 export const addDailyXP = (dailyXP: { [date: string]: number } | undefined, xpAmount: number): { [date: string]: number } => {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  // Use local timezone to match heatmap calculation
+  const today = new Date();
+  const dateKey = today.getFullYear() + '-' + 
+                  String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                  String(today.getDate()).padStart(2, '0');
   const currentDailyXP = dailyXP || {};
   
   return {
     ...currentDailyXP,
-    [today]: (currentDailyXP[today] || 0) + xpAmount
+    [dateKey]: (currentDailyXP[dateKey] || 0) + xpAmount
   };
 };
 
 export const getDailyXP = (dailyXP: { [date: string]: number } | undefined, date: Date): number => {
-  const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  // Use local timezone to match addDailyXP format
+  const dateKey = date.getFullYear() + '-' + 
+                  String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                  String(date.getDate()).padStart(2, '0');
   return dailyXP?.[dateKey] || 0;
 };

@@ -55,6 +55,7 @@ export const createUserDocument = async (user: FirebaseUser, displayName: string
     cigarettesPerDay: 0,
     cigarettePrice: 0,
     streak: 0,
+    longestStreak: 0,
     totalDays: 0,
     xp: 0,
     level: 1,

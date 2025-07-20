@@ -11,6 +11,7 @@ import SignUpScreen from '../src/screens/SignUpScreen';
 import SplashScreen from '../src/screens/SplashScreen';
 import { demoGetCurrentUser, demoLogout, demoRestoreUser } from '../src/services/demoAuth';
 import { COLORS } from '../src/utils/constants';
+import { ThemeProvider } from '../src/contexts/ThemeContext';
 
 type AppState = 'splash' | 'login' | 'signup' | 'onboarding' | 'dashboard';
 
@@ -158,10 +159,12 @@ export default function Main() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      {renderCurrentScreen()}
-    </View>
+    <ThemeProvider>
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        {renderCurrentScreen()}
+      </View>
+    </ThemeProvider>
   );
 }
 

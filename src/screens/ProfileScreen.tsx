@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
@@ -20,6 +21,7 @@ import { User } from '../types';
 import { COLORS, SIZES } from '../utils/constants';
 import { calculateLevel } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,6 +32,9 @@ interface ProfileScreenProps {
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalContent, setModalContent] = useState({ title: '', message: '' });
+  const { isDarkMode, colors, toggleDarkMode, canUseDarkMode, updateUser } = useTheme();
 
   useEffect(() => {
     loadUserData();
@@ -71,6 +76,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
               totalDays: userData.totalDays
             });
             setUser(userData);
+            updateUser(userData);
             setLoading(false);
             return;
           } else {
@@ -96,6 +102,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           totalDays: demoUser.totalDays
         });
         setUser(demoUser);
+        updateUser(demoUser);
         setLoading(false);
         return;
       }
@@ -112,6 +119,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           totalDays: restoredUser.totalDays
         });
         setUser(restoredUser);
+        updateUser(restoredUser);
         setLoading(false);
         return;
       }
@@ -155,11 +163,29 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     );
   };
 
+  const showCustomAlert = (title: string, message: string) => {
+    setModalContent({ title, message });
+    setModalVisible(true);
+  };
+
+  const handleNotifications = () => {
+    showCustomAlert(
+      'Pengaturan Notifikasi',
+      'Fitur pengaturan notifikasi akan segera tersedia. Anda akan dapat mengatur:\n\n• Pengingat check-in harian\n• Motivasi dan tips kesehatan\n• Update pencapaian badge\n• Reminder misi harian\n\nTerima kasih atas kesabaran Anda!'
+    );
+  };
+
+  const handleHelp = () => {
+    showCustomAlert(
+      'Bantuan & Dukungan',
+      'Butuh bantuan? Berikut beberapa cara untuk mendapatkan dukungan:\n\n• FAQ dan panduan akan segera tersedia\n• Tim dukungan siap membantu\n• Komunitas pengguna ByeSmoke\n\nUntuk bantuan langsung, hubungi tim pengembang melalui menu feedback.'
+    );
+  };
+
   const handleAbout = () => {
-    Alert.alert(
+    showCustomAlert(
       'ByeSmoke XP v1.0.0',
-      'Aplikasi ini dibuat untuk membantu Anda dalam perjalanan berhenti merokok. Lacak progres Anda, selesaikan misi harian, dan dapatkan lencana untuk setiap pencapaian.\n\nIngat, setiap hari tanpa rokok adalah kemenangan. Anda lebih kuat dari yang Anda kira!\n\nDibuat dengan semangat dan harapan.',
-      [{ text: 'OK' }]
+      'Aplikasi ini dibuat untuk membantu Anda dalam perjalanan berhenti merokok. Lacak progres Anda, selesaikan misi harian, dan dapatkan lencana untuk setiap pencapaian.\n\nIngat, setiap hari tanpa rokok adalah kemenangan. Anda lebih kuat dari yang Anda kira!\n\nDibuat dengan semangat dan harapan.'
     );
   };
 
@@ -173,10 +199,36 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
 
   const levelInfo = calculateLevel(user.xp);
 
+  const renderCustomAlert = () => (
+    <Modal
+      visible={modalVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+            {modalContent.title}
+          </Text>
+          <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+            {modalContent.message}
+          </Text>
+          <TouchableOpacity 
+            style={[styles.modalButton, { backgroundColor: colors.primary }]}
+            onPress={() => setModalVisible(false)}
+          >
+            <Text style={styles.modalButtonText}>Tutup</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   const renderSettings = () => (
     <View style={styles.tabContent}>
       <View style={styles.settingsSection}>
-        <View style={styles.settingsCard}>
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
           {!user.isPremium && (
             <>
               <TouchableOpacity style={styles.upgradeItem} onPress={handleUpgrade}>
@@ -194,20 +246,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
                   <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.white} />
                 </LinearGradient>
               </TouchableOpacity>
-              <View style={styles.settingDivider} />
+              <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
             </>
           )}
 
-          <TouchableOpacity style={styles.settingItem}>
-            <MaterialIcons name="notifications" size={24} color={COLORS.primary} />
+          <TouchableOpacity style={styles.settingItem} onPress={handleNotifications}>
+            <MaterialIcons name="notifications" size={24} color={colors.primary} />
             <View style={styles.settingInfo}>
-              <Text style={styles.settingTitle}>Notifikasi</Text>
-              <Text style={styles.settingSubtitle}>Pengingat dan motivasi</Text>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Notifikasi</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Pengingat dan motivasi</Text>
             </View>
-            <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.gray} />
+            <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
           </TouchableOpacity>
 
-          <View style={styles.settingDivider} />
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
 
           <TouchableOpacity 
             style={[
@@ -215,51 +267,62 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
               !user.isPremium && styles.settingItemDisabled
             ]}
             disabled={!user.isPremium}
+            onPress={user.isPremium ? toggleDarkMode : undefined}
           >
             <MaterialIcons 
-              name="dark-mode" 
+              name={isDarkMode ? "dark-mode" : "light-mode"} 
               size={24} 
-              color={user.isPremium ? COLORS.primary : COLORS.gray} 
+              color={user.isPremium ? colors.primary : colors.gray} 
             />
             <View style={styles.settingInfo}>
               <Text style={[
-                styles.settingTitle,
-                !user.isPremium && styles.settingTitleDisabled
+                { ...styles.settingTitle, color: colors.textPrimary },
+                !user.isPremium && { color: colors.gray }
               ]}>
                 Mode Gelap
               </Text>
-              <Text style={styles.settingSubtitle}>
-                {user.isPremium ? 'Tema gelap untuk mata' : 'Fitur Premium'}
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+                {user.isPremium ? (isDarkMode ? 'Aktif' : 'Nonaktif') : 'Fitur Premium'}
               </Text>
             </View>
-            {!user.isPremium && (
-              <MaterialIcons name="lock" size={16} color={COLORS.gray} />
+            {user.isPremium ? (
+              <View style={[
+                { ...styles.toggleSwitch, backgroundColor: colors.gray }, 
+                isDarkMode && { backgroundColor: colors.secondary }
+              ]}>
+                <View style={[
+                  { ...styles.toggleThumb, backgroundColor: colors.surface }, 
+                  isDarkMode && styles.toggleThumbActive
+                ]} />
+              </View>
+            ) : (
+              <MaterialIcons name="lock" size={16} color={colors.gray} />
             )}
           </TouchableOpacity>
 
-          <View style={styles.settingDivider} />
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
 
-          <TouchableOpacity style={styles.settingItem}>
-            <MaterialIcons name="help" size={24} color={COLORS.primary} />
+          <TouchableOpacity style={styles.settingItem} onPress={handleHelp}>
+            <MaterialIcons name="help" size={24} color={colors.primary} />
             <View style={styles.settingInfo}>
-              <Text style={styles.settingTitle}>Bantuan</Text>
-              <Text style={styles.settingSubtitle}>FAQ dan dukungan</Text>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Bantuan</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>FAQ dan dukungan</Text>
             </View>
-            <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.gray} />
+            <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
           </TouchableOpacity>
 
-          <View style={styles.settingDivider} />
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
 
           <TouchableOpacity style={styles.settingItem} onPress={handleAbout}>
-            <MaterialIcons name="info" size={24} color={COLORS.primary} />
+            <MaterialIcons name="info" size={24} color={colors.primary} />
             <View style={styles.settingInfo}>
-              <Text style={styles.settingTitle}>Tentang</Text>
-              <Text style={styles.settingSubtitle}>Versi 1.0.0</Text>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Tentang</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Versi 1.0.0</Text>
             </View>
-            <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.gray} />
+            <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
           </TouchableOpacity>
 
-          <View style={styles.settingDivider} />
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
 
           <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
             <MaterialIcons name="logout" size={24} color={COLORS.error} />
@@ -267,7 +330,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
               <Text style={[styles.settingTitle, { color: COLORS.error }]}>
                 Keluar
               </Text>
-              <Text style={styles.settingSubtitle}>Logout dari akun</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Logout dari akun</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -277,38 +340,35 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
 
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header Section */}
-      <LinearGradient colors={[COLORS.primary, COLORS.primaryLight]} style={styles.header}>
-        <View style={styles.profileInfo}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user.displayName.charAt(0).toUpperCase()}
-            </Text>
+    <>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+        {/* Header Section */}
+        <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
+          <View style={styles.profileInfo}>
+            <Text style={styles.displayName}>{user.displayName}</Text>
+            <Text style={styles.email}>{user.email}</Text>
+            
+            {user.isPremium && (
+              <View style={styles.premiumBadge}>
+                <MaterialIcons name="star" size={16} color={COLORS.accent} />
+                <Text style={styles.premiumText}>Premium</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.displayName}>{user.displayName}</Text>
-          <Text style={styles.email}>{user.email}</Text>
-          
-          {user.isPremium && (
-            <View style={styles.premiumBadge}>
-              <MaterialIcons name="star" size={16} color={COLORS.accent} />
-              <Text style={styles.premiumText}>Premium</Text>
-            </View>
-          )}
-        </View>
-      </LinearGradient>
+        </LinearGradient>
 
-      <View style={styles.content}>
-        {renderSettings()}
-      </View>
-    </ScrollView>
+        <View style={styles.content}>
+          {renderSettings()}
+        </View>
+      </ScrollView>
+      {renderCustomAlert()}
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
@@ -418,7 +478,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   settingsCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
     marginTop: -Math.max(SIZES.lg, height * 0.04), // Responsive negative margin for floating effect
@@ -446,23 +505,81 @@ const styles = StyleSheet.create({
   settingTitle: {
     ...TYPOGRAPHY.bodyMedium,
     fontWeight: '500',
-    color: COLORS.textPrimary,
   },
-  settingTitleDisabled: {
-    color: COLORS.gray,
-  },
+  settingTitleDisabled: {},  // Color handled dynamically
   settingSubtitle: {
     ...TYPOGRAPHY.bodySmall,
-    color: COLORS.textSecondary,
     marginTop: SIZES.xs || 2,
   },
   settingDivider: {
     height: 1,
-    backgroundColor: COLORS.lightGray,
     marginLeft: SIZES.screenPadding + 24 + SIZES.md,
   },
   tabContent: {
     paddingBottom: SIZES.md,
+  },
+  toggleSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleSwitchActive: {},  // Background handled dynamically
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 20 }],
+  },
+  // Custom Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SIZES.screenPadding,
+  },
+  modalContainer: {
+    borderRadius: 20,
+    padding: SIZES.lg,
+    maxWidth: width * 0.85,
+    minWidth: width * 0.75,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: SIZES.md,
+  },
+  modalMessage: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'left',
+    marginBottom: SIZES.lg,
+  },
+  modalButton: {
+    borderRadius: 12,
+    paddingVertical: SIZES.md,
+    paddingHorizontal: SIZES.lg,
+    alignItems: 'center',
+    marginTop: SIZES.sm,
+  },
+  modalButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

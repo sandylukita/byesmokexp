@@ -14,14 +14,16 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { CustomAlert } from '../components/CustomAlert';
 import { demoGetCurrentUser, demoRestoreUser, demoUpdateUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { upgradeUserToPremium } from '../services/auth';
 
 import { BentoCard, BentoGrid } from '../components/BentoGrid';
 import { Mission, User } from '../types';
-import { COLORS, SIZES, STATIC_MISSIONS } from '../utils/constants';
+import { COLORS, DARK_COLORS, SIZES, STATIC_MISSIONS } from '../utils/constants';
 import { completeMission, checkAndAwardBadges } from '../services/gamification';
+import { useTheme } from '../contexts/ThemeContext';
 import {
     calculateDaysSinceQuit,
     calculateLevel,
@@ -50,6 +52,32 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
+  const [isLocallyUpdating, setIsLocallyUpdating] = useState(false);
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'success' | 'info' | 'warning' | 'error';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success'
+  });
+  const { colors, updateUser } = useTheme();
+
+  const showCustomAlert = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  const hideCustomAlert = () => {
+    setCustomAlert(prev => ({ ...prev, visible: false }));
+  };
 
   useEffect(() => {
     loadUserData();
@@ -80,9 +108,39 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             email: userData.email,
             xp: userData.xp,
             totalDays: userData.totalDays,
-            streak: userData.streak
+            streak: userData.streak,
+            isLocallyUpdating
           });
-          setUser(userData);
+          
+          // Only update if the data is actually newer (higher XP or different lastCheckIn)
+          setUser(currentUser => {
+            if (!currentUser) return userData;
+            
+            // Don't update if we're locally updating or if the incoming data seems stale
+            if (isLocallyUpdating) {
+              console.log('Ignoring real-time update during local update');
+              return currentUser;
+            }
+            
+            // If incoming XP is lower than current, it might be stale data
+            if (userData.xp < currentUser.xp) {
+              console.log('Ignoring stale XP data from Firebase:', userData.xp, 'vs current:', currentUser.xp);
+              return currentUser;
+            }
+            
+            // If XP is the same but lastCheckIn is older, it might be stale
+            if (userData.xp === currentUser.xp && userData.lastCheckIn && currentUser.lastCheckIn) {
+              const incomingCheckIn = new Date(userData.lastCheckIn);
+              const currentCheckIn = new Date(currentUser.lastCheckIn);
+              if (incomingCheckIn < currentCheckIn) {
+                console.log('Ignoring stale check-in data from Firebase');
+                return currentUser;
+              }
+            }
+            
+            console.log('Accepting Firebase update');
+            return userData;
+          });
         }
       }, (error) => {
         // Only log error if user is still authenticated
@@ -98,22 +156,43 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     }
   }, [auth.currentUser]);
 
-  // Auto-sync totalDays for existing users if outdated
+  // Auto-sync totalDays and migrate longestStreak for existing users
   useEffect(() => {
     if (user) {
       const calculatedDays = calculateDaysSinceQuit(new Date(user.quitDate));
-      if (calculatedDays > user.totalDays + 1) {
+      const needsMigration = user.longestStreak === undefined;
+      const needsTotalDaysSync = calculatedDays > user.totalDays + 1;
+      
+      if (needsMigration || needsTotalDaysSync) {
+        const updates: Partial<User> = {};
+        
+        if (needsTotalDaysSync) {
+          updates.totalDays = calculatedDays;
+        }
+        
+        if (needsMigration) {
+          // Initialize longestStreak with current streak value for existing users
+          updates.longestStreak = user.streak || 0;
+          console.log('Migrating longestStreak for existing user:', user.email, 'streak:', user.streak);
+        }
+        
         const demoUser = demoGetCurrentUser();
         if (demoUser && demoUser.id === user.id) {
-          demoUpdateUser(user.id, { totalDays: calculatedDays });
+          demoUpdateUser(user.id, updates);
         } else {
-          // For Firebase users, update on next check-in
-          console.log('totalDays will be synced on next check-in');
+          // For Firebase users, update immediately for migration
+          if (needsMigration) {
+            const firebaseUser = auth.currentUser;
+            if (firebaseUser) {
+              updateDoc(doc(db, 'users', user.id), updates).catch(console.error);
+            }
+          }
         }
-        setUser({ ...user, totalDays: calculatedDays });
+        
+        setUser({ ...user, ...updates });
       }
     }
-  }, [user?.quitDate, user?.totalDays]);
+  }, [user?.quitDate, user?.totalDays, user?.longestStreak]);
 
   // Reset mission completion state daily
   useEffect(() => {
@@ -153,6 +232,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             const userData = { id: currentUser.uid, ...userDoc.data() } as User;
             console.log('Firebase user data loaded:', userData.email);
             setUser(userData);
+            updateUser(userData);
             setLoading(false);
             return;
           } else {
@@ -172,6 +252,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       if (demoUser) {
         console.log('Demo user found in memory:', demoUser.email);
         setUser(demoUser);
+        updateUser(demoUser);
         setLoading(false);
         return;
       }
@@ -182,6 +263,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       if (restoredUser) {
         console.log('Demo user restored from storage:', restoredUser.email);
         setUser(restoredUser);
+        updateUser(restoredUser);
         setLoading(false);
         return;
       }
@@ -209,9 +291,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     }
 
     setCheckingIn(true);
+    setIsLocallyUpdating(true);
     try {
       const streakInfo = calculateStreak(user.lastCheckIn);
       const newStreak = streakInfo.streakReset ? 1 : user.streak + 1;
+      const newLongestStreak = Math.max(user.longestStreak || 0, newStreak);
       const newTotalDays = calculateDaysSinceQuit(new Date(user.quitDate));
       const checkInXP = 10; // Base XP for check-in
       const newXP = user.xp + checkInXP;
@@ -220,6 +304,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       const updates = {
         lastCheckIn: new Date(),
         streak: newStreak,
+        longestStreak: newLongestStreak,
         totalDays: newTotalDays,
         xp: newXP,
         dailyXP: updatedDailyXP,
@@ -233,6 +318,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           await updateDoc(userDoc, {
             lastCheckIn: new Date().toISOString(),
             streak: newStreak,
+            longestStreak: newLongestStreak,
             totalDays: newTotalDays,
             xp: newXP,
             dailyXP: updatedDailyXP,
@@ -264,6 +350,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         ...updates,
       };
       
+      // Update local state immediately to prevent UI flicker
+      setUser(updatedUser);
+      
       // Check for new badges after check-in
       try {
         const newBadges = await checkAndAwardBadges(user.id, updatedUser);
@@ -289,7 +378,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         console.error('Error checking badges:', error);
       }
 
-      setUser(updatedUser);
+      // Update user again if badges were added
+      if (updatedUser.badges.length > user.badges.length) {
+        setUser(updatedUser);
+      }
 
       // Mark check-in mission as completed and record it permanently
       if (!completedMissions.includes('daily-checkin')) {
@@ -359,11 +451,23 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
       message += `\nDebug: Daily XP today: ${todayXP}`;
       
-      Alert.alert('Selamat!', message, [{ text: 'OK' }]);
+      Alert.alert(
+        'Selamat!', 
+        message, 
+        [{ text: 'OK', style: 'default' }],
+        { 
+          cancelable: true,
+          userInterfaceStyle: colors === DARK_COLORS ? 'dark' : 'light'
+        }
+      );
     } catch (error) {
       Alert.alert('Error', 'Gagal melakukan check-in');
     } finally {
       setCheckingIn(false);
+      // Reset the local updating flag after a short delay to allow Firebase to sync
+      setTimeout(() => {
+        setIsLocallyUpdating(false);
+      }, 2000);
     }
   };
 
@@ -371,14 +475,34 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     const missions = STATIC_MISSIONS.slice(0, user?.isPremium ? 4 : 1);
     const hasCheckedInToday = !canCheckInToday(user?.lastCheckIn);
     
-    return missions.map(mission => ({
-      ...mission,
-      id: mission.id, // Keep original ID for tracking
-      isCompleted: mission.id === 'daily-checkin' ? hasCheckedInToday : completedMissions.includes(mission.id),
-      completedAt: mission.id === 'daily-checkin' && hasCheckedInToday ? new Date() : 
-                   completedMissions.includes(mission.id) ? new Date() : null,
-      isAIGenerated: false,
-    }));
+    return missions.map(mission => {
+      let isCompleted = false;
+      let completedAt = null;
+      
+      if (mission.id === 'daily-checkin') {
+        isCompleted = hasCheckedInToday;
+        completedAt = hasCheckedInToday ? user?.lastCheckIn || new Date() : null;
+      } else {
+        // Check if mission was completed today from stored user data
+        const today = new Date().toDateString();
+        const todayCompletion = user?.completedMissions?.find(
+          m => m.id === mission.id && 
+               m.completedAt && 
+               new Date(m.completedAt).toDateString() === today
+        );
+        
+        isCompleted = !!todayCompletion || completedMissions.includes(mission.id);
+        completedAt = todayCompletion?.completedAt || (completedMissions.includes(mission.id) ? new Date() : null);
+      }
+      
+      return {
+        ...mission,
+        id: mission.id,
+        isCompleted,
+        completedAt,
+        isAIGenerated: false,
+      };
+    });
   };
 
   const handleMissionToggle = async (mission: Mission) => {
@@ -391,6 +515,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         setCompletedMissions(prev => prev.filter(id => id !== mission.id));
       } else {
         setCompletedMissions(prev => [...prev, mission.id]);
+        setIsLocallyUpdating(true);
         
         // Actually complete the mission
         try {
@@ -425,12 +550,23 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                                 String(today.getDate()).padStart(2, '0');
                 const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
                 
-                Alert.alert('Misi Selesai!', `Kamu mendapat ${result.xpAwarded} XP!\nDebug: Daily XP today: ${todayXP}`);
+                showCustomAlert(
+                  'Misi Selesai!', 
+                  `Kamu mendapat ${result.xpAwarded} XP!\nDebug: Daily XP today: ${todayXP}`
+                );
               }
               
               // Show badge notification if new badges were earned
               if (result.newBadges.length > 0) {
-                Alert.alert('Badge Baru!', `Kamu mendapat ${result.newBadges.length} badge baru!`);
+                Alert.alert(
+                  'Badge Baru!', 
+                  `Kamu mendapat ${result.newBadges.length} badge baru!`,
+                  [{ text: 'OK', style: 'default' }],
+                  { 
+                    cancelable: true,
+                    userInterfaceStyle: colors === DARK_COLORS ? 'dark' : 'light'
+                  }
+                );
               }
             }
           } else {
@@ -485,17 +621,33 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                                 String(today.getDate()).padStart(2, '0');
                 const todayXP = updatedDailyXP?.[todayKey] || 0;
                 
-                Alert.alert('Misi Selesai!', `Kamu mendapat ${mission.xpReward} XP!\nDebug: Daily XP today: ${todayXP}`);
+                showCustomAlert(
+                  'Misi Selesai!', 
+                  `Kamu mendapat ${mission.xpReward} XP!\nDebug: Daily XP today: ${todayXP}`
+                );
               }
               
               if (newBadges.length > 0) {
-                Alert.alert('Badge Baru!', `Kamu mendapat ${newBadges.length} badge baru!`);
+                Alert.alert(
+                  'Badge Baru!', 
+                  `Kamu mendapat ${newBadges.length} badge baru!`,
+                  [{ text: 'OK', style: 'default' }],
+                  { 
+                    cancelable: true,
+                    userInterfaceStyle: colors === DARK_COLORS ? 'dark' : 'light'
+                  }
+                );
               }
             }
           }
         } catch (error) {
           console.error('Error completing mission:', error);
           Alert.alert('Error', 'Gagal menyelesaikan misi');
+        } finally {
+          // Reset the local updating flag after a short delay
+          setTimeout(() => {
+            setIsLocallyUpdating(false);
+          }, 2000);
         }
       }
     }
@@ -518,18 +670,18 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (!user) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Gagal memuat data pengguna</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadUserData}>
-          <Text style={styles.retryButtonText}>Coba Lagi</Text>
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.textPrimary }]}>Gagal memuat data pengguna</Text>
+        <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={loadUserData}>
+          <Text style={[styles.retryButtonText, { color: colors.white }]}>Coba Lagi</Text>
         </TouchableOpacity>
       </View>
     );
@@ -546,44 +698,42 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const dailyMissions = generateDailyMissions();
 
   return (
+    <>
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
-      <LinearGradient colors={[COLORS.primary, COLORS.primaryLight]} style={styles.header}>
+      <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
             <Text style={styles.greeting}>{getGreeting(user.displayName)}</Text>
             <Text style={styles.headerSubtext}>{levelInfo.nextLevelXP - user.xp} XP to next level</Text>
             <Text style={styles.headerMotivation}>Keep going, champion! 🚀</Text>
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
-            <MaterialIcons name="logout" size={24} color={COLORS.white} />
-          </TouchableOpacity>
         </View>
       </LinearGradient>
 
       {/* Level Card - Final structure with next level */}
-      <View style={styles.levelCardFinal}>
+      <View style={[styles.levelCardFinal, { backgroundColor: colors.surface }]}>
         {/* Top row */}
         <View style={styles.levelTopRow}>
-          <MaterialIcons name="emoji-events" size={24} color={COLORS.accent} style={styles.levelIcon} />
-          <Text style={styles.levelBadgeText} numberOfLines={1} ellipsizeMode="tail">{levelInfo.title}</Text>
-          <Text style={styles.levelXPTextLarge}>{user.xp} XP</Text>
+          <MaterialIcons name="emoji-events" size={24} color={colors.accent} style={styles.levelIcon} />
+          <Text style={[styles.levelBadgeText, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail">{levelInfo.title}</Text>
+          <Text style={[styles.levelXPTextLarge, { color: colors.textPrimary }]}>{user.xp} XP</Text>
         </View>
         {/* Middle: Progress bar and level names */}
         <View style={styles.levelProgressRow}>
-          <View style={styles.levelProgressBar}>
+          <View style={[styles.levelProgressBar, { backgroundColor: colors.lightGray }]}>
             <LinearGradient
-              colors={[COLORS.primary, COLORS.secondary]}
+              colors={[colors.primary, colors.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[styles.levelProgressFill, { width: `${Math.round(levelInfo.progress * 100)}%` }]}
             />
           </View>
           <View style={styles.levelProgressLabelsRow}>
-            <Text style={styles.levelProgressLabelLeft}>{`Level ${levelInfo.level}`}</Text>
-            <Text style={styles.levelProgressLabelRight}>{`Level ${levelInfo.level + 1}`}</Text>
+            <Text style={[styles.levelProgressLabelLeft, { color: colors.textSecondary }]}>{`Level ${levelInfo.level}`}</Text>
+            <Text style={[styles.levelProgressLabelRight, { color: colors.textSecondary }]}>{`Level ${levelInfo.level + 1}`}</Text>
           </View>
         </View>
         
@@ -594,14 +744,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           disabled={!canCheckIn || checkingIn}
         >
           <LinearGradient
-            colors={canCheckIn ? [COLORS.secondary, COLORS.secondaryDark] : [COLORS.gray, COLORS.darkGray]}
+            colors={canCheckIn ? [colors.secondary, colors.secondaryDark] : [colors.gray, colors.darkGray]}
             style={styles.levelCheckInGradient}
           >
             {checkingIn ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <>
-                <MaterialIcons name="check-circle" size={20} color={COLORS.white} />
+                <MaterialIcons name="check-circle" size={20} color={colors.white} />
                 <Text style={styles.levelCheckInText}>
                   {canCheckIn ? 'Check-in Harian' : 'Sudah Check-in'}
                 </Text>
@@ -614,55 +764,55 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       {/* Temporary upgrade button for sandy@mail.com */}
       {user?.email === 'sandy@mail.com' && !user?.isPremium && (
         <TouchableOpacity
-          style={styles.upgradeButton}
+          style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
           onPress={handleUpgradeToPremium}
         >
-          <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
+          <Text style={[styles.upgradeButtonText, { color: colors.white }]}>Upgrade to Premium</Text>
         </TouchableOpacity>
       )}
 
       {/* Statistics Row - Two cards side by side */}
       <View style={styles.statsRowContainer}>
         {/* Streak and Total Days Card */}
-        <View style={styles.statsCard}>
+        <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
           <View style={styles.statItem}>
             <View style={[styles.statCircleIcon, { backgroundColor: 'rgba(231, 76, 60, 0.15)' }]}>
-              <MaterialIcons name="local-fire-department" size={20} color={COLORS.error} />
+              <MaterialIcons name="local-fire-department" size={20} color={colors.error} />
             </View>
-            <Text style={styles.statValue}>{formatNumber(user.streak)}</Text>
-            <Text style={styles.statLabel}>Streak</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(user.streak)}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Streak</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.lightGray }]} />
           <View style={styles.statItem}>
             <View style={[styles.statCircleIcon, { backgroundColor: 'rgba(249, 149, 70, 0.15)' }]}>
-              <MaterialIcons name="calendar-today" size={20} color={COLORS.primary} />
+              <MaterialIcons name="calendar-today" size={20} color={colors.primary} />
             </View>
-            <Text style={styles.statValue}>{formatNumber(daysSinceQuit)}</Text>
-            <Text style={styles.statLabel} numberOfLines={1} ellipsizeMode="tail">Hari</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(daysSinceQuit)}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">Hari</Text>
           </View>
         </View>
 
         {/* Money Saved Card */}
-        <View style={[styles.statsCard, styles.statsCardLast]}>
+        <View style={[styles.statsCard, styles.statsCardLast, { backgroundColor: colors.surface }]}>
           <View style={styles.statItem}>
             <View style={[styles.statCircleIcon, { backgroundColor: 'rgba(39, 174, 96, 0.15)' }]}>
-              <MaterialIcons name="savings" size={24} color={COLORS.secondary} />
+              <MaterialIcons name="savings" size={24} color={colors.secondary} />
             </View>
-            <Text style={styles.statValue}>{formatCurrency(moneySaved)}</Text>
-            <Text style={styles.statLabel}>Uang Hemat</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(moneySaved)}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Uang Hemat</Text>
           </View>
         </View>
       </View>
 
       {/* Section Title */}
-      <View style={[styles.sectionHeader, { marginTop: SIZES.md }]}>
-        <Text style={styles.sectionTitle}>Misi-mu Hari Ini</Text>
+      <View style={[styles.sectionHeader, { marginTop: SIZES.xs }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Misi-mu Hari Ini</Text>
       </View>
 
       {/* Daily Missions Card */}
-      <View style={styles.missionCardContainer}>
+      <View style={[styles.missionCardContainer, { backgroundColor: colors.surface }]}>
         <LinearGradient
-          colors={[COLORS.accent + '20', COLORS.accent + '10']}
+          colors={[colors.accent + '20', colors.accent + '10']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.missionCardGradient}
@@ -678,19 +828,31 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               <MaterialIcons 
                 name={mission.isCompleted ? "check-circle" : "radio-button-unchecked"} 
                 size={24} 
-                color={mission.isCompleted ? COLORS.secondary : COLORS.gray} 
+                color={mission.isCompleted ? colors.secondary : colors.gray} 
               />
             </View>
             <View style={styles.missionInfo}>
-              <Text style={[styles.missionTitle, mission.isCompleted && styles.missionTitleCompleted]}>
+              <Text style={[
+                styles.missionTitle, 
+                { color: colors.textPrimary },
+                mission.isCompleted && styles.missionTitleCompleted
+              ]}>
                 {mission.title}
               </Text>
-              <Text style={[styles.missionDescription, mission.isCompleted && styles.missionDescriptionCompleted]}>
+              <Text style={[
+                styles.missionDescription, 
+                { color: colors.textSecondary },
+                mission.isCompleted && styles.missionDescriptionCompleted
+              ]}>
                 {mission.description}
               </Text>
             </View>
             <View style={styles.missionReward}>
-              <Text style={[styles.missionXP, mission.isCompleted && styles.missionXPCompleted]}>
+              <Text style={[
+                styles.missionXP, 
+                { color: colors.textPrimary },
+                mission.isCompleted && styles.missionXPCompleted
+              ]}>
                 +{mission.xpReward} XP
               </Text>
             </View>
@@ -699,9 +861,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         
         {!user.isPremium && (
           <View style={styles.upgradePrompt}>
-            <Text style={styles.upgradePromptText}>Buka lebih banyak misi dan raih XP berlimpah! Upgrade sekarang untuk mempercepat perjalanan sehatmu.</Text>
-            <TouchableOpacity style={styles.upgradeButton}>
-              <Text style={styles.upgradeButtonText}>Upgrade Premium</Text>
+            <Text style={[styles.upgradePromptText, { color: colors.textSecondary }]}>Buka lebih banyak misi dan raih XP berlimpah! Upgrade sekarang untuk mempercepat perjalanan sehatmu.</Text>
+            <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.upgradeButtonText, { color: colors.white }]}>Upgrade Premium</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -710,32 +872,41 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
       {/* Motivation Section Title */}
       <View style={[styles.sectionHeader, { marginTop: SIZES.md }]}>
-        <Text style={styles.sectionTitle}>Personal Motivator</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Personal Motivator</Text>
       </View>
 
       {/* Personal Motivator Card */}
-      <View style={styles.motivationCardContainer}>
+      <View style={[styles.motivationCardContainer, { backgroundColor: colors.surface }]}>
         <LinearGradient
-          colors={[COLORS.accentAlt + '20', COLORS.accentAlt + '10']}
+          colors={[colors.accentAlt + '20', colors.accentAlt + '10']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.motivationCardGradient}
         >
         {user.isPremium ? (
-          <Text style={styles.motivationText}>{getRandomMotivation()}</Text>
+          <Text style={[styles.motivationText, { color: colors.textPrimary }]}>{getRandomMotivation()}</Text>
         ) : (
           <View style={styles.lockedContent}>
-            <MaterialIcons name="psychology" size={32} color={COLORS.accent} />
-            <Text style={styles.lockedText}>Dapatkan motivasi personal yang disesuaikan dengan perjalanan unikmu</Text>
-            <Text style={styles.lockedSubtext}>AI akan menganalisis progresmu dan memberikan dukungan yang tepat di saat yang tepat</Text>
-            <TouchableOpacity style={styles.upgradeButton}>
-              <Text style={styles.upgradeButtonText}>Aktifkan Personal Motivator</Text>
+            <MaterialIcons name="psychology" size={32} color={colors.accent} />
+            <Text style={[styles.lockedText, { color: colors.textPrimary }]}>Dapatkan motivasi personal yang disesuaikan dengan perjalanan unikmu</Text>
+            <Text style={[styles.lockedSubtext, { color: colors.textSecondary }]}>AI akan menganalisis progresmu dan memberikan dukungan yang tepat di saat yang tepat</Text>
+            <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.upgradeButtonText, { color: colors.white }]}>Aktifkan Personal Motivator</Text>
             </TouchableOpacity>
           </View>
         )}
         </LinearGradient>
       </View>
     </ScrollView>
+    
+    <CustomAlert
+      visible={customAlert.visible}
+      title={customAlert.title}
+      message={customAlert.message}
+      type={customAlert.type}
+      onDismiss={hideCustomAlert}
+    />
+    </>
   );
 };
 
@@ -1069,7 +1240,7 @@ const styles = StyleSheet.create({
   statsRowContainer: {
     flexDirection: 'row',
     marginHorizontal: SIZES.screenPadding,
-    marginTop: SIZES.xs || 4,
+    marginTop: 2,
     marginBottom: SIZES.xs || 4,
   },
   statsCard: {

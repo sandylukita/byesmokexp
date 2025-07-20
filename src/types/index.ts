@@ -8,6 +8,7 @@ export interface User {
   cigarettesPerDay: number;
   cigarettePrice: number;
   streak: number;
+  longestStreak: number;
   totalDays: number;
   xp: number;
   level: number;

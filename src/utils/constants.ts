@@ -49,6 +49,57 @@ export const COLORS = {
   iconInactive: '#E0D7CF',
 };
 
+export const DARK_COLORS = {
+  // Primary colors (same as light mode)
+  primary: '#F99546',
+  primaryDark: '#DB6B1D',
+  primaryLight: '#6BA3E8',
+  
+  // Secondary colors (same as light mode)
+  secondary: '#27AE60',
+  secondaryDark: '#1E8449',
+  secondaryLight: '#45C579',
+  
+  // Accent colors (same as light mode)
+  accent: '#86C67A',
+  accentDark: '#E67E22',
+  accentLight: '#F7B733',
+  accentAlt: '#D1B0F8',
+  
+  // Status colors (same as light mode)
+  success: '#2ECC71',
+  warning: '#F39C12',
+  error: '#E74C3C',
+  info: '#3498DB',
+  
+  // Neutral colors (dark mode variants)
+  white: '#FFFFFF',
+  lightGray: '#2A2A2A',
+  gray: '#6C757D',
+  darkGray: '#495057',
+  black: '#000000',
+  
+  // Background colors (dark mode)
+  background: '#121212',
+  surface: '#1E1E1E',
+  card: '#2A2A2A',
+  
+  // Text colors (dark mode)
+  textPrimary: '#FFFFFF',
+  textSecondary: '#B0B0B0',
+  textLight: '#FFFFFF',
+  
+  // Shadow (dark mode)
+  shadow: 'rgba(0, 0, 0, 0.3)',
+  shadowDark: 'rgba(0, 0, 0, 0.5)',
+  
+  // Dark mode tokens
+  neutral: '#3A3A3A',
+  neutralDark: '#FFFFFF',
+  divider: '#3A3A3A',
+  iconInactive: '#6C757D',
+};
+
 export const SIZES = {
   // Typography Scale (inspired by modern health apps)
   // Headings
@@ -285,7 +336,7 @@ export const BADGES = [
     id: 'mission-legend',
     name: 'Legenda Misi',
     description: 'Menyelesaikan 100 misi',
-    icon: 'trophy',
+    icon: 'emoji-events',
     color: '#32CD32',
     requirement: '100 misi selesai',
     isPremium: true
