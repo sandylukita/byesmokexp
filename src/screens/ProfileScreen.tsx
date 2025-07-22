@@ -22,6 +22,8 @@ import { COLORS, SIZES } from '../utils/constants';
 import { calculateLevel } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from '../hooks/useTranslation';
+import { Language } from '../utils/translations';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,7 +36,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', message: '' });
-  const { isDarkMode, colors, toggleDarkMode, canUseDarkMode, updateUser } = useTheme();
+  const { isDarkMode, colors, toggleDarkMode, setLanguage, canUseDarkMode, updateUser } = useTheme();
+  const { t, language } = useTranslation();
 
   useEffect(() => {
     loadUserData();
@@ -135,19 +138,19 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
 
   const handleLogout = async () => {
     Alert.alert(
-      'Keluar',
-      'Apakah kamu yakin ingin keluar?',
+      t.profile.logout,
+      t.profile.logoutMessage,
       [
-        { text: 'Batal', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Keluar',
+          text: t.profile.logoutConfirm,
           style: 'destructive',
           onPress: async () => {
             try {
               await logout();
               onLogout();
             } catch (error) {
-              Alert.alert('Error', 'Gagal keluar dari akun');
+              Alert.alert(t.common.error, t.alerts.loadError);
             }
           },
         },
@@ -157,9 +160,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
 
   const handleUpgrade = () => {
     Alert.alert(
-      'Dapatkan Kekuatan Penuh ByeSmoke XP',
-      'Jadilah pahlawan bagi diri sendiri dengan dukungan penuh dari AI personal motivator kami. Bantuan Anda juga sangat berarti agar aplikasi ini terus berkembang.\n\n🤖 Misi & Motivasi Personal dari AI\n✅ 3 Misi Harian (lebih banyak XP!)\n🌙 Mode Gelap Eksklusif\n🚫 Pengalaman Bebas Iklan\n❤️ Dukung Developer Independen',
-      [{ text: 'OK' }]
+      t.premium.title,
+      t.premium.subtitle + '\n\n' + Object.values(t.premium.features).join('\n'),
+      [{ text: t.common.ok }]
     );
   };
 
@@ -170,29 +173,34 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
 
   const handleNotifications = () => {
     showCustomAlert(
-      'Pengaturan Notifikasi',
-      'Fitur pengaturan notifikasi akan segera tersedia. Anda akan dapat mengatur:\n\n• Pengingat check-in harian\n• Motivasi dan tips kesehatan\n• Update pencapaian badge\n• Reminder misi harian\n\nTerima kasih atas kesabaran Anda!'
+      t.settings.notifications,
+      t.settings.notificationsHelp
     );
   };
 
   const handleHelp = () => {
     showCustomAlert(
-      'Bantuan & Dukungan',
-      'Butuh bantuan? Berikut beberapa cara untuk mendapatkan dukungan:\n\n• FAQ dan panduan akan segera tersedia\n• Tim dukungan siap membantu\n• Komunitas pengguna ByeSmoke\n\nUntuk bantuan langsung, hubungi tim pengembang melalui menu feedback.'
+      t.settings.help,
+      t.settings.helpContent
     );
+  };
+
+  const handleLanguageToggle = () => {
+    const newLanguage = language === 'id' ? 'en' : 'id';
+    setLanguage(newLanguage as Language);
   };
 
   const handleAbout = () => {
     showCustomAlert(
-      'ByeSmoke XP v1.0.0',
-      'Aplikasi ini dibuat untuk membantu Anda dalam perjalanan berhenti merokok. Lacak progres Anda, selesaikan misi harian, dan dapatkan lencana untuk setiap pencapaian.\n\nIngat, setiap hari tanpa rokok adalah kemenangan. Anda lebih kuat dari yang Anda kira!\n\nDibuat dengan semangat dan harapan.'
+      t.settings.about,
+      t.settings.aboutContent
     );
   };
 
   if (loading || !user) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+        <Text>{t.common.loading}</Text>
       </View>
     );
   }
@@ -211,14 +219,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
             {modalContent.title}
           </Text>
-          <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
-            {modalContent.message}
-          </Text>
+          <ScrollView 
+            style={styles.modalScrollView}
+            showsVerticalScrollIndicator={true}
+            bounces={false}
+          >
+            <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+              {modalContent.message}
+            </Text>
+          </ScrollView>
           <TouchableOpacity 
             style={[styles.modalButton, { backgroundColor: colors.primary }]}
             onPress={() => setModalVisible(false)}
           >
-            <Text style={styles.modalButtonText}>Tutup</Text>
+            <Text style={styles.modalButtonText}>{t.common.close}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -238,9 +252,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
                 >
                   <MaterialIcons name="star" size={24} color={COLORS.white} />
                   <View style={styles.upgradeInfo}>
-                    <Text style={styles.upgradeTitle}>Upgrade ke Premium</Text>
+                    <Text style={styles.upgradeTitle}>{t.profile.upgrade}</Text>
                     <Text style={styles.upgradeSubtitle}>
-                      Nikmati fitur lengkap ByeSmoke XP
+                      {t.premium.subtitle}
                     </Text>
                   </View>
                   <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.white} />
@@ -253,8 +267,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           <TouchableOpacity style={styles.settingItem} onPress={handleNotifications}>
             <MaterialIcons name="notifications" size={24} color={colors.primary} />
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Notifikasi</Text>
-              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Pengingat dan motivasi</Text>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>{t.profile.notifications}</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{t.profile.notificationsDesc}</Text>
             </View>
             <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
           </TouchableOpacity>
@@ -279,10 +293,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
                 { ...styles.settingTitle, color: colors.textPrimary },
                 !user.isPremium && { color: colors.gray }
               ]}>
-                Mode Gelap
+                {t.profile.darkMode}
               </Text>
               <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
-                {user.isPremium ? (isDarkMode ? 'Aktif' : 'Nonaktif') : 'Fitur Premium'}
+                {user.isPremium ? (isDarkMode ? t.profile.darkModeActive : t.profile.darkModeInactive) : t.profile.premiumFeature}
               </Text>
             </View>
             {user.isPremium ? (
@@ -302,11 +316,34 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
 
           <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
 
+          <TouchableOpacity style={styles.settingItem} onPress={handleLanguageToggle}>
+            <MaterialIcons name="language" size={24} color={colors.primary} />
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>{t.profile.language}</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+                {language === 'id' ? 'Bahasa Indonesia' : 'English'}
+              </Text>
+            </View>
+            <View style={[
+              styles.toggleSwitch, 
+              { backgroundColor: colors.gray }, 
+              language === 'en' && { backgroundColor: colors.secondary }
+            ]}>
+              <View style={[
+                styles.toggleThumb, 
+                { backgroundColor: colors.surface }, 
+                language === 'en' && styles.toggleThumbActive
+              ]} />
+            </View>
+          </TouchableOpacity>
+
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
+
           <TouchableOpacity style={styles.settingItem} onPress={handleHelp}>
             <MaterialIcons name="help" size={24} color={colors.primary} />
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Bantuan</Text>
-              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>FAQ dan dukungan</Text>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>{t.profile.help}</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{t.profile.helpDesc}</Text>
             </View>
             <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
           </TouchableOpacity>
@@ -316,8 +353,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           <TouchableOpacity style={styles.settingItem} onPress={handleAbout}>
             <MaterialIcons name="info" size={24} color={colors.primary} />
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Tentang</Text>
-              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Versi 1.0.0</Text>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>{t.profile.about}</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{t.profile.aboutVersion}</Text>
             </View>
             <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
           </TouchableOpacity>
@@ -328,9 +365,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
             <MaterialIcons name="logout" size={24} color={COLORS.error} />
             <View style={styles.settingInfo}>
               <Text style={[styles.settingTitle, { color: COLORS.error }]}>
-                Keluar
+                {t.profile.logout}
               </Text>
-              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Logout dari akun</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{t.profile.logoutDesc}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -351,7 +388,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
             {user.isPremium && (
               <View style={styles.premiumBadge}>
                 <MaterialIcons name="star" size={16} color={COLORS.accent} />
-                <Text style={styles.premiumText}>Premium</Text>
+                <Text style={styles.premiumText}>{t.profile.premium}</Text>
               </View>
             )}
           </View>
@@ -471,6 +508,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyMedium,
     fontWeight: '600',
     color: COLORS.white,
+    flexShrink: 1,
   },
   upgradeSubtitle: {
     ...TYPOGRAPHY.bodySmall,
@@ -544,30 +582,35 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SIZES.screenPadding,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: SIZES.md,
   },
   modalContainer: {
     borderRadius: 20,
-    padding: SIZES.lg,
-    maxWidth: width * 0.85,
-    minWidth: width * 0.75,
+    padding: SIZES.md,
+    width: width * 0.9,
+    maxHeight: height * 0.8, // Maximum 80% of screen height
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 10,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
+  modalScrollView: {
+    maxHeight: height * 0.5, // Maximum 50% of screen height for content
     marginBottom: SIZES.md,
   },
+  modalTitle: {
+    fontSize: Math.min(width * 0.05, 18), // Responsive title size, max 18px
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: SIZES.sm,
+  },
   modalMessage: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: Math.min(width * 0.035, 14), // Responsive text size, max 14px
+    lineHeight: Math.min(width * 0.05, 20), // Responsive line height
     textAlign: 'left',
-    marginBottom: SIZES.lg,
+    paddingHorizontal: SIZES.xs,
   },
   modalButton: {
     borderRadius: 12,

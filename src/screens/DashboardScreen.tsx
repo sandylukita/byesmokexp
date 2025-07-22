@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -18,10 +19,13 @@ import { CustomAlert } from '../components/CustomAlert';
 import { demoGetCurrentUser, demoRestoreUser, demoUpdateUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { upgradeUserToPremium } from '../services/auth';
+import { generateAIMotivation, generateAIMilestoneInsight } from '../services/gemini';
 
 import { BentoCard, BentoGrid } from '../components/BentoGrid';
 import { Mission, User } from '../types';
 import { COLORS, DARK_COLORS, SIZES, STATIC_MISSIONS } from '../utils/constants';
+import { useTranslation } from '../hooks/useTranslation';
+import { Language } from '../utils/translations';
 import { completeMission, checkAndAwardBadges } from '../services/gamification';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -35,6 +39,11 @@ import {
     generateMissionId,
     getGreeting,
     getRandomMotivation,
+    getDailyMotivation,
+    needsNewDailyMotivation,
+    getMotivationContent,
+    shouldTriggerAIInsight,
+    updateAICallCounter,
     addDailyXP,
 } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
@@ -53,6 +62,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const [checkingIn, setCheckingIn] = useState(false);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
   const [isLocallyUpdating, setIsLocallyUpdating] = useState(false);
+  const [dailyMotivation, setDailyMotivation] = useState<string>('');
+  const { t, language, translate } = useTranslation();
   const [customAlert, setCustomAlert] = useState<{
     visible: boolean;
     title: string;
@@ -79,8 +90,74 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     setCustomAlert(prev => ({ ...prev, visible: false }));
   };
 
+  // Cache daily motivation for premium users
+  const cacheDailyMotivation = async (user: User, motivation: string) => {
+    if (!user.isPremium) return;
+
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    try {
+      // Update local state immediately
+      setDailyMotivation(motivation);
+      
+      // Update user object
+      const updatedUser = {
+        ...user,
+        lastMotivationDate: today,
+        dailyMotivation: motivation
+      };
+      
+      // Update Firebase if it's a real user
+      if (auth.currentUser) {
+        const userDoc = doc(db, 'users', user.id);
+        await updateDoc(userDoc, {
+          lastMotivationDate: today,
+          dailyMotivation: motivation
+        });
+        console.log('✅ Daily motivation cached to Firebase');
+      } else {
+        // Update demo user
+        await demoUpdateUser(user.id, {
+          lastMotivationDate: today,
+          dailyMotivation: motivation
+        });
+        console.log('✅ Daily motivation cached for demo user');
+      }
+      
+      // Update context user
+      updateUser(updatedUser);
+    } catch (error) {
+      console.error('Error caching daily motivation:', error);
+    }
+  };
+
+  // Set up Firebase Auth state listener to handle session restoration
   useEffect(() => {
-    loadUserData();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('🔐 Auth state changed:', firebaseUser?.email || 'no user');
+      
+      if (firebaseUser) {
+        // Firebase user is authenticated, load their data
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = { id: firebaseUser.uid, ...userDoc.data() } as User;
+            console.log('✅ Firebase user data loaded from auth state change:', userData.email);
+            console.log('  - Completed missions count:', userData.completedMissions?.length || 0);
+            console.log('  - Completed missions:', userData.completedMissions?.map(m => ({ id: m.id, completedAt: m.completedAt })) || []);
+            setUser(userData);
+            updateUser(userData);
+            setLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error loading Firebase user data:', error);
+        }
+      }
+      
+      // No Firebase user or error loading, try demo user
+      await loadUserData();
+    });
     
     // Timeout fallback to prevent infinite loading
     const timeout = setTimeout(() => {
@@ -90,7 +167,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       }
     }, 10000); // 10 second timeout
     
-    return () => clearTimeout(timeout);
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Set up real-time listener for Firebase user data
@@ -194,27 +274,120 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     }
   }, [user?.quitDate, user?.totalDays, user?.longestStreak]);
 
-  // Reset mission completion state daily
+  // Initialize mission completion state when user data is loaded
   useEffect(() => {
-    if (user) {
-      const checkMissionReset = async () => {
+    if (user && user.completedMissions !== undefined) {
+      const initializeMissionState = async () => {
         const today = new Date().toDateString();
         try {
           const AsyncStorage = require('@react-native-async-storage/async-storage').default;
           const lastResetDate = await AsyncStorage.getItem('lastMissionReset');
           
+          // Always load today's completed missions from persistent storage
+          console.log('🔄 Mission state initialization:');
+          console.log('  - User ID:', user.id);
+          console.log('  - User email:', user.email);
+          console.log('  - Today:', today);
+          console.log('  - Total completed missions:', user.completedMissions?.length || 0);
+          console.log('  - Last reset date:', lastResetDate);
+          
+          // Debug each mission's date
+          const allMissions = user.completedMissions || [];
+          console.log('  - All completed missions with dates:');
+          allMissions.forEach((m, index) => {
+            const missionDate = m.completedAt ? new Date(m.completedAt).toDateString() : 'null';
+            const isToday = missionDate === today;
+            console.log(`    ${index}: ${m.id} - ${missionDate} - isToday: ${isToday}`);
+          });
+          
+          const todayCompletedMissions = allMissions
+            .filter(m => m.completedAt && new Date(m.completedAt).toDateString() === today)
+            .map(m => m.id);
+          
+          console.log('  - Today completed missions:', todayCompletedMissions);
+          
+          setCompletedMissions(todayCompletedMissions);
+          console.log('  - ✅ Set completed missions state to:', todayCompletedMissions);
+          
+          // Update the reset date if needed
           if (lastResetDate !== today) {
-            setCompletedMissions([]);
             await AsyncStorage.setItem('lastMissionReset', today);
+            console.log('  - Updated reset date to:', today);
           }
         } catch (error) {
-          console.error('Error checking mission reset:', error);
+          console.error('Error initializing mission state:', error);
         }
       };
       
-      checkMissionReset();
+      initializeMissionState();
     }
-  }, [user]);
+  }, [user?.id, user?.completedMissions?.length]);
+
+  // Handle hybrid motivation system (contextual + AI insights)
+  useEffect(() => {
+    if (user) {
+      const handleHybridMotivation = async () => {
+        const motivationData = getMotivationContent(user);
+        
+        if (motivationData.shouldUseAI) {
+          console.log(`🤖 AI insight triggered: ${motivationData.triggerType}`);
+          try {
+            // Call AI for milestone or streak recovery insight
+            const aiTrigger = shouldTriggerAIInsight(user);
+            const aiInsight = await generateAIMilestoneInsight(user, aiTrigger.triggerType, aiTrigger.triggerData);
+            
+            // Update AI call counter and cache insight
+            const counterUpdate = updateAICallCounter(user);
+            const updatedUser = {
+              ...user,
+              ...counterUpdate,
+              lastAIInsight: aiInsight
+            };
+            
+            // Save to database
+            try {
+              if (auth.currentUser) {
+                const userDoc = doc(db, 'users', user.id);
+                await updateDoc(userDoc, {
+                  ...counterUpdate,
+                  lastAIInsight: aiInsight
+                });
+                console.log('✅ AI insight cached to Firebase');
+              } else {
+                await demoUpdateUser(user.id, {
+                  ...counterUpdate,
+                  lastAIInsight: aiInsight
+                });
+                console.log('✅ AI insight cached for demo user');
+              }
+            } catch (error) {
+              console.error('Error saving AI insight:', error);
+            }
+            
+            setDailyMotivation(aiInsight);
+            updateUser(updatedUser);
+            console.log(`✅ AI insight generated for ${motivationData.triggerType}`);
+            
+          } catch (error) {
+            console.error('Error generating AI insight:', error);
+            // Fallback to contextual quote
+            const fallbackContent = getDailyMotivation(user, language as Language);
+            setDailyMotivation(fallbackContent);
+          }
+        } else {
+          // Use existing content (cached AI or contextual quotes)
+          setDailyMotivation(motivationData.content);
+          if (motivationData.isAIGenerated) {
+            console.log('✅ Using cached AI insight');
+          } else {
+            console.log('✅ Using contextual motivation');
+          }
+        }
+      };
+      
+      handleHybridMotivation();
+    }
+  }, [user?.id, user?.isPremium, user?.totalDays, user?.streak, user?.lastAICallDate]);
 
   const loadUserData = async () => {
     console.log('Starting loadUserData...');
@@ -286,7 +459,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
   const handleCheckIn = async () => {
     if (!user || !canCheckInToday(user.lastCheckIn)) {
-      Alert.alert('Info', 'Kamu sudah check-in hari ini!');
+      Alert.alert('Info', t.dashboard.checkedIn + '!');
       return;
     }
 
@@ -437,22 +610,22 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
       // Show success message with badge notification if any
-      let message = `Check-in berhasil! +10 XP\nStreak: ${newStreak} hari`;
+      let message = `${t.dashboard.checkInSuccess} +10 XP\n${t.dashboard.streak}: ${newStreak} ${t.dashboard.daysSinceQuit.split(' ')[0]}`;
       if (updatedUser.badges.length > user.badges.length) {
         const newBadgesCount = updatedUser.badges.length - user.badges.length;
-        message += `\n🏆 Badge baru: ${newBadgesCount}`;
+        message += `\n🏆 ${t.dashboard.newBadges}: ${newBadgesCount}`;
       }
       
-      // Debug: Show daily XP info
-      const today = new Date();
-      const todayKey = today.getFullYear() + '-' + 
-                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(today.getDate()).padStart(2, '0');
-      const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
-      message += `\nDebug: Daily XP today: ${todayXP}`;
+      // Optional: Show daily XP info for development
+      // const today = new Date();
+      // const todayKey = today.getFullYear() + '-' + 
+      //                 String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+      //                 String(today.getDate()).padStart(2, '0');
+      // const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
+      // message += `\nDebug: Daily XP today: ${todayXP}`;
       
       Alert.alert(
-        'Selamat!', 
+        t.dashboard.checkInSuccess, 
         message, 
         [{ text: 'OK', style: 'default' }],
         { 
@@ -471,11 +644,87 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     }
   };
 
+  // Helper function to get localized mission data
+  const getLocalizedMission = (missionId: string) => {
+    const missionTranslations = {
+      'daily-checkin': {
+        title: t.missions.checkInDaily,
+        description: t.missions.checkInDailyDesc,
+      },
+      'drink-water': {
+        title: t.missions.drinkWater,
+        description: t.missions.drinkWaterDesc,
+      },
+      'exercise': {
+        title: t.missions.exercise,
+        description: t.missions.exerciseDesc,
+      },
+      'meditation': {
+        title: t.missions.meditation,
+        description: t.missions.meditationDesc,
+      },
+      'healthy-snack': {
+        title: t.missions.healthySnack,
+        description: t.missions.healthySnackDesc,
+      },
+    };
+
+    return missionTranslations[missionId as keyof typeof missionTranslations] || {
+      title: missionId,
+      description: missionId,
+    };
+  };
+
   const generateDailyMissions = (): Mission[] => {
-    const missions = STATIC_MISSIONS.slice(0, user?.isPremium ? 4 : 1);
+    // Create a date-based seed for consistent daily randomization
+    const today = new Date();
+    const dateString = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+    
+    // Simple seeded random function based on date
+    const seedRandom = (str: string) => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return Math.abs(hash);
+    };
+    
+    // Always include daily check-in as first mission
+    const checkInMission = STATIC_MISSIONS[0]; // daily-checkin is always first
+    
+    // Get other missions (excluding daily check-in)
+    const otherMissions = STATIC_MISSIONS.slice(1);
+    
+    // Number of additional missions based on premium status
+    const additionalMissionsCount = user?.isPremium ? 3 : 0;
+    
+    // Shuffle other missions based on today's date seed
+    const seed = seedRandom(dateString + (user?.id || 'demo'));
+    const shuffledMissions = [...otherMissions];
+    
+    // Fisher-Yates shuffle with seeded random
+    for (let i = shuffledMissions.length - 1; i > 0; i--) {
+      const j = Math.floor(((seed + i) % 1000) / 1000 * (i + 1));
+      [shuffledMissions[i], shuffledMissions[j]] = [shuffledMissions[j], shuffledMissions[i]];
+    }
+    
+    // Combine check-in mission with randomly selected additional missions
+    const selectedMissions = [checkInMission, ...shuffledMissions.slice(0, additionalMissionsCount)];
+    
+    // Debug logging
+    console.log('🎲 Daily missions randomization:', {
+      dateString,
+      seed,
+      isPremium: user?.isPremium,
+      totalMissions: selectedMissions.length,
+      missionIds: selectedMissions.map(m => m.id)
+    });
+    
     const hasCheckedInToday = !canCheckInToday(user?.lastCheckIn);
     
-    return missions.map(mission => {
+    return selectedMissions.map(mission => {
       let isCompleted = false;
       let completedAt = null;
       
@@ -491,13 +740,25 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                new Date(m.completedAt).toDateString() === today
         );
         
-        isCompleted = !!todayCompletion || completedMissions.includes(mission.id);
+        // Only consider missions completed TODAY
+        isCompleted = !!todayCompletion || (completedMissions.includes(mission.id) && !todayCompletion);
         completedAt = todayCompletion?.completedAt || (completedMissions.includes(mission.id) ? new Date() : null);
+        
+        // DEBUG: Log mission completion check
+        console.log(`Mission ${mission.id} check:`, {
+          todayCompletion: !!todayCompletion,
+          inLocalState: completedMissions.includes(mission.id),
+          finalIsCompleted: isCompleted
+        });
       }
+      
+      const localizedMission = getLocalizedMission(mission.id);
       
       return {
         ...mission,
         id: mission.id,
+        title: localizedMission.title,
+        description: localizedMission.description,
         isCompleted,
         completedAt,
         isAIGenerated: false,
@@ -506,14 +767,18 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   };
 
   const handleMissionToggle = async (mission: Mission) => {
+    console.log('🎯 Mission toggle:', mission.id, mission.isCompleted ? 'unchecking' : 'checking');
+    
     if (mission.id === 'daily-checkin') {
       // If it's the daily check-in mission, trigger the check-in process
       await handleCheckIn();
     } else {
       // For other missions, toggle completion status
       if (mission.isCompleted) {
+        console.log('  - Unchecking mission:', mission.id);
         setCompletedMissions(prev => prev.filter(id => id !== mission.id));
       } else {
+        console.log('  - Checking mission:', mission.id);
         setCompletedMissions(prev => [...prev, mission.id]);
         setIsLocallyUpdating(true);
         
@@ -524,7 +789,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           
           if (firebaseUser) {
             // Handle Firebase user mission completion
+            console.log('  - Completing Firebase mission:', mission.id);
             const result = await completeMission(user.id, mission, user);
+            console.log('  - Mission completion result:', result.success, 'XP:', result.xpAwarded);
+            
             if (result.success) {
               // Update user data to reflect XP and badge changes including daily XP
               const updatedDailyXP = addDailyXP(user.dailyXP, result.xpAwarded);
@@ -539,6 +807,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 }],
                 badges: [...user.badges, ...result.newBadges],
               };
+              console.log('  - Updated user with completed missions count:', updatedUser.completedMissions?.length);
               setUser(updatedUser);
               
               // Show success message if XP was awarded
@@ -551,16 +820,16 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
                 
                 showCustomAlert(
-                  'Misi Selesai!', 
-                  `Kamu mendapat ${result.xpAwarded} XP!\nDebug: Daily XP today: ${todayXP}`
+                  t.dashboard.missionCompleted, 
+                  `${t.dashboard.xpEarned}: ${result.xpAwarded} XP!`
                 );
               }
               
               // Show badge notification if new badges were earned
               if (result.newBadges.length > 0) {
                 Alert.alert(
-                  'Badge Baru!', 
-                  `Kamu mendapat ${result.newBadges.length} badge baru!`,
+                  t.dashboard.newBadge, 
+                  translate('dashboard.badgeEarned', { count: result.newBadges.length }),
                   [{ text: 'OK', style: 'default' }],
                   { 
                     cancelable: true,
@@ -622,15 +891,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 const todayXP = updatedDailyXP?.[todayKey] || 0;
                 
                 showCustomAlert(
-                  'Misi Selesai!', 
-                  `Kamu mendapat ${mission.xpReward} XP!\nDebug: Daily XP today: ${todayXP}`
+                  t.dashboard.missionCompleted, 
+                  `${t.dashboard.xpEarned}: ${mission.xpReward} XP!`
                 );
               }
               
               if (newBadges.length > 0) {
                 Alert.alert(
-                  'Badge Baru!', 
-                  `Kamu mendapat ${newBadges.length} badge baru!`,
+                  t.dashboard.newBadge, 
+                  translate('dashboard.badgeEarned', { count: newBadges.length }),
                   [{ text: 'OK', style: 'default' }],
                   { 
                     cancelable: true,
@@ -707,8 +976,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
             <Text style={styles.greeting}>{getGreeting(user.displayName)}</Text>
-            <Text style={styles.headerSubtext}>{levelInfo.nextLevelXP - user.xp} XP to next level</Text>
-            <Text style={styles.headerMotivation}>Keep going, champion! 🚀</Text>
+            <Text style={styles.headerSubtext}>{levelInfo.nextLevelXP - user.xp} XP {language === 'en' ? 'to next level' : 'ke level berikutnya'}</Text>
+            <Text style={styles.headerMotivation}>{language === 'en' ? 'Keep going, champion! 🚀' : 'Terus semangat, juara! 🚀'}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -753,7 +1022,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               <>
                 <MaterialIcons name="check-circle" size={20} color={colors.white} />
                 <Text style={styles.levelCheckInText}>
-                  {canCheckIn ? 'Check-in Harian' : 'Sudah Check-in'}
+                  {canCheckIn ? t.dashboard.checkIn : t.dashboard.checkedIn}
                 </Text>
               </>
             )}
@@ -780,7 +1049,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               <MaterialIcons name="local-fire-department" size={20} color={colors.error} />
             </View>
             <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(user.streak)}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Streak</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.dashboard.streak}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.lightGray }]} />
           <View style={styles.statItem}>
@@ -788,7 +1057,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               <MaterialIcons name="calendar-today" size={20} color={colors.primary} />
             </View>
             <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(daysSinceQuit)}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">Hari</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">{language === 'en' ? 'Days' : 'Hari'}</Text>
           </View>
         </View>
 
@@ -798,15 +1067,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             <View style={[styles.statCircleIcon, { backgroundColor: 'rgba(39, 174, 96, 0.15)' }]}>
               <MaterialIcons name="savings" size={24} color={colors.secondary} />
             </View>
-            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(moneySaved)}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Uang Hemat</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(moneySaved).replace('Rp', '').trim()}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.dashboard.moneySaved}</Text>
           </View>
         </View>
       </View>
 
       {/* Section Title */}
       <View style={[styles.sectionHeader, { marginTop: SIZES.xs }]}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Misi-mu Hari Ini</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.dashboard.dailyMissions}</Text>
       </View>
 
       {/* Daily Missions Card */}
@@ -861,7 +1130,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         
         {!user.isPremium && (
           <View style={styles.upgradePrompt}>
-            <Text style={[styles.upgradePromptText, { color: colors.textSecondary }]}>Buka lebih banyak misi dan raih XP berlimpah! Upgrade sekarang untuk mempercepat perjalanan sehatmu.</Text>
+            <Text style={[styles.upgradePromptText, { color: colors.textSecondary }]}>{t.premium.features.threeMissions}</Text>
             <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: colors.primary }]}>
               <Text style={[styles.upgradeButtonText, { color: colors.white }]}>Upgrade Premium</Text>
             </TouchableOpacity>
@@ -872,7 +1141,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
       {/* Motivation Section Title */}
       <View style={[styles.sectionHeader, { marginTop: SIZES.md }]}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Personal Motivator</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.dashboard.personalMotivator}</Text>
       </View>
 
       {/* Personal Motivator Card */}
@@ -884,14 +1153,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           style={styles.motivationCardGradient}
         >
         {user.isPremium ? (
-          <Text style={[styles.motivationText, { color: colors.textPrimary }]}>{getRandomMotivation()}</Text>
+          <Text style={[styles.motivationText, { color: colors.textPrimary }]}>{dailyMotivation || getDailyMotivation(user, language as Language)}</Text>
         ) : (
           <View style={styles.lockedContent}>
             <MaterialIcons name="psychology" size={32} color={colors.accent} />
-            <Text style={[styles.lockedText, { color: colors.textPrimary }]}>Dapatkan motivasi personal yang disesuaikan dengan perjalanan unikmu</Text>
-            <Text style={[styles.lockedSubtext, { color: colors.textSecondary }]}>AI akan menganalisis progresmu dan memberikan dukungan yang tepat di saat yang tepat</Text>
+            <Text style={[styles.lockedText, { color: colors.textPrimary }]}>{t.dashboard.personalMotivatorDesc}</Text>
+            <Text style={[styles.lockedSubtext, { color: colors.textSecondary }]}>{t.premium.features.dailyMotivation + ' + ' + t.premium.features.personalConsultation}</Text>
             <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.upgradeButtonText, { color: colors.white }]}>Aktifkan Personal Motivator</Text>
+              <Text style={[styles.upgradeButtonText, { color: colors.white }]}>{t.dashboard.activateMotivator}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1062,6 +1331,10 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodySmall,
     color: COLORS.white,
     fontWeight: '600',
+    fontSize: Math.min(width * 0.032, 12),
+    lineHeight: Math.min(width * 0.04, 16),
+    flexShrink: 1,
+    textAlign: 'center',
   },
   upgradePrompt: {
     marginTop: SIZES.md,
@@ -1461,6 +1734,10 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.white,
     fontWeight: '600',
+    fontSize: Math.min(width * 0.032, 12),
+    lineHeight: Math.min(width * 0.04, 16),
+    flexShrink: 1,
+    textAlign: 'center',
   },
 });
 

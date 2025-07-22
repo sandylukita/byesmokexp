@@ -18,6 +18,12 @@ export interface User {
   settings: UserSettings;
   onboardingCompleted?: boolean;
   dailyXP?: { [date: string]: number }; // Track XP earned per day
+  lastMotivationDate?: string; // Track when motivation was last generated (YYYY-MM-DD)
+  dailyMotivation?: string; // Cache today's motivation message
+  monthlyAICallsUsed?: number; // Track AI calls used this month (max 2)
+  lastAICallDate?: string; // Track when AI was last called (YYYY-MM-DD)
+  lastAIInsight?: string; // Cache latest AI-generated insight
+  aiCallsResetMonth?: string; // Track which month the counter was reset (YYYY-MM)
 }
 
 export interface Badge {

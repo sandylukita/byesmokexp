@@ -1,5 +1,6 @@
-import { HealthMilestone } from '../types';
-import { HEALTH_MILESTONES, XP_LEVELS } from './constants';
+import { HealthMilestone, User } from '../types';
+import { HEALTH_MILESTONES, XP_LEVELS, CONTEXTUAL_QUOTES } from './constants';
+import { getTranslation, Language } from './translations';
 
 export const calculateLevel = (xp: number): { level: number; title: string; progress: number; nextLevelXP: number } => {
   let currentLevel = XP_LEVELS[0];
@@ -131,19 +132,241 @@ export const calculateStreak = (lastCheckIn: Date | null): { canContinue: boolea
   return { canContinue: true, streakReset: true }; // Streak should reset
 };
 
-export const getRandomMotivation = (): string => {
-  const motivations = [
-    "Setiap hari tanpa rokok adalah kemenangan kecil yang bermakna besar.",
-    "Kesehatan adalah investasi terbaik untuk masa depan yang cerah.",
-    "Kamu lebih kuat dari kecanduan apapun. Percayalah pada diri sendiri.",
-    "Perubahan dimulai dari keputusan kecil yang konsisten.",
-    "Hidup sehat adalah hadiah terbaik untuk orang-orang yang kamu cintai.",
-    "Setiap nafas yang bersih adalah langkah menuju kehidupan yang lebih baik.",
-    "Kekuatan sejati terletak pada kemampuan mengatasi godaan.",
-    "Hari ini adalah kesempatan baru untuk menjadi versi terbaik dari diri sendiri."
-  ];
+export const getRandomMotivation = (language: Language = 'id'): string => {
+  const t = getTranslation(language);
+  const motivations = t.quotes.generalDaily;
   
   return motivations[Math.floor(Math.random() * motivations.length)];
+};
+
+// Smart contextual motivation for premium users
+export const getContextualMotivation = (user: User, language: Language = 'id'): string => {
+  const t = getTranslation(language);
+  
+  // Determine user's journey context
+  const totalDays = user.totalDays || 0;
+  const streak = user.streak || 0;
+  const streakInfo = calculateStreak(user.lastCheckIn);
+  
+  // Check if streak was broken (user needs encouragement to restart)
+  if (streakInfo.streakReset && totalDays > 0) {
+    const quotes = t.quotes.streakBroken;
+    return quotes[Math.floor(Math.random() * quotes.length)];
+  }
+  
+  // Categorize user by their journey stage
+  if (totalDays <= 7) {
+    // New user (first week)
+    const quotes = t.quotes.newUser;
+    return quotes[Math.floor(Math.random() * quotes.length)];
+  } else if (totalDays <= 28) {
+    // Early journey (1-4 weeks)
+    const quotes = t.quotes.earlyJourney;
+    return quotes[Math.floor(Math.random() * quotes.length)];
+  } else if (totalDays <= 90) {
+    // Milestone achiever (1-3 months)
+    const quotes = t.quotes.milestoneAchiever;
+    return quotes[Math.floor(Math.random() * quotes.length)];
+  } else if (totalDays > 90) {
+    // Veteran (3+ months)
+    const quotes = t.quotes.veteran;
+    return quotes[Math.floor(Math.random() * quotes.length)];
+  }
+  
+  // Fallback to general daily motivation
+  const quotes = t.quotes.generalDaily;
+  return quotes[Math.floor(Math.random() * quotes.length)];
+};
+
+// Check if user needs new daily motivation (premium feature with caching)
+export const needsNewDailyMotivation = (user: User): boolean => {
+  if (!user.isPremium) return false;
+  
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  // If no motivation date recorded, or it's a new day, user needs new motivation
+  return !user.lastMotivationDate || user.lastMotivationDate !== today;
+};
+
+// Get or generate daily motivation for premium users
+export const getDailyMotivation = (user: User, language: Language = 'id'): string => {
+  // For non-premium users, return random from basic quotes
+  if (!user.isPremium) {
+    return getRandomMotivation(language);
+  }
+  
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  // If we have today's cached motivation, return it
+  if (user.lastMotivationDate === today && user.dailyMotivation) {
+    return user.dailyMotivation;
+  }
+  
+  // Generate new contextual motivation for today
+  return getContextualMotivation(user, language);
+};
+
+// Detect if user has reached a major milestone worthy of AI insight
+export const detectMajorMilestone = (user: User): { isMilestone: boolean; milestoneType: string; daysAchieved: number } => {
+  const totalDays = user.totalDays || 0;
+  const majorMilestones = [30, 60, 90, 180, 365, 500, 730, 1000]; // Major milestones
+  
+  // Check if user just hit a major milestone (within the last day)
+  const previousDay = totalDays - 1;
+  
+  for (const milestone of majorMilestones) {
+    if (totalDays >= milestone && previousDay < milestone) {
+      return {
+        isMilestone: true,
+        milestoneType: `${milestone}_days`,
+        daysAchieved: milestone
+      };
+    }
+  }
+  
+  return { isMilestone: false, milestoneType: '', daysAchieved: 0 };
+};
+
+// Detect if user needs streak recovery support (after breaking significant streak)
+export const detectStreakRecovery = (user: User): { needsRecovery: boolean; brokenStreakLength: number; daysSinceBroken: number } => {
+  const currentStreak = user.streak || 0;
+  const longestStreak = user.longestStreak || 0;
+  const totalDays = user.totalDays || 0;
+  
+  // If current streak is 0-3 days and they had a streak ≥7 days before
+  if (currentStreak <= 3 && longestStreak >= 7) {
+    // Estimate days since streak was broken
+    // This is approximate since we don't track exact break dates
+    const estimatedDaysSinceBroken = Math.min(currentStreak, 3);
+    
+    return {
+      needsRecovery: true,
+      brokenStreakLength: longestStreak,
+      daysSinceBroken: estimatedDaysSinceBroken
+    };
+  }
+  
+  return { needsRecovery: false, brokenStreakLength: 0, daysSinceBroken: 0 };
+};
+
+// Check if user is eligible for AI insight based on monthly budget
+export const canUseAIThisMonth = (user: User): { canUse: boolean; callsUsed: number; callsRemaining: number } => {
+  const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
+  const maxMonthlyAICalls = 2;
+  
+  // Reset counter if it's a new month
+  const resetMonth = user.aiCallsResetMonth || '';
+  const callsUsed = (resetMonth === currentMonth) ? (user.monthlyAICallsUsed || 0) : 0;
+  
+  return {
+    canUse: callsUsed < maxMonthlyAICalls,
+    callsUsed: callsUsed,
+    callsRemaining: maxMonthlyAICalls - callsUsed
+  };
+};
+
+// Determine if AI insight should be triggered and what type
+export const shouldTriggerAIInsight = (user: User): { 
+  shouldTrigger: boolean; 
+  triggerType: 'milestone' | 'streak_recovery' | 'none';
+  triggerData: any;
+  priority: number; // 1 = highest, 2 = medium
+} => {
+  if (!user.isPremium) {
+    return { shouldTrigger: false, triggerType: 'none', triggerData: null, priority: 0 };
+  }
+  
+  const aiAvailability = canUseAIThisMonth(user);
+  if (!aiAvailability.canUse) {
+    return { shouldTrigger: false, triggerType: 'none', triggerData: null, priority: 0 };
+  }
+  
+  // Priority 1: Streak recovery (more emotionally critical)
+  const streakRecovery = detectStreakRecovery(user);
+  if (streakRecovery.needsRecovery) {
+    return {
+      shouldTrigger: true,
+      triggerType: 'streak_recovery',
+      triggerData: streakRecovery,
+      priority: 1
+    };
+  }
+  
+  // Priority 2: Major milestones
+  const milestone = detectMajorMilestone(user);
+  if (milestone.isMilestone) {
+    return {
+      shouldTrigger: true,
+      triggerType: 'milestone',
+      triggerData: milestone,
+      priority: 2
+    };
+  }
+  
+  return { shouldTrigger: false, triggerType: 'none', triggerData: null, priority: 0 };
+};
+
+// Update user's monthly AI call counter
+export const updateAICallCounter = (user: User): Partial<User> => {
+  const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  // Reset counter if it's a new month
+  const resetMonth = user.aiCallsResetMonth || '';
+  const isNewMonth = resetMonth !== currentMonth;
+  
+  const newCallsUsed = isNewMonth ? 1 : (user.monthlyAICallsUsed || 0) + 1;
+  
+  return {
+    monthlyAICallsUsed: newCallsUsed,
+    lastAICallDate: today,
+    aiCallsResetMonth: currentMonth
+  };
+};
+
+// Check if we should show AI insight vs contextual quote
+export const getMotivationContent = (user: User, language: Language = 'id'): { 
+  content: string; 
+  isAIGenerated: boolean; 
+  shouldUseAI: boolean;
+  triggerType?: string;
+} => {
+  if (!user.isPremium) {
+    return {
+      content: getRandomMotivation(language),
+      isAIGenerated: false,
+      shouldUseAI: false
+    };
+  }
+  
+  // Check if user has recent AI insight from today
+  const today = new Date().toISOString().split('T')[0];
+  if (user.lastAICallDate === today && user.lastAIInsight) {
+    return {
+      content: user.lastAIInsight,
+      isAIGenerated: true,
+      shouldUseAI: false // Don't call AI again, use cached
+    };
+  }
+  
+  // Check if AI should be triggered
+  const aiTrigger = shouldTriggerAIInsight(user);
+  
+  if (aiTrigger.shouldTrigger) {
+    return {
+      content: '', // Will be populated by AI call
+      isAIGenerated: true,
+      shouldUseAI: true,
+      triggerType: aiTrigger.triggerType
+    };
+  }
+  
+  // Fall back to contextual quotes
+  return {
+    content: getDailyMotivation(user, language),
+    isAIGenerated: false,
+    shouldUseAI: false
+  };
 };
 
 export const generatePersonalizedGreeting = (userData: {
@@ -234,9 +457,9 @@ export const generatePersonalizedGreeting = (userData: {
   }
   
   // Motivational note based on previous attempts
-  if (hasMultipleAttempts >= 3) {
-    motivationalNote = `Percobaan ke-${previousAttempts + 1} ini berbeda! Pengalaman sebelumnya adalah pembelajaran berharga. Kali ini Anda punya ByeSmoke XP!`;
-  } else if (hasMultipleAttempts > 0) {
+  if (previousAttempts >= 3) {
+    motivationalNote = `Percobaan ke-${previousAttempts + 1} ini berbeda! Pengalaman sebelumnya adalah pembelajaran berharga. Kali ini Anda punya ByeSmoke AI!`;
+  } else if (previousAttempts > 0) {
     motivationalNote = `Percobaan kedua sering kali lebih berhasil! Anda sudah tahu apa yang harus dihindari. Mari buat kali ini berbeda!`;
   } else {
     motivationalNote = `Langkah pertama adalah yang tersulit, dan Anda sudah melakukannya! Percayalah pada kekuatan diri Anda.`;

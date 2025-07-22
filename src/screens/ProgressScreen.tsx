@@ -26,6 +26,7 @@ import {
     getHealthMilestones,
 } from '../utils/helpers';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { TYPOGRAPHY } from '../utils/typography';
 
 const ProgressScreen: React.FC = () => {
@@ -33,7 +34,9 @@ const ProgressScreen: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'health' | 'savings' | 'stats'>('stats');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { colors, updateUser } = useTheme();
+  const [selectedDate, setSelectedDate] = useState(new Date()); // For month navigation
+  const { colors, updateUser, language } = useTheme();
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadUserData();
@@ -140,6 +143,27 @@ const ProgressScreen: React.FC = () => {
     setRefreshing(false);
   };
 
+  // Month navigation functions
+  const goToPreviousMonth = () => {
+    setSelectedDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const goToNextMonth = () => {
+    setSelectedDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  };
+
+  const goToCurrentMonth = () => {
+    setSelectedDate(new Date());
+  };
+
   if (loading || !user) {
     return (
       <View style={styles.loadingContainer}>
@@ -156,7 +180,7 @@ const ProgressScreen: React.FC = () => {
   const renderHealthMilestones = () => (
     <View style={styles.tabContent}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Milestone Kesehatan</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.progress.healthMilestones}</Text>
       </View>
       
       {healthMilestones.map((milestone, index) => {
@@ -219,7 +243,7 @@ const ProgressScreen: React.FC = () => {
   const renderSavingsBreakdown = () => (
     <View style={styles.tabContent}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Penghematan Uang</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.progress.savings}</Text>
       </View>
       
       <View style={[styles.savingsCard, { backgroundColor: colors.surface }]}>
@@ -227,8 +251,8 @@ const ProgressScreen: React.FC = () => {
           colors={[colors.secondary, colors.secondaryDark]}
           style={styles.savingsGradient}
         >
-          <Text style={styles.savingsAmount}>{formatCurrency(moneySaved)}</Text>
-          <Text style={styles.savingsLabel}>Total Penghematan</Text>
+          <Text style={styles.savingsAmount}>{formatCurrency(moneySaved).replace('Rp', '').trim()}</Text>
+          <Text style={styles.savingsLabel}>{t.progress.totalSavings}</Text>
         </LinearGradient>
       </View>
 
@@ -239,9 +263,9 @@ const ProgressScreen: React.FC = () => {
               <MaterialIcons name="today" size={20} color={colors.primary} />
             </View>
             <View style={styles.breakdownTextContainer}>
-              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Per Hari</Text>
+              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>{t.progress.perDay}</Text>
               <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
-                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20))}
+                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20)).replace('Rp', '').trim()}
               </Text>
             </View>
           </View>
@@ -253,9 +277,9 @@ const ProgressScreen: React.FC = () => {
               <MaterialIcons name="date-range" size={20} color={colors.accent} />
             </View>
             <View style={styles.breakdownTextContainer}>
-              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Per Minggu</Text>
+              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>{t.progress.perWeek}</Text>
               <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
-                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 7)}
+                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 7).replace('Rp', '').trim()}
               </Text>
             </View>
           </View>
@@ -267,9 +291,9 @@ const ProgressScreen: React.FC = () => {
               <MaterialIcons name="calendar-month" size={20} color={colors.error} />
             </View>
             <View style={styles.breakdownTextContainer}>
-              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Per Bulan</Text>
+              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>{t.progress.perMonth}</Text>
               <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
-                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 30)}
+                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 30).replace('Rp', '').trim()}
               </Text>
             </View>
           </View>
@@ -325,44 +349,33 @@ const ProgressScreen: React.FC = () => {
   const renderStatistics = () => (
     <View style={styles.tabContent}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Statistik Lengkap</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.progress.statistics}</Text>
       </View>
       
       <View style={styles.statsGrid}>
         <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
           <MaterialIcons name="smoke-free" size={32} color={colors.primary} />
           <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(cigarettesAvoided)}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Rokok Dihindari</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.progress.cigarettesAvoided}</Text>
         </View>
         
         <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
           <MaterialIcons name="schedule" size={32} color={colors.secondary} />
           <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(cigarettesAvoided * 11)}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Menit Hidup Bertambah</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.progress.lifeMinutesGained}</Text>
         </View>
         
         <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
           <MaterialIcons name="local-fire-department" size={32} color={colors.error} />
           <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.longestStreak || user.streak || 0}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">Streak Terpanjang</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">{t.progress.longestStreak}</Text>
         </View>
         
-        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-          <MaterialIcons name="star" size={32} color={colors.accent} />
-          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.xp}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">Total XP</Text>
-        </View>
-        
-        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-          <MaterialIcons name="emoji-events" size={32} color={colors.accentAlt} />
-          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.badges?.length || 0}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Badge Diperoleh</Text>
-        </View>
         
         <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
           <MaterialIcons name="assignment-turned-in" size={32} color={colors.info} />
           <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.completedMissions?.length || 0}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Misi Selesai</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.progress.missionsCompleted}</Text>
         </View>
       </View>
 
@@ -374,10 +387,44 @@ const ProgressScreen: React.FC = () => {
           end={{ x: 1, y: 1 }}
           style={styles.monthlySectionGradient}
         >
-          <Text style={[styles.progressTitle, { color: colors.textPrimary }]}>Progress Harian</Text>
-          <Text style={[styles.progressSubtitle, { color: colors.textSecondary }]}>
-            {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
-          </Text>
+          <View style={styles.progressHeader}>
+            <Text style={[styles.progressTitle, { color: colors.textPrimary }]}>{t.progress.dailyProgress}</Text>
+            
+            <View style={styles.monthNavigation}>
+              <TouchableOpacity 
+                style={[styles.navButton, { backgroundColor: colors.primary + '20' }]}
+                onPress={goToPreviousMonth}
+              >
+                <MaterialIcons name="chevron-left" size={20} color={colors.primary} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.monthYearContainer}
+                onPress={goToCurrentMonth}
+              >
+                <Text style={[styles.monthYearText, { color: colors.textPrimary }]}>
+                  {selectedDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                </Text>
+                {selectedDate.getMonth() !== new Date().getMonth() || selectedDate.getFullYear() !== new Date().getFullYear() ? (
+                  <Text style={[styles.currentMonthHint, { color: colors.textSecondary }]}>
+                    Tap untuk bulan ini
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.navButton, { backgroundColor: colors.primary + '20' }]}
+                onPress={goToNextMonth}
+                disabled={selectedDate.getMonth() >= new Date().getMonth() && selectedDate.getFullYear() >= new Date().getFullYear()}
+              >
+                <MaterialIcons 
+                  name="chevron-right" 
+                  size={20} 
+                  color={selectedDate.getMonth() >= new Date().getMonth() && selectedDate.getFullYear() >= new Date().getFullYear() ? colors.gray : colors.primary} 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
           
           <View style={styles.monthlyHeatmap}>
             
@@ -391,13 +438,14 @@ const ProgressScreen: React.FC = () => {
             <View style={styles.heatmapGrid}>
               {(() => {
                 const today = new Date();
-                const currentMonth = today.getMonth();
-                const currentYear = today.getFullYear();
+                const currentMonth = selectedDate.getMonth();
+                const currentYear = selectedDate.getFullYear();
                 const firstDay = new Date(currentYear, currentMonth, 1);
                 const lastDay = new Date(currentYear, currentMonth + 1, 0);
                 const daysInMonth = lastDay.getDate();
                 const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
                 const quitDate = new Date(user.quitDate);
+                const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
                 
                 // Create array for the calendar grid
                 const calendarDays = [];
@@ -414,48 +462,78 @@ const ProgressScreen: React.FC = () => {
                 // Add days of the month
                 for (let day = 1; day <= daysInMonth; day++) {
                   const date = new Date(currentYear, currentMonth, day);
-                  const isToday = day === today.getDate();
+                  const isToday = isCurrentMonth && day === today.getDate();
                   const isFuture = date > today;
                   
-                  // Calculate activity for this day based on XP earned
+                  // Calculate activity for this day based on check-in status primarily
                   let intensity = 0;
                   
                   if (!isFuture && date >= quitDate) {
-                    // Use local timezone for date key to match how daily XP is stored
-                    const dateKey = date.getFullYear() + '-' + 
-                                  String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                                  String(date.getDate()).padStart(2, '0');
+                    // Check if user did check-in on this specific date
+                    const hasCheckedInOnDate = user.lastCheckIn && 
+                      new Date(user.lastCheckIn).toDateString() === date.toDateString();
                     
-                    // Try current format first, then fallback to legacy UTC format
-                    let dailyXP = user.dailyXP?.[dateKey] || 0;
-                    if (dailyXP === 0) {
-                      // Fallback: try UTC format for legacy data
-                      const utcDateKey = date.toISOString().split('T')[0];
-                      dailyXP = user.dailyXP?.[utcDateKey] || 0;
-                    }
-                    
-                    // Convert XP to intensity levels
-                    if (dailyXP >= 50) {
-                      intensity = 3; // High activity: 50+ XP
-                    } else if (dailyXP >= 20) {
-                      intensity = 2; // Medium activity: 20-49 XP
-                    } else if (dailyXP >= 10) {
-                      intensity = 1; // Low activity: 10-19 XP
-                    } else {
-                      intensity = 0; // No activity: 0-9 XP
-                    }
-                    
-                    // Debug logging for today
+                    // For today, use check-in status and XP combined
                     if (isToday) {
-                      const utcDateKey = date.toISOString().split('T')[0];
+                      // Check actual XP earned today to determine intensity
+                      const dateKey = date.getFullYear() + '-' + 
+                                    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                                    String(date.getDate()).padStart(2, '0');
+                      
+                      let todayXP = user.dailyXP?.[dateKey] || 0;
+                      if (todayXP === 0) {
+                        // Fallback: try UTC format
+                        const utcDateKey = date.toISOString().split('T')[0];
+                        todayXP = user.dailyXP?.[utcDateKey] || 0;
+                      }
+                      
+                      if (hasCheckedInOnDate) {
+                        // Set intensity based on actual XP earned today
+                        if (todayXP >= 50) {
+                          intensity = 3; // High activity: 50+ XP (check-in + multiple missions)
+                        } else if (todayXP >= 20) {
+                          intensity = 2; // Medium activity: 20-49 XP (check-in + some missions)
+                        } else if (todayXP >= 10) {
+                          intensity = 1; // Low activity: 10-19 XP (check-in only)
+                        } else {
+                          intensity = 1; // Default to light green if checked in but no XP recorded yet
+                        }
+                      } else {
+                        intensity = 0; // Haven't checked in yet today
+                      }
+                      
                       console.log('📅 Today heatmap calculation:', {
-                        localDateKey: dateKey,
-                        utcDateKey,
-                        dailyXP,
+                        date: date.toDateString(),
+                        lastCheckIn: user.lastCheckIn ? new Date(user.lastCheckIn).toDateString() : null,
+                        hasCheckedInOnDate,
+                        todayXP,
                         intensity,
-                        allDailyXP: user.dailyXP,
-                        availableKeys: Object.keys(user.dailyXP || {})
+                        intensityMeaning: intensity === 0 ? 'No activity' : intensity === 1 ? 'Light green (10-19 XP)' : intensity === 2 ? 'Medium green (20-49 XP)' : 'Dark green (50+ XP)'
                       });
+                    } else {
+                      // For past days, use dailyXP as fallback for historical data
+                      const dateKey = date.getFullYear() + '-' + 
+                                    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                                    String(date.getDate()).padStart(2, '0');
+                      
+                      // Try current format first, then fallback to legacy UTC format
+                      let dailyXP = user.dailyXP?.[dateKey] || 0;
+                      if (dailyXP === 0) {
+                        // Fallback: try UTC format for legacy data
+                        const utcDateKey = date.toISOString().split('T')[0];
+                        dailyXP = user.dailyXP?.[utcDateKey] || 0;
+                      }
+                      
+                      // Convert XP to intensity levels for historical days
+                      if (dailyXP >= 50) {
+                        intensity = 3; // High activity: 50+ XP
+                      } else if (dailyXP >= 20) {
+                        intensity = 2; // Medium activity: 20-49 XP
+                      } else if (dailyXP >= 10) {
+                        intensity = 1; // Low activity: 10-19 XP
+                      } else {
+                        intensity = 0; // No activity: 0-9 XP
+                      }
                     }
                   }
                   
@@ -516,82 +594,82 @@ const ProgressScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
-        <Text style={styles.headerTitle}>Progress Kamu</Text>
-        <Text style={styles.headerSubtitle}>
-          "{daysSinceQuit} hari bebas rokok"
-        </Text>
-      </LinearGradient>
-
-      <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
-        <TouchableOpacity
-          style={[
-            styles.tab, 
-            { backgroundColor: selectedTab === 'stats' ? colors.primary : 'transparent' }
-          ]}
-          onPress={() => setSelectedTab('stats')}
-        >
-          <MaterialIcons 
-            name="bar-chart" 
-            size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'stats' ? colors.white : colors.gray} 
-          />
-          <Text style={[
-            styles.tabText,
-            { color: selectedTab === 'stats' ? colors.white : colors.textSecondary }
-          ]}>
-            Statistik
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[
-            styles.tab, 
-            { backgroundColor: selectedTab === 'health' ? colors.primary : 'transparent' }
-          ]}
-          onPress={() => setSelectedTab('health')}
-        >
-          <MaterialIcons 
-            name="favorite" 
-            size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'health' ? colors.white : colors.gray} 
-          />
-          <Text style={[
-            styles.tabText,
-            { color: selectedTab === 'health' ? colors.white : colors.textSecondary }
-          ]}>
-            Kesehatan
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[
-            styles.tab, 
-            { backgroundColor: selectedTab === 'savings' ? colors.primary : 'transparent' }
-          ]}
-          onPress={() => setSelectedTab('savings')}
-        >
-          <MaterialIcons 
-            name="savings" 
-            size={Math.min(width * 0.045, 18)} 
-            color={selectedTab === 'savings' ? colors.white : colors.gray} 
-          />
-          <Text style={[
-            styles.tabText,
-            { color: selectedTab === 'savings' ? colors.white : colors.textSecondary }
-          ]}>
-            Uang
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView 
-        style={styles.content} 
+        style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
+        <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
+          <Text style={styles.headerTitle}>{t.progress.title}</Text>
+          <Text style={styles.headerSubtitle}>
+            "{daysSinceQuit} {t.progress.subtitle}"
+          </Text>
+        </LinearGradient>
+
+        <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
+          <TouchableOpacity
+            style={[
+              styles.tab, 
+              { backgroundColor: selectedTab === 'stats' ? colors.primary : 'transparent' }
+            ]}
+            onPress={() => setSelectedTab('stats')}
+          >
+            <MaterialIcons 
+              name="bar-chart" 
+              size={Math.min(width * 0.045, 18)} 
+              color={selectedTab === 'stats' ? colors.white : colors.gray} 
+            />
+            <Text style={[
+              styles.tabText,
+              { color: selectedTab === 'stats' ? colors.white : colors.textSecondary }
+            ]}>
+              {t.progress.statistics}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.tab, 
+              { backgroundColor: selectedTab === 'health' ? colors.primary : 'transparent' }
+            ]}
+            onPress={() => setSelectedTab('health')}
+          >
+            <MaterialIcons 
+              name="favorite" 
+              size={Math.min(width * 0.045, 18)} 
+              color={selectedTab === 'health' ? colors.white : colors.gray} 
+            />
+            <Text style={[
+              styles.tabText,
+              { color: selectedTab === 'health' ? colors.white : colors.textSecondary }
+            ]}>
+              {t.progress.health}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.tab, 
+              { backgroundColor: selectedTab === 'savings' ? colors.primary : 'transparent' }
+            ]}
+            onPress={() => setSelectedTab('savings')}
+          >
+            <MaterialIcons 
+              name="savings" 
+              size={Math.min(width * 0.045, 18)} 
+              color={selectedTab === 'savings' ? colors.white : colors.gray} 
+            />
+            <Text style={[
+              styles.tabText,
+              { color: selectedTab === 'savings' ? colors.white : colors.textSecondary }
+            ]}>
+              {t.progress.savings}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {renderTabContent()}
       </ScrollView>
     </View>
@@ -602,6 +680,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollView: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -939,20 +1020,47 @@ const styles = StyleSheet.create({
   monthlySectionGradient: {
     padding: SIZES.sm,
   },
+  progressHeader: {
+    alignItems: 'center',
+    marginBottom: SIZES.md,
+  },
   progressTitle: {
     ...TYPOGRAPHY.h1,
     fontSize: 16,
     lineHeight: 22,
-    marginBottom: SIZES.xs || 4,
+    marginBottom: SIZES.sm,
     textAlign: 'center',
     color: COLORS.textPrimary,
-    fontWeight: '700', // Made bold
+    fontWeight: '700',
   },
-  progressSubtitle: {
-    fontSize: Math.min(width * 0.03, 12),
-    color: COLORS.textSecondary,
+  monthNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: SIZES.sm,
+  },
+  navButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthYearContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: SIZES.sm,
+  },
+  monthYearText: {
+    fontSize: 14,
+    fontWeight: '600',
     textAlign: 'center',
-    marginBottom: SIZES.md,
+  },
+  currentMonthHint: {
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 2,
   },
   monthlyHeatmap: {
     backgroundColor: COLORS.white + '80',

@@ -64,7 +64,7 @@ export const checkPremiumFeature = (isPremium: boolean, feature: string): boolea
 export const showUpgradePrompt = (featureName: string): void => {
   Alert.alert(
     'Fitur Premium',
-    `${featureName} tersedia untuk pengguna Premium. Upgrade sekarang untuk menikmati pengalaman lengkap ByeSmoke XP!`,
+    `${featureName} tersedia untuk pengguna Premium. Upgrade sekarang untuk menikmati pengalaman lengkap ByeSmoke AI!`,
     [
       { text: 'Nanti', style: 'cancel' },
       { text: 'Upgrade', onPress: () => showSubscriptionOptions() },
@@ -79,7 +79,7 @@ export const showSubscriptionOptions = (): void => {
   
   Alert.alert(
     'Pilih Paket Premium',
-    'Nikmati fitur lengkap ByeSmoke XP dengan berlangganan premium:',
+    'Nikmati fitur lengkap ByeSmoke AI dengan berlangganan premium:',
     [
       { text: 'Batal', style: 'cancel' },
       ...SUBSCRIPTION_PLANS.map(plan => ({
@@ -130,7 +130,7 @@ export const activatePremiumSubscription = async (
 
     Alert.alert(
       'Selamat!',
-      'Premium subscription berhasil diaktifkan. Nikmati fitur lengkap ByeSmoke XP!',
+      'Premium subscription berhasil diaktifkan. Nikmati fitur lengkap ByeSmoke AI!',
       [{ text: 'OK' }]
     );
   } catch (error) {

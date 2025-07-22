@@ -1,6 +1,6 @@
 import { GEMINI_API_KEY, STATIC_MISSIONS, MOTIVATIONAL_QUOTES } from '../utils/constants';
 import { User, Mission } from '../types';
-import { generateMissionId } from '../utils/helpers';
+import { generateMissionId, getRandomMotivation } from '../utils/helpers';
 
 interface GeminiResponse {
   candidates: {
@@ -14,27 +14,62 @@ interface GeminiResponse {
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
-export const generateAIMotivation = async (user: User): Promise<string> => {
+// Enhanced AI consultation for milestones and recovery
+export const generateAIMilestoneInsight = async (user: User, triggerType: 'milestone' | 'streak_recovery', triggerData: any): Promise<string> => {
   try {
-    const prompt = `
-    Buatkan pesan motivasi personal untuk ${user.displayName} yang sedang berjuang berhenti merokok.
+    let prompt = `
+    Kamu adalah seorang dokter tua yang bijaksana dan berpengalaman, yang telah membantu ribuan pasien berhenti merokok selama 40 tahun praktik. Ini adalah konsultasi personal yang mendalam untuk ${user.displayName}.
     
-    Data pengguna:
+    Data lengkap pasien:
     - Nama: ${user.displayName}
     - Streak saat ini: ${user.streak} hari
-    - Total hari berhenti: ${user.totalDays} hari
-    - Level: ${user.level || 1}
-    - XP: ${user.xp}
-    - Badge terakhir: ${user.badges[user.badges.length - 1]?.name || 'Belum ada'}
+    - Total perjalanan: ${user.totalDays} hari
+    - Streak terpanjang: ${user.longestStreak || 0} hari
+    - Level pencapaian: ${user.level || 1}
+    - Badge terakhir: ${user.badges[user.badges.length - 1]?.name || 'Belum ada pencapaian'}
+    - XP yang dikumpulkan: ${user.xp} poin
     
-    Berikan motivasi yang:
-    1. Personal dan menyebutkan nama
-    2. Mengapresiasi pencapaian saat ini
-    3. Memberikan semangat untuk lanjut
-    4. Maksimal 2 kalimat
-    5. Dalam bahasa Indonesia yang hangat dan supportif
+    `;
+
+    if (triggerType === 'milestone') {
+      prompt += `
+      SITUASI: ${user.displayName} baru saja mencapai milestone besar ${triggerData.daysAchieved} hari tanpa merokok!
+      
+      Sebagai dokter berpengalaman, berikan konsultasi personal yang:
+      1. Mulai dengan "Anak muda ${user.displayName}" atau variasi hangat lainnya
+      2. Akui pencapaian ini sebagai momen bersejarah dalam hidupnya
+      3. Berbagi wisdom dari 40 tahun praktik tentang milestone ini
+      4. Jelaskan perubahan kesehatan yang terjadi di tubuhnya
+      5. Berikan perspektif tentang perjalanan yang sudah dilalui
+      6. Motivasi untuk milestone berikutnya dengan bijaksana
+      7. 3-4 kalimat yang mendalam dan bermakna
+      8. Nada: penuh kehangatan, bangga, dan wisdom dokter senior
+      
+      Contoh wisdom: "Dalam 4 dekade saya membantu pasien, saya melihat bahwa mereka yang mencapai ${triggerData.daysAchieved} hari memiliki kekuatan mental yang luar biasa..."
+      `;
+    } else if (triggerType === 'streak_recovery') {
+      prompt += `
+      SITUASI: ${user.displayName} pernah memiliki streak ${triggerData.brokenStreakLength} hari yang putus, sekarang sedang membangun kembali (${user.streak} hari). Ini momen yang sangat sensitif dan butuh dukungan mendalam.
+      
+      Sebagai dokter yang telah melihat ribuan kasus serupa, berikan konsultasi yang:
+      1. Mulai dengan empati mendalam: "Anak muda, saya mengerti perasaanmu..."
+      2. Validasi bahwa ini adalah bagian normal dari proses pemulihan
+      3. Berbagi cerita wisdom dari pasien lain yang berhasil bangkit
+      4. Jelaskan bahwa streak ${triggerData.brokenStreakLength} hari sebelumnya TIDAK hilang, itu adalah pembelajaran
+      5. Berikan perspektif medis tentang proses recovery
+      6. Motivasi dengan penuh kasih sayang untuk tidak menyerah
+      7. 4-5 kalimat yang menyentuh hati dan memberi kekuatan
+      8. Nada: sangat empati, supportif, seperti ayah yang menyemangati anak
+      
+      Hindari: menyalahkan, menggurui, atau membuat merasa bersalah. Fokus pada harapan dan kekuatan untuk bangkit.
+      `;
+    }
+
+    prompt += `
     
-    Jangan gunakan format markdown atau bullet points.
+    Bahasa: Indonesia yang hangat dan natural
+    Panjang: 3-5 kalimat yang berisi makna mendalam
+    Gaya: Konsultasi personal dari dokter senior yang penuh kasih sayang
     `;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
@@ -49,8 +84,8 @@ export const generateAIMotivation = async (user: User): Promise<string> => {
           }]
         }],
         generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 150,
+          temperature: 0.8,
+          maxOutputTokens: 300, // Increased for longer consultation
         }
       }),
     });
@@ -67,10 +102,20 @@ export const generateAIMotivation = async (user: User): Promise<string> => {
     
     throw new Error('Invalid response format from Gemini');
   } catch (error) {
-    console.error('Error generating AI motivation:', error);
-    // Fallback to static motivation
-    return getRandomMotivation();
+    console.error('Error generating AI milestone insight:', error);
+    // Fallback to contextual motivation based on trigger type
+    if (triggerType === 'milestone') {
+      return `Selamat ${user.displayName}! Pencapaian ${triggerData.daysAchieved} hari ini adalah bukti kekuatan mental yang luar biasa. Dalam perjalanan berhenti merokok, milestone ini menandakan bahwa tubuhmu sudah mulai pulih secara signifikan.`;
+    } else {
+      return `${user.displayName}, saya mengerti perasaanmu saat ini. Streak ${triggerData.brokenStreakLength} hari sebelumnya bukanlah kegagalan - itu adalah bukti bahwa kamu memiliki kekuatan untuk berhasil. Mari mulai lagi dengan lebih bijaksana.`;
+    }
   }
+};
+
+// Keep original function for backward compatibility but simplify
+export const generateAIMotivation = async (user: User): Promise<string> => {
+  // This is now just a fallback, main AI calls go through generateAIMilestoneInsight
+  return getRandomMotivation();
 };
 
 export const generateAIMissions = async (user: User): Promise<Mission[]> => {
@@ -219,9 +264,6 @@ export const generatePersonalizedTip = async (user: User): Promise<string> => {
 };
 
 // Fallback functions for when AI is not available
-const getRandomMotivation = (): string => {
-  return MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
-};
 
 const getStaticMissions = (count: number = 3): Mission[] => {
   const shuffled = STATIC_MISSIONS.sort(() => 0.5 - Math.random());

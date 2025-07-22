@@ -359,7 +359,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
             )}
             
             <Text style={styles.motivationalNote}>
-              {personalizedGreeting?.motivationalNote || 'Mari mulai perjalanan sehat bersama ByeSmoke XP!'}
+              {personalizedGreeting?.motivationalNote || 'Mari mulai perjalanan sehat bersama ByeSmoke AI!'}
             </Text>
           </ScrollView>
         );

@@ -21,6 +21,8 @@ import { Badge } from '../types';
 import { BADGES, COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from '../hooks/useTranslation';
+import { getTranslatedBadge } from '../utils/translations';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +55,7 @@ const FALLBACK_STATS: {[badgeId: string]: number} = {
 
 const BadgeStatisticsScreen: React.FC = () => {
   const { colors } = useTheme();
+  const { t, language } = useTranslation();
   const [badgeStats, setBadgeStats] = useState<{[badgeId: string]: number}>(FALLBACK_STATS);
   const [userBadges, setUserBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(false); // Start with false, show fallback data immediately
@@ -204,6 +207,7 @@ const BadgeStatisticsScreen: React.FC = () => {
   const renderBadgeItem = (badge: any, index: number) => {
     const isUnlocked = isUserBadgeUnlocked(badge.id);
     const unlockCount = badgeStats[badge.id] || FALLBACK_STATS[badge.id] || 50;
+    const translatedBadge = getTranslatedBadge(badge.id, language as any);
     
     return (
       <View key={badge.id} style={[
@@ -228,17 +232,14 @@ const BadgeStatisticsScreen: React.FC = () => {
               { ...styles.badgeName, color: colors.textPrimary },
               !isUnlocked && { color: colors.gray }
             ]}>
-              {badge.name}
+              {translatedBadge.name}
               {badge.isPremium && ' ⭐'}
             </Text>
             <Text style={[
               { ...styles.badgeDescription, color: colors.textSecondary },
               !isUnlocked && { color: colors.gray }
             ]}>
-              {badge.description}
-            </Text>
-            <Text style={[styles.badgeRequirement, { color: colors.gray }]}>
-              {badge.requirement}
+              {translatedBadge.description}
             </Text>
           </View>
           
@@ -247,7 +248,7 @@ const BadgeStatisticsScreen: React.FC = () => {
               {unlockCount.toLocaleString()}
             </Text>
             <Text style={[styles.statsLabel, { color: colors.textSecondary }]}>
-              pengguna
+              {language === 'en' ? 'users' : 'pengguna'}
             </Text>
             {isUnlocked && (
               <View style={styles.unlockedBadge}>
@@ -264,7 +265,7 @@ const BadgeStatisticsScreen: React.FC = () => {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Memuat statistik badge...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t.badges.loading}</Text>
       </View>
     );
   }
@@ -275,27 +276,26 @@ const BadgeStatisticsScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
-        <Text style={styles.headerTitle}>Statistik Badge</Text>
-        <Text style={styles.headerSubtitle}>
-          Lihat pencapaian komunitas global
-        </Text>
-        <View style={styles.userBadgeCount}>
-          <Text style={styles.userBadgeText}>
-            Kamu: {unlockedBadges.length} dari {BADGES.length} badge
-          </Text>
-        </View>
-      </LinearGradient>
-
       <ScrollView
-        style={styles.content}
+        style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
+        <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
+          <Text style={styles.headerTitle}>{t.badges.title}</Text>
+          <Text style={styles.headerSubtitle}>
+            Lihat pencapaian komunitas global
+          </Text>
+          <View style={styles.userBadgeCount}>
+            <Text style={styles.userBadgeText}>
+              {t.badges.youHave} {unlockedBadges.length} {t.badges.of} {BADGES.length} badge
+            </Text>
+          </View>
+        </LinearGradient>
         {unlockedBadges.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Badge yang Kamu Miliki</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.badges.badgesOwned}</Text>
             </View>
             <View style={styles.badgeContainer}>
               {unlockedBadges.map((badge, index) => renderBadgeItem(badge, index))}
@@ -306,7 +306,7 @@ const BadgeStatisticsScreen: React.FC = () => {
         {lockedBadges.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Badge Lainnya</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.badges.otherBadges}</Text>
             </View>
             <View style={styles.badgeContainer}>
               {lockedBadges.map((badge, index) => renderBadgeItem(badge, index))}
@@ -316,7 +316,7 @@ const BadgeStatisticsScreen: React.FC = () => {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            Statistik diperbarui secara real-time • Tarik untuk refresh
+            {t.badges.updateInfo}
           </Text>
         </View>
       </ScrollView>
@@ -337,9 +337,12 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyMedium,
     marginTop: SIZES.md,
   },
+  scrollView: {
+    flex: 1,
+  },
   header: {
     paddingTop: 50,
-    paddingBottom: SIZES.xl,
+    paddingBottom: SIZES.lg,
     paddingHorizontal: SIZES.screenPadding,
     alignItems: 'center',
   },
@@ -387,9 +390,9 @@ const styles = StyleSheet.create({
   },
   badgeItem: {
     borderRadius: SIZES.buttonRadius || 12,
-    padding: SIZES.md,
+    padding: SIZES.sm,
     marginHorizontal: SIZES.screenPadding,
-    marginBottom: SIZES.sm,
+    marginBottom: SIZES.xs,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -414,6 +417,7 @@ const styles = StyleSheet.create({
   lockedBadgeIcon: {},  // Background handled dynamically
   badgeInfo: {
     flex: 1,
+    marginRight: SIZES.md,
   },
   badgeName: {
     fontSize: 16,
@@ -422,7 +426,7 @@ const styles = StyleSheet.create({
   },
   badgeDescription: {
     fontSize: 14,
-    marginBottom: 2,
+    marginBottom: 12,
   },
   badgeRequirement: {
     fontSize: 12,
@@ -436,7 +440,7 @@ const styles = StyleSheet.create({
   statsCount: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: 6,
   },
   statsLabel: {
     fontSize: 11,

@@ -1,4 +1,110 @@
-# Analysis: Heatmap Color Logic Issues in ProgressScreen.tsx
+# Dark Mode Theme Settings and Offline Error Analysis
+
+## Problem Analysis
+
+Based on my examination of the codebase, here's how dark mode settings are currently handled and the potential offline errors:
+
+## Current Dark Mode Implementation
+
+### 1. Theme Context (`src/contexts/ThemeContext.tsx`)
+- Dark mode is a **premium-only feature** (lines 24, 36-37)
+- Theme state is managed in React context with `isDarkMode` boolean
+- User's dark mode preference is stored in `user.settings.darkMode`
+- Colors switch between `COLORS` (light) and `DARK_COLORS` (dark) from constants
+
+### 2. Theme Persistence Logic
+The `toggleDarkMode` function (lines 36-71) handles saving:
+
+**Firebase Users:**
+- Calls `updateUserDocument(user.id, { settings: updatedUser.settings })`
+- Updates Firestore document in real-time
+
+**Demo Users:**
+- Calls `demoUpdateUser(user.id, { settings: updatedUser.settings })`
+- Saves to AsyncStorage via `AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(currentUser))`
+
+### 3. Error Handling Current State
+- Basic try-catch in `toggleDarkMode` with console.error (lines 67-69)
+- No user feedback when save fails
+- No offline handling mechanism
+
+## Identified Issues
+
+### 1. **Offline Error for Firebase Users**
+- When device is offline, `updateUserDocument` calls to Firestore will fail
+- No network detection or offline queue
+- User sees theme change locally but setting doesn't persist
+
+### 2. **AsyncStorage Errors for Demo Users**
+- AsyncStorage operations can fail (device storage full, permissions)
+- Error logged but no user notification (line 198-199 in demoAuth.ts)
+
+### 3. **No Error Recovery**
+- Failed saves don't revert the UI state
+- No retry mechanism for failed saves
+- No indication to user that setting wasn't saved
+
+## Proposed Solutions
+
+### Todo List:
+
+- [ ] **Add Network Detection**
+  - Install and implement `@react-native-netinfo` for network status
+  - Detect online/offline state in ThemeContext
+
+- [ ] **Implement Offline Queue for Firebase**
+  - Create offline storage for pending theme changes
+  - Queue failed Firestore updates when offline
+  - Retry when connection restored
+
+- [ ] **Improve Error User Experience**
+  - Show user-friendly error messages when save fails
+  - Add loading states during save operations
+  - Implement toast/alert notifications for save status
+
+- [ ] **Add AsyncStorage Error Handling**
+  - Better error handling for demo users
+  - Fallback mechanisms when AsyncStorage fails
+  - User feedback for storage issues
+
+- [ ] **Add Theme Persistence Recovery**
+  - Revert UI state if save operation fails
+  - Implement optimistic updates with rollback
+  - Ensure UI reflects actual saved state
+
+- [ ] **Testing and Validation**
+  - Test offline scenarios
+  - Test AsyncStorage failure scenarios
+  - Test Firebase connection failures
+  - Validate theme persistence across app restarts
+
+## Files to Modify
+
+1. `src/contexts/ThemeContext.tsx` - Main theme logic and error handling
+2. `src/services/auth.ts` - Firebase error handling improvements  
+3. `src/services/demoAuth.ts` - AsyncStorage error handling
+4. `src/components/CustomAlert.tsx` - User feedback for errors
+5. Add new offline queue service file
+
+## Technical Details
+
+### Current Storage Locations:
+- **Firebase Users**: Firestore `/users/{uid}` document, `settings.darkMode` field
+- **Demo Users**: AsyncStorage key `demo_current_user`, full user object
+
+### Error Patterns Found:
+- Line 68 ThemeContext: `console.error('Error saving dark mode setting:', error)`
+- Line 104 demoAuth: `console.error('Error saving user to AsyncStorage:', error)`
+- Line 198 demoAuth: `console.error('Error saving updated user to storage:', error)`
+
+### Network Dependencies:
+- Firebase operations require internet connection
+- No offline persistence for Firestore writes
+- AsyncStorage is local but can fail due to device constraints
+
+---
+
+# Previous Analysis: Heatmap Color Logic Issues in ProgressScreen.tsx
 
 ## Problem Analysis
 

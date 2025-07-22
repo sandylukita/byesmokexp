@@ -96,8 +96,18 @@ export const updateUserDocument = async (uid: string, data: Partial<User>) => {
   try {
     const userDoc = doc(db, 'users', uid);
     await updateDoc(userDoc, data);
-  } catch (error) {
-    console.error('Error updating user document:', error);
+  } catch (error: any) {
+    // Check if this is an offline/network error to avoid spamming user
+    const isOfflineError = error.message?.toLowerCase().includes('offline') || 
+                          error.message?.toLowerCase().includes('network') ||
+                          error.message?.toLowerCase().includes('internet connection') ||
+                          error.code === 'unavailable' ||
+                          error.code === 'network-request-failed';
+    
+    if (!isOfflineError) {
+      // Only log non-offline errors
+      console.error('Error updating user document:', error);
+    }
     throw error;
   }
 };

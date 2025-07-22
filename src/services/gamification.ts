@@ -1,4 +1,4 @@
-import { doc, updateDoc, arrayUnion, increment, collection, getDocs, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, increment, collection, getDocs, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { BADGES } from '../utils/constants';
 import { User, Badge, Mission } from '../types';
@@ -306,14 +306,42 @@ export const completeMission = async (
     };
 
     try {
-      // Try Firebase first
+      // Try Firebase first - get current data, then update
+      console.log('🔥 Attempting Firebase mission save:');
+      console.log('  - User ID:', userId);
+      console.log('  - Mission ID:', completedMission.id);
+      console.log('  - Mission completed at:', completedMission.completedAt);
+      console.log('  - New XP:', newXP);
+      
       const userDoc = doc(db, 'users', userId);
-      await updateDoc(userDoc, {
-        xp: newXP,
-        dailyXP: updatedDailyXP,
-        completedMissions: arrayUnion(completedMission),
-      });
-      console.log('✓ Firebase: Successfully completed mission');
+      
+      // Get current user data to safely update missions array
+      const currentDoc = await getDoc(userDoc);
+      if (currentDoc.exists()) {
+        const currentData = currentDoc.data();
+        const currentMissions = currentData.completedMissions || [];
+        
+        // Check if mission already exists (avoid duplicates)
+        const missionExists = currentMissions.some((m: any) => m.id === completedMission.id && 
+          new Date(m.completedAt?.toDate?.() || m.completedAt).toDateString() === new Date(completedMission.completedAt!).toDateString());
+        
+        if (!missionExists) {
+          const updatedMissions = [...currentMissions, completedMission];
+          
+          await updateDoc(userDoc, {
+            xp: newXP,
+            dailyXP: updatedDailyXP,
+            completedMissions: updatedMissions,
+          });
+          console.log('✅ Firebase: Successfully completed mission and saved to Firestore');
+          console.log('  - Updated missions count:', updatedMissions.length);
+        } else {
+          console.log('⚠️ Mission already exists, skipping duplicate save');
+        }
+      } else {
+        console.log('❌ User document not found');
+        throw new Error('User document not found');
+      }
     } catch (firebaseError) {
       console.error('Firebase error completing mission, trying demo fallback:', firebaseError);
       

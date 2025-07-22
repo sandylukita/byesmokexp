@@ -27,12 +27,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>🚭</Text>
-          <Text style={styles.title}>ByeSmoke XP</Text>
+          <Text style={styles.title}>ByeSmoke AI</Text>
           <Text style={styles.subtitle}>Mulai Hidup Sehat Hari Ini</Text>
         </View>
         
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Powered by AI • Gamified Experience</Text>
+          <Text style={styles.footerText}>Smart Experience • Gamified Journey</Text>
         </View>
       </View>
     </LinearGradient>

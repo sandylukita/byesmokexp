@@ -79,7 +79,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
               <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit={true}>
                 Selamat Datang
               </Text>
-              <Text style={styles.subtitle}>Masuk ke akun ByeSmoke XP</Text>
+              <Text style={styles.subtitle}>Masuk ke akun ByeSmoke AI</Text>
             </View>
 
             <View style={styles.form}>
@@ -101,6 +101,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoComplete="password"
+                onSubmitEditing={handleLogin}
+                returnKeyType="done"
               />
 
               <TouchableOpacity
