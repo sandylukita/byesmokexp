@@ -27,7 +27,10 @@
       "Bash(claude doctor)",
       "Bash(npm uninstall:*)",
       "Bash(npx expo run:android:*)",
-      "Bash(echo $ANDROID_HOME)"
+      "Bash(echo $ANDROID_HOME)",
+      "Bash(claude mcp add:*)",
+      "Bash(where claude)",
+      "Bash(claude mcp:*)"
     ],
     "deny": []
   }

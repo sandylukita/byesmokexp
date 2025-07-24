@@ -55,7 +55,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
         onLogin();
       } catch (firebaseError: any) {
         console.log('Firebase auth failed:', firebaseError.message);
-        Alert.alert('Error', error.message || 'Gagal masuk');
+        Alert.alert('Error', firebaseError.message || 'Gagal masuk');
       }
     } finally {
       setLoading(false);

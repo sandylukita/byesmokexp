@@ -2,6 +2,9 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
+// Fix React Native module resolution for Firebase
+config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
+
 // Fix for expo-modules-core resolution issue
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'expo-modules-core') {
