@@ -16,6 +16,7 @@ import {
 import { logout } from '../services/auth';
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
+import { NotificationService } from '../services/notificationService';
 
 import { User } from '../types';
 import { COLORS, SIZES } from '../utils/constants';
@@ -36,6 +37,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', message: '' });
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const { isDarkMode, colors, toggleDarkMode, setLanguage, canUseDarkMode, updateUser } = useTheme();
   const { t, language } = useTranslation();
 
@@ -172,10 +174,122 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   };
 
   const handleNotifications = () => {
-    showCustomAlert(
-      t.settings.notifications,
-      t.settings.notificationsHelp
-    );
+    console.log('handleNotifications called, opening modal...');
+    setNotificationModalVisible(true);
+  };
+
+  const toggleNotifications = async () => {
+    if (!user) return;
+    
+    // If turning notifications ON, request permissions first
+    if (!user.settings.notifications) {
+      try {
+        const permissionStatus = await NotificationService.requestPermissions();
+        
+        if (permissionStatus !== 'granted') {
+          const message = permissionStatus === 'denied' 
+            ? 'Izin notifikasi ditolak. Silakan aktifkan notifikasi di pengaturan perangkat untuk menggunakan fitur pengingat.'
+            : 'Izin notifikasi diperlukan untuk mengaktifkan pengingat harian.';
+          
+          Alert.alert(
+            'Izin Notifikasi Diperlukan',
+            message,
+            [
+              { text: 'Batal', style: 'cancel' },
+              { 
+                text: 'Buka Pengaturan', 
+                onPress: () => {
+                  // Could open app settings here in production
+                  console.log('Should open app settings');
+                }
+              }
+            ]
+          );
+          return;
+        }
+      } catch (error) {
+        console.error('Error requesting notification permissions:', error);
+        Alert.alert('Error', 'Gagal meminta izin notifikasi');
+        return;
+      }
+    }
+    
+    const updatedSettings = {
+      ...user.settings,
+      notifications: !user.settings.notifications
+    };
+    
+    const updatedUser = {
+      ...user,
+      settings: updatedSettings
+    };
+    
+    setUser(updatedUser);
+    updateUser(updatedUser);
+
+    // Handle notification scheduling
+    try {
+      const success = await NotificationService.rescheduleIfNeeded(
+        updatedSettings.notifications,
+        user.settings.reminderTime
+      );
+      
+      if (!success && updatedSettings.notifications) {
+        // If scheduling failed, revert the setting
+        console.warn('Failed to schedule notifications, reverting setting');
+        setUser({
+          ...user,
+          settings: {
+            ...user.settings,
+            notifications: false
+          }
+        });
+        Alert.alert(
+          'Gagal Mengaktifkan Notifikasi',
+          'Tidak dapat mengatur pengingat. Pastikan izin notifikasi telah diberikan.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error managing notifications:', error);
+    }
+  };
+
+  const updateReminderTime = async (time: string) => {
+    if (!user) return;
+    
+    const updatedSettings = {
+      ...user.settings,
+      reminderTime: time
+    };
+    
+    const updatedUser = {
+      ...user,
+      settings: updatedSettings
+    };
+    
+    setUser(updatedUser);
+    updateUser(updatedUser);
+
+    // Reschedule notification if notifications are enabled
+    if (user.settings.notifications) {
+      try {
+        const success = await NotificationService.rescheduleIfNeeded(true, time);
+        
+        if (!success) {
+          console.warn('Failed to reschedule notification for new time');
+          Alert.alert(
+            'Gagal Mengubah Waktu',
+            'Tidak dapat mengubah waktu pengingat. Periksa izin notifikasi.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          console.log('Daily reminder rescheduled for', time);
+        }
+      } catch (error) {
+        console.error('Error rescheduling notification:', error);
+      }
+    }
   };
 
   const handleHelp = () => {
@@ -231,6 +345,91 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           <TouchableOpacity 
             style={[styles.modalButton, { backgroundColor: colors.primary }]}
             onPress={() => setModalVisible(false)}
+          >
+            <Text style={styles.modalButtonText}>{t.common.close}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderNotificationModal = () => (
+    <Modal
+      visible={notificationModalVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setNotificationModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+            {t.settings.notifications}
+          </Text>
+          
+          <View style={styles.notificationSettingsContainer}>
+            {/* Notification Toggle */}
+            <View style={styles.notificationSetting}>
+              <View style={styles.notificationSettingInfo}>
+                <Text style={[styles.notificationSettingTitle, { color: colors.textPrimary }]}>
+                  {t.profile.notifications}
+                </Text>
+                <Text style={[styles.notificationSettingDesc, { color: colors.textSecondary }]}>
+                  {user?.settings.notifications ? 'Aktif' : 'Tidak aktif'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={toggleNotifications}>
+                <View style={[
+                  styles.toggleSwitch, 
+                  { backgroundColor: colors.gray }, 
+                  user?.settings.notifications && { backgroundColor: colors.secondary }
+                ]}>
+                  <View style={[
+                    styles.toggleThumb, 
+                    { backgroundColor: colors.surface }, 
+                    user?.settings.notifications && styles.toggleThumbActive
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Time Picker */}
+            {user?.settings.notifications && (
+              <View style={styles.notificationSetting}>
+                <View style={styles.notificationSettingInfo}>
+                  <Text style={[styles.notificationSettingTitle, { color: colors.textPrimary }]}>
+                    Waktu Pengingat
+                  </Text>
+                  <Text style={[styles.notificationSettingDesc, { color: colors.textSecondary }]}>
+                    {user.settings.reminderTime}
+                  </Text>
+                </View>
+                <View style={styles.timePickerContainer}>
+                  <TouchableOpacity 
+                    style={[styles.timePickerButton, { backgroundColor: colors.lightGray }]}
+                    onPress={() => updateReminderTime('09:00')}
+                  >
+                    <Text style={[styles.timePickerText, { color: colors.textPrimary }]}>09:00</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.timePickerButton, { backgroundColor: colors.lightGray }]}
+                    onPress={() => updateReminderTime('12:00')}
+                  >
+                    <Text style={[styles.timePickerText, { color: colors.textPrimary }]}>12:00</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.timePickerButton, { backgroundColor: colors.lightGray }]}
+                    onPress={() => updateReminderTime('18:00')}
+                  >
+                    <Text style={[styles.timePickerText, { color: colors.textPrimary }]}>18:00</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.modalButton, { backgroundColor: colors.primary }]}
+            onPress={() => setNotificationModalVisible(false)}
           >
             <Text style={styles.modalButtonText}>{t.common.close}</Text>
           </TouchableOpacity>
@@ -399,6 +598,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
         </View>
       </ScrollView>
       {renderCustomAlert()}
+      {renderNotificationModal()}
     </>
   );
 };
@@ -623,6 +823,42 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Notification Modal Styles
+  notificationSettingsContainer: {
+    marginVertical: SIZES.md,
+  },
+  notificationSetting: {
+    flexDirection: 'column',
+    paddingVertical: SIZES.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  notificationSettingInfo: {
+    marginBottom: SIZES.sm,
+  },
+  notificationSettingTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: SIZES.xs,
+  },
+  notificationSettingDesc: {
+    fontSize: 14,
+  },
+  timePickerContainer: {
+    flexDirection: 'row',
+    gap: SIZES.xs,
+    alignSelf: 'flex-start',
+  },
+  timePickerButton: {
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    borderRadius: SIZES.buttonRadius / 2,
+    minWidth: 55,
+  },
+  timePickerText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

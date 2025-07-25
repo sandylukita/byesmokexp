@@ -30,7 +30,10 @@
       "Bash(echo $ANDROID_HOME)",
       "Bash(claude mcp add:*)",
       "Bash(where claude)",
-      "Bash(claude mcp:*)"
+      "Bash(claude mcp:*)",
+      "Bash(taskkill:*)",
+      "Bash(npm start:*)",
+      "WebFetch(domain:docs.expo.dev)"
     ],
     "deny": []
   }

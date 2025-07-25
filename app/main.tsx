@@ -2,7 +2,9 @@ import { StatusBar } from 'expo-status-bar';
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../src/services/firebase';
+import { NotificationService } from '../src/services/notificationService';
 
 import AppNavigator from '../src/navigation/AppNavigator';
 import LoginScreen from '../src/screens/LoginScreen';
@@ -21,6 +23,15 @@ export default function Main() {
     console.log('Main.tsx: Initial appState set to', initialState);
     return initialState;
   });
+
+  // Initialize notification listeners on app start
+  useEffect(() => {
+    NotificationService.initializeListeners();
+    
+    return () => {
+      NotificationService.removeListeners();
+    };
+  }, []);
 
   const setAppState = (newState: AppState) => {
     console.log(`Main.tsx: Changing appState from ${appState} to ${newState}`);
@@ -160,10 +171,10 @@ export default function Main() {
 
   return (
     <ThemeProvider>
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <StatusBar style="light" />
         {renderCurrentScreen()}
-      </View>
+      </SafeAreaView>
     </ThemeProvider>
   );
 }
