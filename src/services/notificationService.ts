@@ -17,6 +17,7 @@
 
 import * as Notifications from 'expo-notifications';
 import { Platform, AppState } from 'react-native';
+import { translations, Language } from '../utils/translations';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -31,38 +32,16 @@ Notifications.setNotificationHandler({
 
 export type PermissionStatus = 'undetermined' | 'denied' | 'granted';
 
-// Notification content templates
-const NOTIFICATION_MESSAGES = [
-  {
-    title: 'ByeSmoke Reminder 🚭',
-    body: 'Waktunya check-in harian! Tetap konsisten dalam perjalanan bebas rokok Anda.'
-  },
-  {
-    title: 'Tetap Semangat! 💪',
-    body: 'Hari ini adalah hari baru untuk menjadi lebih sehat. Jangan lupa check-in ya!'
-  },
-  {
-    title: 'Hidup Sehat Menanti 🌟',
-    body: 'Setiap hari tanpa rokok adalah kemenangan! Mari catat progress hari ini.'
-  },
-  {
-    title: 'Konsistensi adalah Kunci 🔑',
-    body: 'Streak Anda sangat berharga. Waktunya melakukan check-in harian!'
-  },
-  {
-    title: 'Perjalanan Hebat Berlanjut 🎯',
-    body: 'Kamu sudah sejauh ini, terus maju! Jangan lupa update progress hari ini.'
-  },
-  {
-    title: 'Bebas Rokok, Hidup Lebih Baik ✨',
-    body: 'Investasi kesehatan terbaik dimulai hari ini. Yuk check-in sekarang!'
-  }
-];
-
-// Get random notification message
-function getRandomNotificationMessage() {
-  const randomIndex = Math.floor(Math.random() * NOTIFICATION_MESSAGES.length);
-  return NOTIFICATION_MESSAGES[randomIndex];
+// Get random notification message based on language
+function getRandomNotificationMessage(language: Language = 'id') {
+  const t = translations[language];
+  const messageTypes = ['reminder', 'motivation', 'healthy', 'consistency', 'journey', 'freedom'] as const;
+  const randomType = messageTypes[Math.floor(Math.random() * messageTypes.length)];
+  
+  return {
+    title: t.notifications.titles[randomType],
+    body: t.notifications.bodies[randomType]
+  };
 }
 
 export class NotificationService {
@@ -174,7 +153,7 @@ export class NotificationService {
   /**
    * Schedule a daily reminder notification
    */
-  static async scheduleDailyReminder(time: string, customTitle?: string, customBody?: string): Promise<string | null> {
+  static async scheduleDailyReminder(time: string, language: Language = 'id', customTitle?: string, customBody?: string): Promise<string | null> {
     try {
       const hasPermission = await this.hasPermissions();
       if (!hasPermission) {
@@ -194,7 +173,7 @@ export class NotificationService {
       // Use custom message or get random message
       const message = customTitle && customBody 
         ? { title: customTitle, body: customBody }
-        : getRandomNotificationMessage();
+        : getRandomNotificationMessage(language);
       
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
@@ -251,7 +230,8 @@ export class NotificationService {
    */
   static async rescheduleIfNeeded(
     notificationsEnabled: boolean, 
-    reminderTime: string
+    reminderTime: string,
+    language: Language = 'id'
   ): Promise<boolean> {
     try {
       if (!notificationsEnabled) {
@@ -281,7 +261,7 @@ export class NotificationService {
       // Cancel all and reschedule
       console.log('Rescheduling notifications for correct time');
       await this.cancelAllNotifications();
-      const result = await this.scheduleDailyReminder(reminderTime);
+      const result = await this.scheduleDailyReminder(reminderTime, language);
       return result !== null;
     } catch (error) {
       console.error('Error rescheduling notifications:', error);
@@ -304,23 +284,24 @@ export class NotificationService {
   /**
    * Get permission status with user-friendly message
    */
-  static getPermissionMessage(status: PermissionStatus): string {
+  static getPermissionMessage(status: PermissionStatus, language: Language = 'id'): string {
+    const t = translations[language];
     switch (status) {
       case 'granted':
-        return 'Notifikasi diizinkan';
+        return t.notifications.permissionGranted;
       case 'denied':
-        return 'Notifikasi ditolak - Aktifkan di pengaturan perangkat';
+        return t.notifications.permissionDenied;
       case 'undetermined':
-        return 'Izin notifikasi belum diminta';
+        return t.notifications.permissionUndetermined;
       default:
-        return 'Status izin tidak diketahui';
+        return 'Status izin tidak diketahui'; // Fallback for unknown status
     }
   }
 
   /**
    * Schedule a test notification (immediate)
    */
-  static async scheduleTestNotification(): Promise<string | null> {
+  static async scheduleTestNotification(language: Language = 'id'): Promise<string | null> {
     try {
       const hasPermission = await this.hasPermissions();
       if (!hasPermission) {
@@ -328,12 +309,13 @@ export class NotificationService {
         return null;
       }
 
-      const message = getRandomNotificationMessage();
+      const message = getRandomNotificationMessage(language);
+      const testSuffix = language === 'en' ? ' (Test notification in 5 seconds)' : ' (Test notification dalam 5 detik)';
       
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title: `[TEST] ${message.title}`,
-          body: `${message.body} (Test notification dalam 5 detik)`,
+          body: `${message.body}${testSuffix}`,
           sound: 'default',
           data: {
             type: 'test_notification',
@@ -378,19 +360,20 @@ export class NotificationService {
   /**
    * Simple test function to verify service works (not called automatically)
    */
-  static async testPermissions(): Promise<void> {
+  static async testPermissions(language: Language = 'id'): Promise<void> {
     try {
       console.log('=== Testing Notification Service ===');
+      console.log('Language:', language);
       const status = await this.getPermissionStatus();
       console.log('Current permission status:', status);
-      console.log('Permission message:', this.getPermissionMessage(status));
+      console.log('Permission message:', this.getPermissionMessage(status, language));
       console.log('Has permissions:', await this.hasPermissions());
       console.log('Can ask for permissions:', await this.canAskForPermissions());
       
       // Schedule test notification if permissions granted
       if (await this.hasPermissions()) {
         console.log('Scheduling test notification...');
-        await this.scheduleTestNotification();
+        await this.scheduleTestNotification(language);
       }
       
       // Show debug info
@@ -400,5 +383,16 @@ export class NotificationService {
     } catch (error) {
       console.error('Error testing notification service:', error);
     }
+  }
+
+  /**
+   * Test both languages quickly
+   */
+  static async testBothLanguages(): Promise<void> {
+    console.log('\n🇮🇩 Testing Indonesian notifications...');
+    await this.testPermissions('id');
+    
+    console.log('\n🇺🇸 Testing English notifications...');
+    await this.testPermissions('en');
   }
 }

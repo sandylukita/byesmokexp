@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -63,6 +63,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
   const [isLocallyUpdating, setIsLocallyUpdating] = useState(false);
   const [dailyMotivation, setDailyMotivation] = useState<string>('');
+  const missionInitRef = useRef<string>(''); // Track last initialized user+date
   const { t, language, translate } = useTranslation();
   const [customAlert, setCustomAlert] = useState<{
     visible: boolean;
@@ -276,19 +277,32 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
   // Initialize mission completion state when user data is loaded
   useEffect(() => {
-    if (user && user.completedMissions !== undefined) {
+    if (user && user.completedMissions !== undefined && !loading && user.id) {
       const initializeMissionState = async () => {
         const today = new Date().toDateString();
+        const initKey = `${user.id}-${today}`;
+        
+        // Skip if already initialized for this user+date
+        if (missionInitRef.current === initKey) {
+          console.log('🔄 Skipping mission init - already done for:', initKey);
+          return;
+        }
+        
+        // Add a small delay to ensure Firebase data is fully synchronized
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         try {
           const AsyncStorage = require('@react-native-async-storage/async-storage').default;
           const lastResetDate = await AsyncStorage.getItem('lastMissionReset');
           
           // Always load today's completed missions from persistent storage
-          console.log('🔄 Mission state initialization:');
+          console.log('🔄 Mission state initialization (after login):');
           console.log('  - User ID:', user.id);
           console.log('  - User email:', user.email);
+          console.log('  - User isPremium:', user.isPremium);
           console.log('  - Today:', today);
           console.log('  - Total completed missions:', user.completedMissions?.length || 0);
+          console.log('  - Loading state:', loading);
           console.log('  - Last reset date:', lastResetDate);
           
           // Debug each mission's date
@@ -300,8 +314,26 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             console.log(`    ${index}: ${m.id} - ${missionDate} - isToday: ${isToday}`);
           });
           
+          console.log('  - Raw completedMissions data:', JSON.stringify(user.completedMissions, null, 2));
+          
           const todayCompletedMissions = allMissions
-            .filter(m => m.completedAt && new Date(m.completedAt).toDateString() === today)
+            .filter(m => {
+              if (!m.completedAt) return false;
+              
+              // Handle both Firebase Timestamp and regular Date objects
+              let completedDate;
+              if (m.completedAt && typeof m.completedAt.toDate === 'function') {
+                // Firebase Timestamp
+                completedDate = m.completedAt.toDate();
+              } else {
+                // Regular Date or string
+                completedDate = new Date(m.completedAt);
+              }
+              
+              const isToday = completedDate.toDateString() === today;
+              console.log(`  - Mission ${m.id}: ${completedDate.toDateString()} === ${today} ? ${isToday}`);
+              return isToday;
+            })
             .map(m => m.id);
           
           console.log('  - Today completed missions:', todayCompletedMissions);
@@ -314,6 +346,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             await AsyncStorage.setItem('lastMissionReset', today);
             console.log('  - Updated reset date to:', today);
           }
+          
+          // Mark this initialization as complete
+          missionInitRef.current = initKey;
+          console.log('  - ✅ Mission state initialization complete for:', initKey);
         } catch (error) {
           console.error('Error initializing mission state:', error);
         }
@@ -321,7 +357,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       
       initializeMissionState();
     }
-  }, [user?.id, user?.completedMissions?.length]);
+  }, [user?.id, loading, user?.completedMissions]); // Also trigger when completedMissions is loaded
+  
+  // Reset initialization tracking when user changes (logout/login)
+  useEffect(() => {
+    if (!user) {
+      missionInitRef.current = '';
+      setCompletedMissions([]);
+      console.log('🔄 Reset mission state - user logged out');
+    }
+  }, [user]);
+
 
   // Handle hybrid motivation system (contextual + AI insights)
   useEffect(() => {
@@ -735,13 +781,26 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         // Check if mission was completed today from stored user data
         const today = new Date().toDateString();
         const todayCompletion = user?.completedMissions?.find(
-          m => m.id === mission.id && 
-               m.completedAt && 
-               new Date(m.completedAt).toDateString() === today
+          m => {
+            if (m.id !== mission.id || !m.completedAt) return false;
+            
+            // Handle both Firebase Timestamp and regular Date objects
+            let completedDate;
+            if (m.completedAt && typeof m.completedAt.toDate === 'function') {
+              // Firebase Timestamp
+              completedDate = m.completedAt.toDate();
+            } else {
+              // Regular Date or string
+              completedDate = new Date(m.completedAt);
+            }
+            
+            return completedDate.toDateString() === today;
+          }
         );
         
-        // Only consider missions completed TODAY
-        isCompleted = !!todayCompletion || (completedMissions.includes(mission.id) && !todayCompletion);
+        // Prioritize persistent data over local state for accuracy
+        // If there's a persistent completion for today, use that; otherwise check local state
+        isCompleted = todayCompletion ? true : completedMissions.includes(mission.id);
         completedAt = todayCompletion?.completedAt || (completedMissions.includes(mission.id) ? new Date() : null);
         
         // DEBUG: Log mission completion check

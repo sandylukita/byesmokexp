@@ -202,6 +202,47 @@ export interface Translations {
     logoutMessage: string;
   };
 
+  // Notifications
+  notifications: {
+    // Permission messages
+    permissionRequired: string;
+    permissionDenied: string;
+    permissionUndetermined: string;
+    permissionGranted: string;
+    openSettings: string;
+    cancel: string;
+    
+    // Error messages
+    schedulingFailed: string;
+    schedulingFailedDesc: string;
+    timeChangeFailed: string;
+    timeChangeFailedDesc: string;
+    
+    // Status texts
+    active: string;
+    inactive: string;
+    reminderTime: string;
+    
+    // Notification content (6 variations each)
+    titles: {
+      reminder: string;
+      motivation: string;
+      healthy: string;
+      consistency: string;
+      journey: string;
+      freedom: string;
+    };
+    
+    bodies: {
+      reminder: string;
+      motivation: string;
+      healthy: string;
+      consistency: string;
+      journey: string;
+      freedom: string;
+    };
+  };
+
   // Onboarding
   onboarding: {
     welcome: string;
@@ -490,6 +531,46 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: 'Logout dari akun',
       logoutConfirm: 'Keluar',
       logoutMessage: 'Apakah kamu yakin ingin keluar?',
+    },
+
+    notifications: {
+      // Permission messages
+      permissionRequired: 'Izin Notifikasi Diperlukan',
+      permissionDenied: 'Izin notifikasi ditolak. Silakan aktifkan notifikasi di pengaturan perangkat untuk menggunakan fitur pengingat.',
+      permissionUndetermined: 'Izin notifikasi diperlukan untuk mengaktifkan pengingat harian.',
+      permissionGranted: 'Notifikasi diizinkan',
+      openSettings: 'Buka Pengaturan',
+      cancel: 'Batal',
+      
+      // Error messages
+      schedulingFailed: 'Gagal Mengaktifkan Notifikasi',
+      schedulingFailedDesc: 'Tidak dapat mengatur pengingat. Pastikan izin notifikasi telah diberikan.',
+      timeChangeFailed: 'Gagal Mengubah Waktu',
+      timeChangeFailedDesc: 'Tidak dapat mengubah waktu pengingat. Periksa izin notifikasi.',
+      
+      // Status texts
+      active: 'Aktif',
+      inactive: 'Tidak aktif',
+      reminderTime: 'Waktu Pengingat',
+      
+      // Notification content (6 variations each)
+      titles: {
+        reminder: 'ByeSmoke Reminder 🚭',
+        motivation: 'Tetap Semangat! 💪',
+        healthy: 'Hidup Sehat Menanti 🌟',
+        consistency: 'Konsistensi adalah Kunci 🔑',
+        journey: 'Perjalanan Hebat Berlanjut 🎯',
+        freedom: 'Bebas Rokok, Hidup Lebih Baik ✨',
+      },
+      
+      bodies: {
+        reminder: 'Waktunya check-in harian! Tetap konsisten dalam perjalanan bebas rokok Anda.',
+        motivation: 'Hari ini adalah hari baru untuk menjadi lebih sehat. Jangan lupa check-in ya!',
+        healthy: 'Setiap hari tanpa rokok adalah kemenangan! Mari catat progress hari ini.',
+        consistency: 'Streak Anda sangat berharga. Waktunya melakukan check-in harian!',
+        journey: 'Kamu sudah sejauh ini, terus maju! Jangan lupa update progress hari ini.',
+        freedom: 'Investasi kesehatan terbaik dimulai hari ini. Yuk check-in sekarang!',
+      },
     },
 
     onboarding: {
@@ -809,6 +890,46 @@ export const translations: Record<Language, Translations> = {
       logoutDesc: 'Sign out of account',
       logoutConfirm: 'Logout',
       logoutMessage: 'Are you sure you want to logout?',
+    },
+
+    notifications: {
+      // Permission messages
+      permissionRequired: 'Notification Permission Required',
+      permissionDenied: 'Notification permission denied. Please enable notifications in device settings to use reminder features.',
+      permissionUndetermined: 'Notification permission is required to enable daily reminders.',
+      permissionGranted: 'Notifications allowed',
+      openSettings: 'Open Settings',
+      cancel: 'Cancel',
+      
+      // Error messages
+      schedulingFailed: 'Failed to Enable Notifications',
+      schedulingFailedDesc: 'Unable to set up reminders. Please ensure notification permissions are granted.',
+      timeChangeFailed: 'Failed to Change Time',
+      timeChangeFailedDesc: 'Unable to change reminder time. Please check notification permissions.',
+      
+      // Status texts
+      active: 'Active',
+      inactive: 'Inactive',
+      reminderTime: 'Reminder Time',
+      
+      // Notification content (6 variations each)
+      titles: {
+        reminder: 'ByeSmoke Reminder 🚭',
+        motivation: 'Stay Strong! 💪',
+        healthy: 'Healthy Life Awaits 🌟',
+        consistency: 'Consistency is Key 🔑',
+        journey: 'Amazing Journey Continues 🎯',
+        freedom: 'Smoke-Free, Better Life ✨',
+      },
+      
+      bodies: {
+        reminder: 'Time for your daily check-in! Stay consistent on your smoke-free journey.',
+        motivation: 'Today is a new day to be healthier. Don\'t forget to check in!',
+        healthy: 'Every smoke-free day is a victory! Let\'s record today\'s progress.',
+        consistency: 'Your streak is precious. Time for your daily check-in!',
+        journey: 'You\'ve come this far, keep going! Don\'t forget to update today\'s progress.',
+        freedom: 'The best health investment starts today. Let\'s check in now!',
+      },
     },
 
     onboarding: {
