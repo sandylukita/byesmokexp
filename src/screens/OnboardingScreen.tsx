@@ -39,7 +39,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   const steps = [
     {
       title: 'Selamat Datang!',
-      subtitle: 'Mari mulai perjalanan bebas rokok bersama',
+      subtitle: 'Mari mulai perjalanan bebas rokok bersama ByeSmoke AI',
       component: 'welcome'
     },
     {
@@ -63,7 +63,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
       component: 'reasons'
     },
     {
-      title: 'Pernah Mencoba Berhenti?',
+      title: 'Mencoba Berhenti?',
       subtitle: 'Berapa kali Anda sudah mencoba?',
       component: 'attempts'
     },
@@ -223,14 +223,19 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
           <View style={styles.stepContent}>
             <Text style={styles.emoji}>🎉</Text>
             <Text style={styles.welcomeText}>
-              Selamat! Anda telah mengambil langkah pertama menuju hidup yang lebih sehat.
+              Anda telah mengambil langkah pertama menuju hidup yang lebih sehat.
             </Text>
           </View>
         );
       case 'years':
         return (
-          <View style={styles.stepContent}>
-            <View style={styles.inputContainer}>
+          <View style={[styles.stepContent, { 
+            marginTop: focusedInput === 'years' ? 4 : 8 
+          }]}>
+            <View style={[styles.inputContainer, { 
+              marginTop: focusedInput === 'years' ? 8 : 12, 
+              marginBottom: focusedInput === 'years' ? 8 : 16 
+            }]}>
               <TextInput
                 style={styles.input}
                 placeholder={focusedInput === 'years' || smokingYears ? '' : ''}
@@ -246,13 +251,18 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 <Text style={styles.placeholderText}>5</Text>
               )}
             </View>
-            <Text style={styles.inputLabel}>tahun *</Text>
-            <Text style={styles.requiredText}>Wajib diisi</Text>
+            <Text style={[styles.inputLabel, { 
+              marginTop: 0, 
+              marginBottom: focusedInput === 'years' ? 4 : 6 
+            }]}>tahun *</Text>
+            <Text style={[styles.requiredText, { 
+              marginTop: focusedInput === 'years' ? 1 : 2 
+            }]}>Wajib diisi</Text>
           </View>
         );
       case 'reasons':
         return (
-          <View style={styles.stepContent}>
+          <View style={[styles.stepContent, { marginTop: 8, marginBottom: 20 }]}>
             <View style={styles.reasonsGrid}>
               {quitReasonOptions.map((reason) => (
                 <TouchableOpacity
@@ -284,7 +294,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
         );
       case 'attempts':
         return (
-          <View style={styles.stepContent}>
+          <View style={[styles.stepContent, { marginTop: 20 }]}>
             <View style={styles.attemptsContainer}>
               {['0', '1-2', '3-5', '5+'].map((option) => (
                 <TouchableOpacity
@@ -299,7 +309,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                     styles.attemptButtonText,
                     previousAttempts === option && styles.attemptButtonTextSelected
                   ]}>
-                    {option === '0' ? 'Belum pernah' : `${option} kali`}
+                    {option === '0' ? '0 kali' : `${option} kali`}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -361,12 +371,27 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
             <Text style={styles.motivationalNote}>
               {personalizedGreeting?.motivationalNote || 'Mari mulai perjalanan sehat bersama ByeSmoke AI!'}
             </Text>
+            
+            <TouchableOpacity
+              style={[styles.nextButton, { marginTop: 30, marginHorizontal: 0 }, loading && styles.buttonDisabled]}
+              onPress={handleNext}
+              disabled={loading}
+            >
+              <Text style={styles.nextButtonText}>
+                {loading ? 'Menyimpan...' : 'Mulai Perjalanan Sehat'}
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
         );
       case 'cigarettes':
         return (
-          <View style={styles.stepContent}>
-            <View style={styles.inputContainer}>
+          <View style={[styles.stepContent, { 
+            marginTop: focusedInput === 'cigarettes' ? 4 : 8 
+          }]}>
+            <View style={[styles.inputContainer, { 
+              marginTop: focusedInput === 'cigarettes' ? 8 : 12, 
+              marginBottom: focusedInput === 'cigarettes' ? 8 : 16 
+            }]}>
               <TextInput
                 style={styles.input}
                 placeholder={focusedInput === 'cigarettes' || cigarettesPerDay ? '' : ''}
@@ -382,14 +407,24 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 <Text style={styles.placeholderText}>12</Text>
               )}
             </View>
-            <Text style={styles.inputLabel}>batang per hari *</Text>
-            <Text style={styles.requiredText}>Wajib diisi</Text>
+            <Text style={[styles.inputLabel, { 
+              marginTop: 0, 
+              marginBottom: focusedInput === 'cigarettes' ? 4 : 6 
+            }]}>batang per hari *</Text>
+            <Text style={[styles.requiredText, { 
+              marginTop: focusedInput === 'cigarettes' ? 1 : 2 
+            }]}>Wajib diisi</Text>
           </View>
         );
       case 'price':
         return (
-          <View style={styles.stepContent}>
-            <View style={styles.priceContainer}>
+          <View style={[styles.stepContent, { 
+            marginTop: focusedInput === 'price' ? 4 : 8 
+          }]}>
+            <View style={[styles.priceContainer, { 
+              marginTop: focusedInput === 'price' ? 8 : 12, 
+              marginBottom: focusedInput === 'price' ? 8 : 16 
+            }]}>
               <Text style={styles.currencySymbol}>Rp</Text>
               <View style={styles.priceInputContainer}>
                 <TextInput
@@ -408,8 +443,13 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 )}
               </View>
             </View>
-            <Text style={styles.inputLabel}>per bungkus *</Text>
-            <Text style={styles.requiredText}>Wajib diisi</Text>
+            <Text style={[styles.inputLabel, { 
+              marginTop: 0, 
+              marginBottom: focusedInput === 'price' ? 4 : 6 
+            }]}>per bungkus *</Text>
+            <Text style={[styles.requiredText, { 
+              marginTop: focusedInput === 'price' ? 1 : 2 
+            }]}>Wajib diisi</Text>
           </View>
         );
       default:
@@ -418,40 +458,47 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View style={styles.container}>
       <LinearGradient
         colors={[COLORS.primary, COLORS.primaryDark]}
         style={styles.background}
       >
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <View style={styles.progressBar}>
-              {steps.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.progressDot,
-                    index <= currentStep && styles.progressDotActive
-                  ]}
-                />
-              ))}
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <View style={styles.progressBar}>
+                {steps.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.progressDot,
+                      index <= currentStep && styles.progressDotActive
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text style={styles.stepCounter}>
+                {currentStep + 1} dari {steps.length}
+              </Text>
             </View>
-            <Text style={styles.stepCounter}>
-              {currentStep + 1} dari {steps.length}
-            </Text>
-          </View>
 
-          <View style={styles.main}>
-            <Text style={styles.title}>{steps[currentStep].title}</Text>
-            <Text style={styles.subtitle}>{steps[currentStep].subtitle}</Text>
-            
-            {renderStepContent()}
+            <View style={styles.main}>
+              <Text style={styles.title}>{steps[currentStep].title}</Text>
+              <Text style={styles.subtitle}>{steps[currentStep].subtitle}</Text>
+              
+              {renderStepContent()}
+            </View>
           </View>
-
-          <View style={styles.footer}>
+        </ScrollView>
+        
+        {steps[currentStep].component !== 'completion' && (
+          <View style={styles.fixedFooter}>
             <View style={styles.buttonContainer}>
               {currentStep > 0 && (
                 <TouchableOpacity
@@ -478,9 +525,9 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        )}
       </LinearGradient>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -491,18 +538,25 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 140, // Increased space for fixed footer
+  },
   content: {
     flex: 1,
     paddingHorizontal: SIZES.screenPadding,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 50,
     alignItems: 'center',
-    marginBottom: SIZES.xxl,
+    marginBottom: 8,
   },
   progressBar: {
     flexDirection: 'row',
-    marginBottom: SIZES.md,
+    marginBottom: 6,
   },
   progressDot: {
     width: 12,
@@ -520,20 +574,21 @@ const styles = StyleSheet.create({
   },
   main: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingBottom: 100, // Add space for button
+    paddingTop: 4,
+    paddingBottom: 120, // Increased space for button to prevent cutoff
   },
   title: {
     ...TYPOGRAPHY.h1White,
     textAlign: 'center',
-    marginBottom: SIZES.spacingMd,
+    marginBottom: 16,
   },
   subtitle: {
     ...TYPOGRAPHY.bodyLargeWhite,
     opacity: 0.9,
     textAlign: 'center',
-    marginBottom: SIZES.spacingXxl,
+    marginBottom: SIZES.spacingXxl + 10,
   },
   stepContent: {
     alignItems: 'center',
@@ -596,7 +651,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: COLORS.white,
     opacity: 0.7,
-    marginTop: 4,
+    marginTop: SIZES.spacingSm,
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -604,6 +659,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: SIZES.spacingSm,
   },
   placeholderText: {
     position: 'absolute',
@@ -646,7 +702,7 @@ const styles = StyleSheet.create({
   completionContent: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 0,
   },
   completionEmoji: {
     fontSize: 60,
@@ -708,6 +764,9 @@ const styles = StyleSheet.create({
   },
   attemptsContainer: {
     width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   attemptButton: {
     backgroundColor: COLORS.neutral,
@@ -718,6 +777,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.neutralDark,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '48%',
   },
   attemptButtonSelected: {
     backgroundColor: COLORS.secondary,
@@ -757,7 +817,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     ...TYPOGRAPHY.bodyLargeWhite,
     opacity: 0.9,
-    marginTop: SIZES.spacingMd,
+    marginTop: SIZES.spacingLg,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -780,6 +840,15 @@ const styles = StyleSheet.create({
     minWidth: 150,
     textAlign: 'center',
     transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
+  },
+  fixedFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
+    paddingBottom: 50,
+    paddingHorizontal: SIZES.screenPadding,
   },
   footer: {
     paddingBottom: 50,

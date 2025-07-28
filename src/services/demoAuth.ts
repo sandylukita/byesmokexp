@@ -84,6 +84,34 @@ const DEMO_USERS: DemoUser[] = [
     },
     onboardingCompleted: true,
     dailyXP: {}
+  },
+  {
+    id: 'demo-new-user',
+    email: 'newuser@example.com',
+    password: 'test123',
+    displayName: 'New User',
+    username: 'new_starter',
+    isPremium: false,
+    quitDate: new Date(),
+    cigarettesPerDay: 0,
+    cigarettePrice: 0,
+    streak: 0,
+    longestStreak: 0,
+    totalDays: 0,
+    xp: 0,
+    level: 1,
+    lastCheckIn: null,
+    badges: [],
+    completedMissions: [],
+    settings: {
+      darkMode: false,
+      notifications: true,
+      language: 'id',
+      reminderTime: '09:00',
+      leaderboardDisplayPreference: 'username'
+    },
+    onboardingCompleted: false,
+    dailyXP: {}
   }
 ];
 
@@ -139,6 +167,7 @@ export const demoSignUp = async (email: string, password: string, displayName: s
           reminderTime: '09:00',
           leaderboardDisplayPreference: 'username'
         },
+        onboardingCompleted: false,
         dailyXP: {}
       };
       DEMO_USERS.push(newUser);
@@ -225,7 +254,7 @@ export const demoCreateUserDocument = async (email: string, displayName: string,
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
     },
-    onboardingCompleted: true,
+    onboardingCompleted: false,
     dailyXP: {}
   };
   

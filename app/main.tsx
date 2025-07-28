@@ -98,18 +98,36 @@ export default function Main() {
     try {
       // Check Firestore for actual onboarding completion status
       const { getUserDocument } = await import('../src/services/auth');
-      const userData = await getUserDocument(firebaseUser.uid);
+      
+      // Retry logic for newly created users
+      let userData = null;
+      let retries = 3;
+      
+      while (retries > 0 && !userData) {
+        userData = await getUserDocument(firebaseUser.uid);
+        if (!userData) {
+          console.log('User document not found, retrying...', retries);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+          retries--;
+        }
+      }
       
       if (userData && userData.onboardingCompleted === false) {
         setNeedsOnboarding(true);
         setAppState('onboarding');
-      } else {
+      } else if (userData && userData.onboardingCompleted === true) {
         setAppState('dashboard');
+      } else {
+        // New user without document yet - go to onboarding
+        console.log('No user document found after retries, going to onboarding');
+        setNeedsOnboarding(true);
+        setAppState('onboarding');
       }
     } catch (error) {
       console.error('Error checking onboarding status:', error);
-      // Default to dashboard if there's an error
-      setAppState('dashboard');
+      // For new users, if there's an error reading their document, go to onboarding
+      setNeedsOnboarding(true);
+      setAppState('onboarding');
     }
   };
 
