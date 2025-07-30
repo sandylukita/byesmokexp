@@ -1,3 +1,5 @@
+import * as Localization from 'expo-localization';
+
 export type Language = 'id' | 'en';
 
 export interface Translations {
@@ -1070,4 +1072,30 @@ export function getTranslatedBadge(badgeId: string, language: Language = 'id') {
     description: t.badgeDescriptions[badgeId as keyof typeof t.badgeDescriptions] || '',
     requirement: t.badgeRequirements[badgeId as keyof typeof t.badgeRequirements] || '',
   };
+}
+
+// Function to detect device language and return supported app language
+export function getDeviceLanguage(): Language {
+  try {
+    // Get device locales (returns array of locale objects)
+    const locales = Localization.getLocales();
+    
+    if (locales && locales.length > 0) {
+      // Get the primary locale
+      const primaryLocale = locales[0];
+      
+      // Extract language code (e.g., "id", "en", "fr")
+      const languageCode = primaryLocale.languageCode?.toLowerCase();
+      
+      // Return Indonesian if device is set to Indonesian, otherwise English
+      return languageCode === 'id' ? 'id' : 'en';
+    }
+    
+    // Fallback to Indonesian if no locales found
+    return 'id';
+  } catch (error) {
+    // Fallback to Indonesian if detection fails
+    console.log('Device language detection failed, using Indonesian fallback');
+    return 'id';
+  }
 }

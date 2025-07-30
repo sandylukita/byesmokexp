@@ -72,7 +72,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
             <View style={styles.header}>
               <Text style={styles.logo}>🚭</Text>
               <Text style={styles.title}>Bergabung</Text>
-              <Text style={styles.subtitle}>Mulai perjalanan hidup sehat</Text>
+              <Text style={styles.subtitle}>Mulai perjalanan sehat</Text>
             </View>
 
             <View style={styles.form}>
@@ -167,23 +167,25 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: SIZES.lg,
+    marginBottom: SIZES.xxs,
   },
   logo: {
     fontSize: 48,
     marginBottom: SIZES.sm,
+    marginTop: SIZES.xl,
   },
   title: {
     ...TYPOGRAPHY.h1White,
-    marginBottom: SIZES.spacingSm,
+    marginBottom: 0,
   },
   subtitle: {
     ...TYPOGRAPHY.bodyLargeWhite,
     opacity: 0.9,
     textAlign: 'center',
+    marginBottom: 10,
   },
   form: {
-    marginTop: SIZES.lg,
+    marginTop: 0,
   },
   input: {
     backgroundColor: COLORS.white,
@@ -215,6 +217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: SIZES.lg,
+    marginBottom: SIZES.xl,
   },
   footerText: {
     ...TYPOGRAPHY.bodyMediumWhite,

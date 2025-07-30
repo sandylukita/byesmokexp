@@ -542,7 +542,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             xp: newXP,
             dailyXP: updatedDailyXP,
           });
-          console.log('✓ Firebase: Check-in data updated successfully');
+          console.log('✓ Dashboard Firebase: Check-in data updated successfully', {
+            xp: newXP,
+            streak: newStreak,
+            dailyXPKeys: Object.keys(updatedDailyXP).length,
+            todayXP: updatedDailyXP[new Date().toISOString().split('T')[0]]
+          });
         } catch (firebaseError) {
           console.error('Firebase error during check-in, trying demo fallback:', firebaseError);
           

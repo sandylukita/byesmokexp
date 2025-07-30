@@ -181,11 +181,37 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
         // Save to demo user data
         await demoUpdateOnboardingData(onboardingData);
       } else {
-        // Save to Firebase
+        // Save to Firebase - preserve existing user data for premium users
         const user = auth.currentUser;
         if (user) {
           const userDoc = doc(db, 'users', user.uid);
-          await updateDoc(userDoc, onboardingData);
+          
+          // For existing premium users (like sandy@mail.com), only update onboarding-specific fields
+          // This preserves their existing XP, streak, badges, dailyXP, etc.
+          const { getUserDocument } = await import('../services/auth');
+          const existingUser = await getUserDocument(user.uid);
+          
+          const updateData: any = {
+            onboardingCompleted: true,
+            onboardingDate: new Date().toISOString(),
+            cigarettesPerDay: parseInt(cigarettesPerDay) || 0,
+            cigarettePrice: parseFloat(cigarettePrice) || 0,
+            smokingYears: parseInt(smokingYears) || 0,
+            quitReasons: selectedReasons,
+            previousAttempts: parseInt(previousAttempts) || 0
+          };
+          
+          // Only update quitDate if user doesn't have existing progress
+          if (!existingUser || (existingUser.xp === 0 && existingUser.streak === 0 && (!existingUser.dailyXP || Object.keys(existingUser.dailyXP).length === 0))) {
+            // New user - set quit date
+            updateData.quitDate = quitDate.toISOString();
+            console.log('New user detected, setting quit date');
+          } else {
+            console.log('Existing user detected, preserving quit date and progress data');
+            // For existing users with progress, preserve their original quit date
+          }
+          
+          await updateDoc(userDoc, updateData);
         }
       }
       

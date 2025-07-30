@@ -42,6 +42,7 @@ const ProgressScreen: React.FC = () => {
     loadUserData();
   }, []);
 
+
   // Reload data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -50,7 +51,7 @@ const ProgressScreen: React.FC = () => {
       // Add a small delay to ensure any pending updates from other screens are completed
       const timeoutId = setTimeout(() => {
         loadUserData();
-      }, 100); // 100ms delay
+      }, 100); // Small delay to allow Firebase sync
       
       return () => clearTimeout(timeoutId);
     }, [])
@@ -70,13 +71,17 @@ const ProgressScreen: React.FC = () => {
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
           if (userDoc.exists()) {
             const userData = { id: currentUser.uid, ...userDoc.data() } as User;
-            console.log('✓ Firebase user data loaded:', {
+            console.log('✓ ProgressScreen Firebase user data loaded:', {
               email: userData.email,
               completedMissions: userData.completedMissions?.length || 0,
               badges: userData.badges?.length || 0,
               xp: userData.xp,
+              streak: userData.streak,
+              longestStreak: userData.longestStreak,
               totalDays: userData.totalDays,
-              dailyXP: userData.dailyXP
+              lastCheckIn: userData.lastCheckIn,
+              dailyXP: userData.dailyXP,
+              dailyXPKeys: Object.keys(userData.dailyXP || {}).length
             });
             setUser(userData);
             updateUser(userData);

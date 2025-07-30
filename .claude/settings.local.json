@@ -33,7 +33,9 @@
       "Bash(claude mcp:*)",
       "Bash(taskkill:*)",
       "Bash(npm start:*)",
-      "WebFetch(domain:docs.expo.dev)"
+      "WebFetch(domain:docs.expo.dev)",
+      "Bash(npx expo lint:*)",
+      "Bash(del test-locale.js)"
     ],
     "deny": []
   }

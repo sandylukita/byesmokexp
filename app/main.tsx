@@ -113,8 +113,27 @@ export default function Main() {
       }
       
       if (userData && userData.onboardingCompleted === false) {
-        setNeedsOnboarding(true);
-        setAppState('onboarding');
+        // Check if this is an existing user with progress data
+        const hasExistingProgress = userData.xp > 0 || userData.streak > 0 || 
+                                   (userData.dailyXP && Object.keys(userData.dailyXP).length > 0) ||
+                                   (userData.badges && userData.badges.length > 0);
+        
+        if (hasExistingProgress) {
+          console.log('Existing user with progress, skipping onboarding');
+          // Auto-complete onboarding for existing users to prevent data loss
+          const { updateUserDocument } = await import('../src/services/auth');
+          try {
+            await updateUserDocument(userData.id, { onboardingCompleted: true });
+            setAppState('dashboard');
+          } catch (error) {
+            console.error('Error auto-completing onboarding:', error);
+            setNeedsOnboarding(true);
+            setAppState('onboarding');
+          }
+        } else {
+          setNeedsOnboarding(true);
+          setAppState('onboarding');
+        }
       } else if (userData && userData.onboardingCompleted === true) {
         setAppState('dashboard');
       } else {
@@ -135,9 +154,10 @@ export default function Main() {
     setSplashFinished(true);
   };
 
-  const handleLogin = () => {
-    console.log('handleLogin called - forcing navigation to dashboard');
-    setAppState('dashboard');
+  const handleLogin = async () => {
+    console.log('handleLogin called - checking user onboarding status');
+    // Let the auth state listener handle the navigation
+    // Don't force navigation here, let checkOnboardingStatus decide
   };
 
   const handleSignUp = () => {

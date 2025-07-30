@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { COLORS, DARK_COLORS } from '../utils/constants';
 import { User } from '../types';
-import { Language } from '../utils/translations';
+import { Language, getDeviceLanguage } from '../utils/translations';
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -21,7 +21,10 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [language, setLanguageState] = useState<string>('id'); // Default to Indonesian
+  const [language, setLanguageState] = useState<string>(() => {
+    // Use device language detection for initial language
+    return getDeviceLanguage();
+  });
   const [user, setUser] = useState<User | null>(null);
   const [pendingSettingsUpdate, setPendingSettingsUpdate] = useState<any>(null);
 
@@ -38,8 +41,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         setIsDarkMode(false); // Force light mode for non-premium users
       }
       
-      // Update language from user settings
-      setLanguageState(newUser.settings?.language || 'id');
+      // Update language from user settings, fallback to device language, then to Indonesian
+      setLanguageState(newUser.settings?.language || getDeviceLanguage());
     }
   };
 
