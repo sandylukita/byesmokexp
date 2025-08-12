@@ -186,7 +186,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
         if (user) {
           const userDoc = doc(db, 'users', user.uid);
           
-          // For existing premium users (like sandy@mail.com), only update onboarding-specific fields
+          // For existing premium users (like sandy@zaynstudio.app), only update onboarding-specific fields
           // This preserves their existing XP, streak, badges, dailyXP, etc.
           const { getUserDocument } = await import('../services/auth');
           const existingUser = await getUserDocument(user.uid);

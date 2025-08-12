@@ -5,6 +5,8 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../src/services/firebase';
 import { NotificationService } from '../src/services/notificationService';
+import { errorTracker } from '../src/services/errorTracking';
+import { initializeAds } from '../src/services/adMob';
 
 import AppNavigator from '../src/navigation/AppNavigator';
 import LoginScreen from '../src/screens/LoginScreen';
@@ -24,9 +26,11 @@ export default function Main() {
     return initialState;
   });
 
-  // Initialize notification listeners on app start
+  // Initialize notification listeners, error tracking, and ads on app start
   useEffect(() => {
     NotificationService.initializeListeners();
+    errorTracker.initialize();
+    initializeAds(); // Initialize AdMob
     
     return () => {
       NotificationService.removeListeners();

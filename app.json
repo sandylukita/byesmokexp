@@ -8,8 +8,31 @@
     "scheme": "byesmokev00",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "Smart AI-powered quit smoking coach with personalized guidance, progress tracking, and community support to help you become smoke-free.",
+    "keywords": [
+      "quit smoking",
+      "health",
+      "wellness",
+      "AI coach",
+      "smoking cessation",
+      "habit tracker"
+    ],
+    "primaryColor": "#F99546",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zaynstudio.byesmokev00",
+      "buildNumber": "1.0.0",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you.",
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,8 +40,22 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.slukita.byesmokev00"
+      "package": "com.zaynstudio.byesmokev00",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "WAKE_LOCK"
+      ],
+      "blockedPermissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
+    "privacy": "public",
+    "privacyPolicyUrl": "https://zaynstudio.app/byesmokeai/privacy-policy",
+    "category": "HEALTH_AND_FITNESS",
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -29,7 +66,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -38,13 +75,25 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/notification-icon.png",
           "color": "#F99546"
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9801fdf0-23bb-4c50-a0da-de62cbc37659"
+      }
     }
   }
 }

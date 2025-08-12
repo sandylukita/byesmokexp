@@ -1,4 +1,4 @@
-package com.slukita.byesmokev00
+package com.zaynstudio.byesmokev00
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

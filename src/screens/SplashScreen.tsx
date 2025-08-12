@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
 
@@ -26,13 +26,17 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     >
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logo}>🚭</Text>
+          <Image 
+            source={require('../../assets/images/icon.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>ByeSmoke AI</Text>
           <Text style={styles.subtitle}>Mulai Hidup Sehat Hari Ini</Text>
         </View>
         
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Smart Experience • Gamified Journey</Text>
+          <Text style={styles.footerText}>Join thousands of users on their smoke free journey</Text>
         </View>
       </View>
     </LinearGradient>
@@ -56,7 +60,8 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.xxl,
   },
   logo: {
-    fontSize: 80,
+    width: 100,
+    height: 100,
     marginBottom: SIZES.lg,
   },
   title: {

@@ -427,6 +427,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📞 Support
 
 For technical support or questions:
-- Email: dev@byesmoke.app
+- Email: sandy@zaynstudio.app
 - GitHub Issues: [Create an issue](https://github.com/your-repo/issues)
 - Documentation: [docs.byesmoke.app](https://docs.byesmoke.app)

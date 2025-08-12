@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -28,6 +28,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { Language } from '../utils/translations';
 import { completeMission, checkAndAwardBadges } from '../services/gamification';
 import { useTheme } from '../contexts/ThemeContext';
+import { useDelayedInterstitialAd } from '../hooks/useInterstitialAd';
 import {
     calculateDaysSinceQuit,
     calculateLevel,
@@ -46,6 +47,7 @@ import {
     updateAICallCounter,
     addDailyXP,
 } from '../utils/helpers';
+import { getCommunityMessage } from '../utils/socialProof';
 import { TYPOGRAPHY } from '../utils/typography';
 
 const { width, height } = Dimensions.get('window');
@@ -61,6 +63,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
+  
+  // AdMob hook for showing ads after check-in
+  const { showAdAfterDelay } = useDelayedInterstitialAd(user, 2000); // 2 second delay
   const [isLocallyUpdating, setIsLocallyUpdating] = useState(false);
   const [dailyMotivation, setDailyMotivation] = useState<string>('');
   const missionInitRef = useRef<string>(''); // Track last initialized user+date
@@ -684,6 +689,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           userInterfaceStyle: colors === DARK_COLORS ? 'dark' : 'light'
         }
       );
+      
+      // Show interstitial ad after successful check-in (for free users only)
+      showAdAfterDelay('daily_checkin');
+      
     } catch (error) {
       Alert.alert('Error', 'Gagal melakukan check-in');
     } finally {
@@ -764,8 +773,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     // Combine check-in mission with randomly selected additional missions
     const selectedMissions = [checkInMission, ...shuffledMissions.slice(0, additionalMissionsCount)];
     
-    // Debug logging
-    console.log('🎲 Daily missions randomization:', {
+    // Debug logging (only when actually recalculating)
+    console.log('🎲 Daily missions calculated:', {
       dateString,
       seed,
       isPremium: user?.isPremium,
@@ -987,7 +996,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   };
 
   const handleUpgradeToPremium = async () => {
-    if (user?.email === 'sandy@mail.com') {
+    if (user?.email === 'sandy@zaynstudio.app') {
       try {
         const success = await upgradeUserToPremium(user.email);
         if (success) {
@@ -1000,6 +1009,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       }
     }
   };
+
+  // Memoize daily missions to prevent recalculation on every render
+  // This must be called before any early returns to maintain hook order
+  const dailyMissions = useMemo(() => {
+    if (!user) {
+      console.log('🔄 No user available, returning empty missions');
+      return [];
+    }
+    console.log('🔄 Recalculating daily missions due to dependency change');
+    return generateDailyMissions();
+  }, [user?.id, user?.isPremium, user?.lastCheckIn, user?.completedMissions, completedMissions]);
 
   if (loading) {
     return (
@@ -1028,7 +1048,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   
   const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
   const canCheckIn = canCheckInToday(user.lastCheckIn);
-  const dailyMissions = generateDailyMissions();
 
   return (
     <>
@@ -1045,6 +1064,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           </View>
         </View>
       </LinearGradient>
+
 
       {/* Level Card - Final structure with next level */}
       <View style={[styles.levelCardFinal, { backgroundColor: colors.surface }]}>
@@ -1094,8 +1114,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Temporary upgrade button for sandy@mail.com */}
-      {user?.email === 'sandy@mail.com' && !user?.isPremium && (
+      {/* Temporary upgrade button for sandy@zaynstudio.app */}
+      {user?.email === 'sandy@zaynstudio.app' && !user?.isPremium && (
         <TouchableOpacity
           style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
           onPress={handleUpgradeToPremium}
@@ -1312,6 +1332,29 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     opacity: 0.8,
     textAlign: 'center',
+  },
+  communityBanner: {
+    marginHorizontal: SIZES.screenPadding,
+    marginTop: -SIZES.lg, // Overlap slightly with header
+    marginBottom: SIZES.md,
+    borderRadius: SIZES.cardRadius,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  communityBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.md,
+  },
+  communityBannerText: {
+    ...TYPOGRAPHY.bodySmall,
+    marginLeft: SIZES.xs,
+    fontWeight: '500',
   },
   logoutButton: {
     padding: Math.max(SIZES.sm, width * 0.03), // Responsive padding for better mobile touch target

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
     Alert,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -70,7 +71,11 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.logo}>🚭</Text>
+              <Image 
+                source={require('../../assets/images/icon.png')} 
+                style={styles.logo}
+                resizeMode="contain"
+              />
               <Text style={styles.title}>Bergabung</Text>
               <Text style={styles.subtitle}>Mulai perjalanan sehat</Text>
             </View>
@@ -170,7 +175,8 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.xxs,
   },
   logo: {
-    fontSize: 48,
+    width: 64,
+    height: 64,
     marginBottom: SIZES.sm,
     marginTop: SIZES.xl,
   },
