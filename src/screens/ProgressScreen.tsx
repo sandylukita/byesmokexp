@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -11,6 +11,8 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Share,
+    Alert,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -25,6 +27,7 @@ import {
     formatNumber,
     getHealthMilestones,
 } from '../utils/helpers';
+import { compareUserToCommunity } from '../services/communityStats';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { TYPOGRAPHY } from '../utils/typography';
@@ -41,6 +44,50 @@ const ProgressScreen: React.FC = () => {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Real-time listener for Firebase user data sync
+  useEffect(() => {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      console.log('Setting up real-time listener for ProgressScreen...');
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      
+      const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (auth.currentUser && doc.exists()) {
+          const userData = { id: firebaseUser.uid, ...doc.data() } as User;
+          console.log('Progress real-time update received:', {
+            email: userData.email,
+            xp: userData.xp,
+            totalDays: userData.totalDays,
+            streak: userData.streak
+          });
+          
+          // Update user data with smart logic
+          setUser(currentUser => {
+            if (!currentUser) return userData;
+            
+            // Only accept updates with newer or equal XP to prevent stale data
+            if (userData.xp >= currentUser.xp) {
+              console.log('Accepting Progress screen Firebase update');
+              return userData;
+            } else {
+              console.log('Ignoring stale Progress data from Firebase');
+              return currentUser;
+            }
+          });
+        }
+      }, (error) => {
+        if (auth.currentUser) {
+          console.error('Error in Progress real-time listener:', error);
+        }
+      });
+      
+      return () => {
+        console.log('Cleaning up Progress real-time listener');
+        unsubscribe();
+      };
+    }
+  }, [auth.currentUser]);
 
 
   // Reload data when screen comes into focus
@@ -84,7 +131,7 @@ const ProgressScreen: React.FC = () => {
               dailyXPKeys: Object.keys(userData.dailyXP || {}).length
             });
             setUser(userData);
-            updateUser(userData);
+            // updateUser(userData); // Temporarily disabled to prevent infinite loop
             setLoading(false);
             return;
           } else {
@@ -111,7 +158,7 @@ const ProgressScreen: React.FC = () => {
           dailyXP: demoUser.dailyXP
         });
         setUser(demoUser);
-        updateUser(demoUser);
+        // updateUser(demoUser); // Temporarily disabled to prevent infinite loop
         setLoading(false);
         return;
       }
@@ -128,7 +175,7 @@ const ProgressScreen: React.FC = () => {
           totalDays: restoredUser.totalDays
         });
         setUser(restoredUser);
-        updateUser(restoredUser);
+        // updateUser(restoredUser); // Temporarily disabled to prevent infinite loop
         setLoading(false);
         return;
       }
@@ -167,6 +214,134 @@ const ProgressScreen: React.FC = () => {
 
   const goToCurrentMonth = () => {
     setSelectedDate(new Date());
+  };
+
+  // Achievement sharing functions
+  const shareAchievement = async (type: 'days' | 'money' | 'cigarettes' | 'streak' | 'milestone', data?: any) => {
+    if (!user) return;
+
+    const daysSinceQuit = calculateDaysSinceQuit(new Date(user.quitDate));
+    const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
+    const cigarettesAvoided = daysSinceQuit * user.cigarettesPerDay;
+
+    let message = '';
+    
+    switch (type) {
+      case 'days':
+        message = language === 'en' 
+          ? `🎉 ${daysSinceQuit} days smoke-free! I'm on my journey to a healthier life with ByeSmoke AI. Join me! 💪 #SmokeFree #HealthyLife`
+          : `🎉 ${daysSinceQuit} hari bebas rokok! Saya sedang dalam perjalanan menuju hidup yang lebih sehat bersama ByeSmoke AI. Ikuti saya! 💪 #BebasRokok #HidupSehat`;
+        break;
+      case 'money':
+        const savings = formatCurrency(moneySaved).replace('Rp', '').trim();
+        message = language === 'en'
+          ? `💰 I've saved ${savings} by quitting smoking! That's the power of saying no to cigarettes. Thanks ByeSmoke AI! 🚭 #MoneySaved #QuitSmoking`
+          : `💰 Saya sudah menghemat ${savings} dengan berhenti merokok! Itulah kekuatan mengatakan tidak pada rokok. Terima kasih ByeSmoke AI! 🚭 #HematUang #BerhentiMerokok`;
+        break;
+      case 'cigarettes':
+        message = language === 'en'
+          ? `🚭 ${formatNumber(cigarettesAvoided)} cigarettes avoided! My lungs thank me every day. Quitting smoking was the best decision! #HealthFirst #SmokeFree`
+          : `🚭 ${formatNumber(cigarettesAvoided)} batang rokok dihindari! Paru-paru saya berterima kasih setiap hari. Berhenti merokok adalah keputusan terbaik! #KesehatanUtama #BebasRokok`;
+        break;
+      case 'streak':
+        const streak = user.longestStreak || user.streak || 0;
+        message = language === 'en'
+          ? `🔥 ${streak} days streak! Consistency is key to breaking free from smoking addiction. ByeSmoke AI keeps me motivated! #StreakPower #QuitSmoking`
+          : `🔥 Streak ${streak} hari! Konsistensi adalah kunci untuk bebas dari kecanduan rokok. ByeSmoke AI membuat saya tetap termotivasi! #KekuatanStreak #BerhentiMerokok`;
+        break;
+      case 'milestone':
+        if (data?.milestone) {
+          message = language === 'en'
+            ? `✨ Achievement unlocked: "${data.milestone.title}"! ${data.milestone.description} This smoke-free journey gets better every day! 🌟 #Milestone #HealthyLife`
+            : `✨ Pencapaian terbuka: "${data.milestone.title}"! ${data.milestone.description} Perjalanan bebas rokok ini semakin baik setiap hari! 🌟 #Pencapaian #HidupSehat`;
+        }
+        break;
+    }
+
+    try {
+      const result = await Share.share({
+        message: message,
+        title: language === 'en' ? 'My Smoke-Free Achievement' : 'Pencapaian Bebas Rokok Saya',
+      });
+
+      if (result.action === Share.sharedAction) {
+        Alert.alert(
+          language === 'en' ? 'Shared!' : 'Berhasil!',
+          language === 'en' ? 'Achievement shared successfully!' : 'Pencapaian berhasil dibagikan!'
+        );
+      }
+    } catch (error) {
+      console.error('Error sharing achievement:', error);
+      Alert.alert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en' ? 'Failed to share achievement' : 'Gagal membagikan pencapaian'
+      );
+    }
+  };
+
+  // Comprehensive progress summary sharing
+  const shareProgressSummary = async () => {
+    if (!user) return;
+
+    const daysSinceQuit = calculateDaysSinceQuit(new Date(user.quitDate));
+    const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
+    const cigarettesAvoided = daysSinceQuit * user.cigarettesPerDay;
+    const currentStreak = user.longestStreak || user.streak || 0;
+    const missionsCompleted = user.completedMissions?.length || 0;
+    const savings = formatCurrency(moneySaved).replace('Rp', '').trim();
+
+    // Get community comparison for enhanced sharing
+    let communityRankText = '';
+    try {
+      const comparison = await compareUserToCommunity(user);
+      if (comparison) {
+        communityRankText = language === 'en' 
+          ? `\n🏆 Ranked in the ${comparison.streakRank} of ByeSmoke users!`
+          : `\n🏆 Berada di ${comparison.streakRank} pengguna ByeSmoke!`;
+      }
+    } catch (error) {
+      console.log('Could not get community comparison for sharing');
+    }
+
+    const message = language === 'en'
+      ? `🎉 My Smoke-Free Journey with ByeSmoke AI 🚭
+
+✅ ${daysSinceQuit} days smoke-free
+💰 ${savings} saved
+🚫 ${formatNumber(cigarettesAvoided)} cigarettes avoided
+🔥 ${currentStreak}-day streak
+🏆 ${missionsCompleted} missions completed
+
+Every day smoke-free is a victory! 💪${communityRankText} #SmokeFree #HealthyLife #QuitSmoking`
+      : `🎉 Perjalanan Bebas Rokok Saya dengan ByeSmoke AI 🚭
+
+✅ ${daysSinceQuit} hari bebas rokok
+💰 ${savings} dihemat
+🚫 ${formatNumber(cigarettesAvoided)} batang rokok dihindari
+🔥 Streak ${currentStreak} hari
+🏆 ${missionsCompleted} misi selesai
+
+Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok #HidupSehat #BerhentiMerokok`;
+
+    try {
+      const result = await Share.share({
+        message: message,
+        title: language === 'en' ? 'My Smoke-Free Progress' : 'Progres Bebas Rokok Saya',
+      });
+
+      if (result.action === Share.sharedAction) {
+        Alert.alert(
+          language === 'en' ? 'Shared!' : 'Berhasil!',
+          language === 'en' ? 'Progress shared successfully!' : 'Progres berhasil dibagikan!'
+        );
+      }
+    } catch (error) {
+      console.error('Error sharing progress:', error);
+      Alert.alert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en' ? 'Failed to share progress' : 'Gagal membagikan progres'
+      );
+    }
   };
 
   if (loading || !user) {
@@ -227,9 +402,11 @@ const ProgressScreen: React.FC = () => {
               </Text>
               <Text style={[styles.milestoneTime, { color: colors.textSecondary }]}>{milestone.timeframe}</Text>
             </View>
-            {milestone.isReached && (
-              <MaterialIcons name="check-circle" size={20} color={colors.secondary} />
-            )}
+            <View style={styles.milestoneActions}>
+              {milestone.isReached && (
+                <MaterialIcons name="check-circle" size={20} color={colors.secondary} />
+              )}
+            </View>
           </View>
               <Text style={[
                 styles.milestoneDescription,
@@ -353,10 +530,6 @@ const ProgressScreen: React.FC = () => {
 
   const renderStatistics = () => (
     <View style={styles.tabContent}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.progress.statistics}</Text>
-      </View>
-      
       <View style={styles.statsGrid}>
         <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
           <MaterialIcons name="smoke-free" size={32} color={colors.primary} />
@@ -375,7 +548,6 @@ const ProgressScreen: React.FC = () => {
           <Text style={[styles.statValue, { color: colors.textPrimary }]}>{user.longestStreak || user.streak || 0}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">{t.progress.longestStreak}</Text>
         </View>
-        
         
         <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
           <MaterialIcons name="assignment-turned-in" size={32} color={colors.info} />
@@ -611,6 +783,15 @@ const ProgressScreen: React.FC = () => {
           <Text style={styles.headerSubtitle}>
             "{daysSinceQuit} {t.progress.subtitle}"
           </Text>
+          <TouchableOpacity 
+            style={styles.shareAchievementButton} 
+            onPress={shareProgressSummary}
+          >
+            <MaterialIcons name="share" size={14} color={colors.white} />
+            <Text style={styles.shareAchievementText}>
+              {language === 'en' ? 'Share Progress' : 'Bagikan Progres'}
+            </Text>
+          </TouchableOpacity>
         </LinearGradient>
 
         <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
@@ -710,6 +891,24 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.white,
     opacity: 0.9,
+    textAlign: 'center',
+    marginBottom: SIZES.xs,
+  },
+  shareAchievementButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: SIZES.xs,
+    borderRadius: 20,
+    gap: 6,
+    alignSelf: 'center',
+  },
+  shareAchievementText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.white,
+    fontWeight: '500',
+    fontSize: 12,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -753,7 +952,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabContent: {
-    paddingBottom: SIZES.xl,
+    paddingBottom: 4,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -840,7 +1039,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.buttonRadius || 12,
     overflow: 'hidden',
     marginHorizontal: SIZES.screenPadding,
-    marginBottom: SIZES.md,
+    marginBottom: 4,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -869,7 +1068,7 @@ const styles = StyleSheet.create({
   },
   breakdownContainer: {
     marginHorizontal: SIZES.screenPadding,
-    marginBottom: SIZES.md,
+    marginBottom: 4,
     gap: SIZES.xs || 4,
   },
   breakdownItem: {
@@ -937,7 +1136,7 @@ const styles = StyleSheet.create({
     fontSize: Math.min(width * 0.03, 12),
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginBottom: SIZES.md,
+    marginBottom: 4,
   },
   investmentGrid: {
     flexDirection: 'row',
@@ -981,7 +1180,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: SIZES.screenPadding,
-    marginBottom: SIZES.md,
+    marginBottom: 0,
     gap: SIZES.xs || 4,
   },
   statCard: {
@@ -990,7 +1189,7 @@ const styles = StyleSheet.create({
     padding: SIZES.sm,
     alignItems: 'center',
     width: (width - SIZES.screenPadding * 2 - SIZES.xs) / 2,
-    marginBottom: SIZES.xs || 4,
+    marginBottom: 0,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -1014,6 +1213,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
+    marginTop: SIZES.sm,
     marginBottom: SIZES.xs || 4,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
@@ -1027,7 +1227,7 @@ const styles = StyleSheet.create({
   },
   progressHeader: {
     alignItems: 'center',
-    marginBottom: SIZES.md,
+    marginBottom: 4,
   },
   progressTitle: {
     ...TYPOGRAPHY.h1,
@@ -1161,6 +1361,12 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 2,
+  },
+  // Sharing styles
+  milestoneActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.xs,
   },
 });
 

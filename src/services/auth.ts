@@ -6,10 +6,12 @@ import {
   updateProfile,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { User } from '../types';
+import { generateUniqueReferralCode, findUserByReferralCode } from '../utils/referrals';
+import { checkAndAwardBadges } from './gamification';
 
-export const signUp = async (email: string, password: string, displayName: string, username: string) => {
+export const signUp = async (email: string, password: string, displayName: string, username: string, referralCode?: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -17,8 +19,8 @@ export const signUp = async (email: string, password: string, displayName: strin
     // Update the user's display name
     await updateProfile(user, { displayName });
     
-    // Create user document in Firestore
-    await createUserDocument(user, displayName, username);
+    // Create user document in Firestore with referral tracking
+    await createUserDocument(user, displayName, username, referralCode);
     
     return user;
   } catch (error) {
@@ -43,27 +45,58 @@ export const logout = async () => {
   }
 };
 
-export const createUserDocument = async (user: FirebaseUser, displayName: string, username: string) => {
+export const createUserDocument = async (user: FirebaseUser, displayName: string, username: string, referralCode?: string) => {
   const userDoc = doc(db, 'users', user.uid);
+  
+  // Generate unique referral code for this user
+  const userReferralCode = await generateUniqueReferralCode();
+  
+  // Handle referral tracking
+  let referrerUserId: string | null = null;
+  let referralXPBonus = 0;
+  
+  if (referralCode) {
+    try {
+      referrerUserId = await findUserByReferralCode(referralCode);
+      if (referrerUserId) {
+        // Give bonus XP to new user
+        referralXPBonus = 25;
+        console.log(`✓ Valid referral code ${referralCode} from user ${referrerUserId}`);
+        
+        // Award referrer for successful referral
+        await awardReferralReward(referrerUserId, user.uid);
+      } else {
+        console.log(`⚠️ Invalid referral code: ${referralCode}`);
+      }
+    } catch (error) {
+      console.error('Error processing referral:', error);
+    }
+  }
+  
   const userData: Partial<User> = {
     id: user.uid,
     email: user.email!,
     displayName,
     username,
-    isPremium: user.email === 'admin@byerokok.app' || user.email === 'sandy@mail.com', // Admin and sandy get premium
+    isPremium: user.email === 'sandy@zaynstudio.app', // Admin access for Zayn Studio
     quitDate: new Date(),
     cigarettesPerDay: 0,
     cigarettePrice: 0,
     streak: 0,
     longestStreak: 0,
     totalDays: 0,
-    xp: 0,
+    xp: referralXPBonus, // Start with referral bonus XP if applicable
     level: 1,
     lastCheckIn: null,
     badges: [],
     completedMissions: [],
     onboardingCompleted: false, // New users need to complete onboarding
     dailyXP: {}, // Initialize empty daily XP tracking
+    // Referral fields
+    referralCode: userReferralCode,
+    referredBy: referralCode || undefined,
+    referralCount: 0,
+    referralRewards: 0,
     settings: {
       darkMode: false,
       notifications: true,
@@ -74,7 +107,42 @@ export const createUserDocument = async (user: FirebaseUser, displayName: string
   };
   
   await setDoc(userDoc, userData);
+  
+  // Auto-award the "new member" badge and increment its statistics
+  try {
+    const newBadges = await checkAndAwardBadges(user.uid, userData as User);
+    if (newBadges.length > 0) {
+      console.log(`✓ Auto-awarded ${newBadges.length} badges to new user: ${newBadges.map(b => b.id).join(', ')}`);
+      // Update the userData to include the new badges
+      userData.badges = [...(userData.badges || []), ...newBadges];
+      // Update the user document with the new badges
+      await updateDoc(userDoc, { badges: userData.badges });
+    }
+  } catch (error) {
+    console.error('Error auto-awarding badges to new user:', error);
+  }
+  
   return userData;
+};
+
+/**
+ * Award referral rewards to the referrer
+ */
+const awardReferralReward = async (referrerUserId: string, newUserId: string) => {
+  try {
+    const referrerDoc = doc(db, 'users', referrerUserId);
+    
+    // Update referrer's stats
+    await updateDoc(referrerDoc, {
+      referralCount: increment(1),
+      referralRewards: increment(50), // 50 XP per successful referral
+      xp: increment(50)
+    });
+    
+    console.log(`✓ Awarded referral reward to user ${referrerUserId} for referring ${newUserId}`);
+  } catch (error) {
+    console.error('Error awarding referral reward:', error);
+  }
 };
 
 export const getUserDocument = async (uid: string): Promise<User | null> => {

@@ -18,6 +18,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform, AppState } from 'react-native';
 import { translations, Language } from '../utils/translations';
+import { User } from '../types';
+import { detectStreakRisk, getStreakNotificationContent, shouldScheduleStreakReminder } from '../utils/helpers';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -394,5 +396,200 @@ export class NotificationService {
     
     console.log('\n🇺🇸 Testing English notifications...');
     await this.testPermissions('en');
+  }
+
+  // Smart Streak Notifications
+
+  /**
+   * Schedule a streak protection notification
+   */
+  static async scheduleStreakReminder(
+    user: User, 
+    delayHours: number = 0,
+    language: Language = 'id'
+  ): Promise<string | null> {
+    try {
+      const hasPermission = await this.hasPermissions();
+      if (!hasPermission) {
+        console.log('No notification permissions for streak reminder');
+        return null;
+      }
+
+      const streakRisk = detectStreakRisk(user);
+      if (!streakRisk.shouldNotify) {
+        console.log('No streak notification needed at this time');
+        return null;
+      }
+
+      const notificationContent = getStreakNotificationContent(streakRisk, language);
+
+      const identifier = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: notificationContent.title,
+          body: notificationContent.body,
+          sound: 'default',
+          data: {
+            type: 'streak_reminder',
+            streakCount: streakRisk.currentStreak,
+            riskLevel: streakRisk.riskLevel,
+            userId: user.id,
+          },
+        },
+        trigger: delayHours > 0 ? {
+          seconds: delayHours * 3600, // Convert hours to seconds
+        } as Notifications.TimeIntervalTriggerInput : null, // Immediate if no delay
+      });
+
+      console.log(`Scheduled streak reminder (${streakRisk.riskLevel}):`, identifier);
+      return identifier;
+    } catch (error) {
+      console.error('Error scheduling streak notification:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Schedule escalating streak reminders
+   */
+  static async scheduleEscalatingStreakReminders(
+    user: User,
+    language: Language = 'id'
+  ): Promise<string[]> {
+    try {
+      if (!shouldScheduleStreakReminder(user)) {
+        console.log('Streak reminders not needed for user');
+        return [];
+      }
+
+      // Cancel existing streak notifications to avoid duplicates
+      await this.cancelStreakNotifications();
+
+      const scheduledIds: string[] = [];
+      const now = new Date();
+      const currentHour = now.getHours();
+
+      // Schedule immediate notification if it's already past 8 PM
+      if (currentHour >= 20) {
+        const immediateId = await this.scheduleStreakReminder(user, 0, language);
+        if (immediateId) {
+          scheduledIds.push(immediateId);
+        }
+      }
+
+      // Schedule future notifications based on current time
+      const futureHours = [];
+      
+      if (currentHour < 20) {
+        // Schedule 8 PM reminder
+        const hoursUntil8PM = 20 - currentHour;
+        futureHours.push(hoursUntil8PM);
+      }
+      
+      if (currentHour < 21) {
+        // Schedule 9 PM reminder
+        const hoursUntil9PM = 21 - currentHour;
+        futureHours.push(hoursUntil9PM);
+      }
+      
+      if (currentHour < 22) {
+        // Schedule 10 PM reminder
+        const hoursUntil10PM = 22 - currentHour;
+        futureHours.push(hoursUntil10PM);
+      }
+
+      // Schedule all future notifications
+      for (const delayHours of futureHours) {
+        const id = await this.scheduleStreakReminder(user, delayHours, language);
+        if (id) {
+          scheduledIds.push(id);
+        }
+      }
+
+      console.log(`Scheduled ${scheduledIds.length} escalating streak reminders`);
+      return scheduledIds;
+    } catch (error) {
+      console.error('Error scheduling escalating streak reminders:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Cancel all streak-related notifications
+   */
+  static async cancelStreakNotifications(): Promise<void> {
+    try {
+      const scheduled = await this.getScheduledNotifications();
+      const streakNotifications = scheduled.filter(
+        n => n.content.data?.type === 'streak_reminder'
+      );
+
+      for (const notification of streakNotifications) {
+        await this.cancelNotification(notification.identifier);
+      }
+
+      console.log(`Cancelled ${streakNotifications.length} streak notifications`);
+    } catch (error) {
+      console.error('Error cancelling streak notifications:', error);
+    }
+  }
+
+  /**
+   * Check if user needs streak protection and schedule accordingly
+   */
+  static async manageStreakProtection(user: User, language: Language = 'id'): Promise<void> {
+    try {
+      if (!user.settings?.notifications) {
+        console.log('Notifications disabled, skipping streak protection');
+        return;
+      }
+
+      const streakRisk = detectStreakRisk(user);
+      
+      if (streakRisk.currentStreak === 0) {
+        console.log('No streak to protect');
+        return;
+      }
+
+      if (!streakRisk.isAtRisk) {
+        console.log('Streak not at risk, no notifications needed');
+        // Cancel any existing streak notifications since they're not needed
+        await this.cancelStreakNotifications();
+        return;
+      }
+
+      console.log(`Managing streak protection for ${streakRisk.currentStreak}-day streak (${streakRisk.riskLevel} risk)`);
+      await this.scheduleEscalatingStreakReminders(user, language);
+    } catch (error) {
+      console.error('Error managing streak protection:', error);
+    }
+  }
+
+  /**
+   * Test streak notifications (for development)
+   */
+  static async testStreakNotification(user: User, language: Language = 'id'): Promise<void> {
+    try {
+      console.log('=== Testing Streak Notifications ===');
+      
+      const streakRisk = detectStreakRisk(user);
+      console.log('Streak risk analysis:', {
+        isAtRisk: streakRisk.isAtRisk,
+        currentStreak: streakRisk.currentStreak,
+        riskLevel: streakRisk.riskLevel,
+        hoursUntilExpiry: streakRisk.hoursUntilExpiry
+      });
+
+      if (await this.hasPermissions()) {
+        console.log('Scheduling test streak notification...');
+        const testId = await this.scheduleStreakReminder(user, 0, language);
+        console.log('Test streak notification scheduled:', testId);
+      } else {
+        console.log('No permissions for streak notification test');
+      }
+
+      console.log('=== Streak Test Complete ===');
+    } catch (error) {
+      console.error('Error testing streak notifications:', error);
+    }
   }
 }

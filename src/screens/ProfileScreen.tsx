@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
@@ -12,11 +12,21 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Share,
+    Linking,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logout } from '../services/auth';
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { NotificationService } from '../services/notificationService';
+import { 
+  showSubscriptionOptions, 
+  formatSubscriptionStatus,
+  checkSubscriptionStatus,
+  SUBSCRIPTION_PLANS,
+  handleSubscription
+} from '../services/subscription';
 
 import { User } from '../types';
 import { COLORS, SIZES } from '../utils/constants';
@@ -30,20 +40,62 @@ const { width, height } = Dimensions.get('window');
 
 interface ProfileScreenProps {
   onLogout: () => void;
+  navigation: any;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', message: '' });
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [legalModalVisible, setLegalModalVisible] = useState(false);
+  const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
+  const [legalDocument, setLegalDocument] = useState<'privacy' | 'terms'>('privacy');
   const { isDarkMode, colors, toggleDarkMode, setLanguage, canUseDarkMode, updateUser } = useTheme();
   const { t, language } = useTranslation();
 
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Real-time listener for Firebase user data sync
+  useEffect(() => {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      console.log('Setting up real-time listener for ProfileScreen...');
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      
+      const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (auth.currentUser && doc.exists()) {
+          const userData = { id: firebaseUser.uid, ...doc.data() } as User;
+          console.log('Profile real-time update received:', {
+            email: userData.email,
+            displayName: userData.displayName,
+            isPremium: userData.isPremium,
+            xp: userData.xp
+          });
+          
+          // Update user data - Profile screen accepts all updates since user settings can change
+          setUser(currentUser => {
+            if (!currentUser) return userData;
+            
+            console.log('Accepting Profile screen Firebase update');
+            return userData;
+          });
+        }
+      }, (error) => {
+        if (auth.currentUser) {
+          console.error('Error in Profile real-time listener:', error);
+        }
+      });
+      
+      return () => {
+        console.log('Cleaning up Profile real-time listener');
+        unsubscribe();
+      };
+    }
+  }, [auth.currentUser]);
 
   // Reload data when screen comes into focus
   useFocusEffect(
@@ -73,6 +125,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
           if (userDoc.exists()) {
             const userData = { id: currentUser.uid, ...userDoc.data() } as User;
+            
+            
             console.log('✓ Firebase user data loaded:', {
               email: userData.email,
               completedMissions: userData.completedMissions?.length || 0,
@@ -81,7 +135,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
               totalDays: userData.totalDays
             });
             setUser(userData);
-            updateUser(userData);
+            // updateUser(userData); // Temporarily disabled to prevent infinite loop
             setLoading(false);
             return;
           } else {
@@ -99,6 +153,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
       console.log('No Firebase user, checking for demo user in memory...');
       const demoUser = demoGetCurrentUser();
       if (demoUser) {
+        
         console.log('✓ Demo user found in memory:', {
           email: demoUser.email,
           completedMissions: demoUser.completedMissions?.length || 0,
@@ -107,7 +162,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           totalDays: demoUser.totalDays
         });
         setUser(demoUser);
-        updateUser(demoUser);
+        // updateUser(demoUser); // Temporarily disabled to prevent infinite loop
         setLoading(false);
         return;
       }
@@ -124,7 +179,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
           totalDays: restoredUser.totalDays
         });
         setUser(restoredUser);
-        updateUser(restoredUser);
+        // updateUser(restoredUser); // Temporarily disabled to prevent infinite loop
         setLoading(false);
         return;
       }
@@ -161,11 +216,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   };
 
   const handleUpgrade = () => {
-    Alert.alert(
-      t.premium.title,
-      t.premium.subtitle + '\n\n' + Object.values(t.premium.features).join('\n'),
-      [{ text: t.common.ok }]
-    );
+    setSubscriptionModalVisible(true);
   };
 
   const showCustomAlert = (title: string, message: string) => {
@@ -191,25 +242,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
             ? t.notifications.permissionDenied
             : t.notifications.permissionUndetermined;
           
-          Alert.alert(
+          showCustomAlert(
             t.notifications.permissionRequired,
-            message,
-            [
-              { text: t.notifications.cancel, style: 'cancel' },
-              { 
-                text: t.notifications.openSettings, 
-                onPress: () => {
-                  // Could open app settings here in production
-                  console.log('Should open app settings');
-                }
-              }
-            ]
+            message
           );
           return;
         }
       } catch (error) {
         console.error('Error requesting notification permissions:', error);
-        Alert.alert(t.common.error, 'Gagal meminta izin notifikasi');
+        showCustomAlert(t.common.error, 'Gagal meminta izin notifikasi');
         return;
       }
     }
@@ -225,7 +266,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     };
     
     setUser(updatedUser);
-    updateUser(updatedUser);
+    // updateUser(updatedUser); // Temporarily disabled to prevent infinite loop
 
     // Handle notification scheduling
     try {
@@ -245,10 +286,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
             notifications: false
           }
         });
-        Alert.alert(
+        showCustomAlert(
           t.notifications.schedulingFailed,
-          t.notifications.schedulingFailedDesc,
-          [{ text: t.common.ok }]
+          t.notifications.schedulingFailedDesc
         );
       }
     } catch (error) {
@@ -270,7 +310,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     };
     
     setUser(updatedUser);
-    updateUser(updatedUser);
+    // updateUser(updatedUser); // Temporarily disabled to prevent infinite loop
 
     // Reschedule notification if notifications are enabled
     if (user.settings.notifications) {
@@ -279,10 +319,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
         
         if (!success) {
           console.warn('Failed to reschedule notification for new time');
-          Alert.alert(
+          showCustomAlert(
             t.notifications.timeChangeFailed,
-            t.notifications.timeChangeFailedDesc,
-            [{ text: t.common.ok }]
+            t.notifications.timeChangeFailedDesc
           );
         } else {
           console.log('Daily reminder rescheduled for', time);
@@ -293,10 +332,41 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     }
   };
 
+  const toggleStreakNotifications = async () => {
+    if (!user) return;
+    
+    const updatedSettings = {
+      ...user.settings,
+      streakNotifications: !(user.settings.streakNotifications ?? true) // Default to true
+    };
+    
+    const updatedUser = {
+      ...user,
+      settings: updatedSettings
+    };
+    
+    setUser(updatedUser);
+    // updateUser(updatedUser); // Temporarily disabled to prevent infinite loop
+
+    // Update streak notifications when setting changes
+    try {
+      const { NotificationService } = await import('../services/notificationService');
+      if (updatedSettings.streakNotifications && updatedSettings.notifications) {
+        console.log('Enabling streak notifications');
+        await NotificationService.manageStreakProtection(updatedUser, language);
+      } else {
+        console.log('Disabling streak notifications');
+        await NotificationService.cancelStreakNotifications();
+      }
+    } catch (error) {
+      console.error('Error managing streak notifications:', error);
+    }
+  };
+
   const handleHelp = () => {
     showCustomAlert(
       t.settings.help,
-      t.settings.helpContent
+      'Have any question or need help? Contact our support team at:\n\nsandy@zaynstudio.app'
     );
   };
 
@@ -312,6 +382,135 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     );
   };
 
+  const handleInviteFriends = async () => {
+    try {
+      const appStoreUrl = 'https://apps.apple.com/app/byesmoke-ai'; // Update when published
+      const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.zaynstudio.byesmokev00';
+      
+      const message = language === 'en' 
+        ? `I'm using ByeSmoke AI to quit smoking and it's really helping! 🚭✨
+
+Join me on this smoke-free journey. The app has AI coaching, progress tracking, and motivational features that make quitting easier.
+
+Download ByeSmoke AI:
+📱 Android: ${playStoreUrl}
+📱 iOS: ${appStoreUrl}
+
+Let's quit smoking together! 💪`
+        : `Saya menggunakan ByeSmoke AI untuk berhenti merokok dan sangat membantu! 🚭✨
+
+Bergabunglah dengan saya dalam perjalanan bebas rokok ini. Aplikasinya memiliki pelatihan AI, pelacakan progress, dan fitur motivasi yang membuat berhenti merokok jadi lebih mudah.
+
+Download ByeSmoke AI:
+📱 Android: ${playStoreUrl}
+📱 iOS: ${appStoreUrl}
+
+Mari berhenti merokok bersama! 💪`;
+
+      const result = await Share.share({
+        message: message,
+        title: language === 'en' ? 'Join me on ByeSmoke AI!' : 'Bergabung dengan ByeSmoke AI!',
+      });
+
+      if (result.action === Share.sharedAction) {
+        // Optionally show success message
+        console.log('App invitation shared successfully');
+      }
+    } catch (error) {
+      console.error('Error sharing app invitation:', error);
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en' ? 'Failed to share invitation' : 'Gagal membagikan undangan'
+      );
+    }
+  };
+
+  const handlePrivacyPolicy = () => {
+    setLegalDocument('privacy');
+    setLegalModalVisible(true);
+  };
+
+  const handleTermsOfService = () => {
+    setLegalDocument('terms');
+    setLegalModalVisible(true);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      language === 'en' ? 'Delete Account' : 'Hapus Akun',
+      language === 'en' 
+        ? 'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.'
+        : 'Apakah Anda yakin ingin menghapus akun Anda? Tindakan ini tidak dapat dibatalkan dan semua data Anda akan dihapus secara permanen.',
+      [
+        {
+          text: language === 'en' ? 'Cancel' : 'Batal',
+          style: 'cancel'
+        },
+        {
+          text: language === 'en' ? 'Delete' : 'Hapus',
+          style: 'destructive',
+          onPress: confirmDeleteAccount
+        }
+      ]
+    );
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!user) return;
+
+    try {
+      // Show loading state
+      Alert.alert(
+        language === 'en' ? 'Deleting Account...' : 'Menghapus Akun...',
+        language === 'en' ? 'Please wait while we delete your account.' : 'Mohon tunggu sementara kami menghapus akun Anda.'
+      );
+
+      // For Firebase users, delete from Firestore and Authentication
+      if (auth.currentUser) {
+        // Delete user document from Firestore
+        const { deleteDoc, doc } = await import('firebase/firestore');
+        await deleteDoc(doc(db, 'users', auth.currentUser.uid));
+        
+        // Delete Firebase Auth account
+        const { deleteUser } = await import('firebase/auth');
+        await deleteUser(auth.currentUser);
+      }
+
+      // For demo users, clear from storage
+      const { demoDeleteUser } = await import('../services/demoAuth');
+      await demoDeleteUser();
+
+      // Clear local storage
+      await AsyncStorage.clear();
+
+      Alert.alert(
+        language === 'en' ? 'Account Deleted' : 'Akun Dihapus',
+        language === 'en' 
+          ? 'Your account has been successfully deleted.'
+          : 'Akun Anda telah berhasil dihapus.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Logout and navigate to login screen
+              onLogout();
+            }
+          }
+        ]
+      );
+
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      Alert.alert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en' 
+          ? 'Failed to delete account. Please try again later.'
+          : 'Gagal menghapus akun. Silakan coba lagi nanti.'
+      );
+    }
+  };
+
+
   if (loading || !user) {
     return (
       <View style={styles.loadingContainer}>
@@ -326,11 +525,26 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
     <Modal
       visible={modalVisible}
       transparent={true}
-      animationType="fade"
+      animationType="none"
       onRequestClose={() => setModalVisible(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={[styles.modalContainer, { backgroundColor: colors.surface }]}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setModalVisible(false)}
+          >
+            <MaterialIcons name="close" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+          
           <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
             {modalContent.title}
           </Text>
@@ -343,12 +557,332 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
               {modalContent.message}
             </Text>
           </ScrollView>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+
+  const renderLegalModal = () => {
+    const privacyPolicyContent = `Privacy Policy for ByeSmoke AI
+
+Last Updated: January 2025
+
+Introduction
+
+ByeSmoke AI ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application ByeSmoke AI.
+
+Information We Collect
+
+Personal Information:
+• Account Information: Email address, display name, username
+• Health Data: Quit date, cigarettes per day, cigarette price, smoking habits
+• Progress Data: Daily check-ins, XP points, achievements, badges, streaks
+• Usage Data: App interactions, feature usage, session duration
+
+Automatically Collected Information:
+• Device Information: Device type, operating system, app version
+• Technical Data: IP address, crash reports, performance data
+• Analytics Data: Feature usage patterns, user engagement metrics
+
+How We Use Your Information
+
+We use your information to:
+• Provide personalized quit-smoking coaching and recommendations
+• Track your progress and calculate achievements
+• Send you motivational notifications and reminders
+• Improve our AI coaching algorithms
+• Analyze app usage to enhance user experience
+• Provide customer support
+• Comply with legal obligations
+
+Data Storage and Security
+
+• Cloud Storage: Your data is securely stored using Firebase/Google Cloud Platform
+• Encryption: All data is encrypted in transit and at rest
+• Access Controls: Strict access controls limit who can view your data
+• Data Retention: We retain your data as long as your account is active
+
+Your Rights
+
+You have the right to:
+• Access: Request a copy of your personal data
+• Correction: Update or correct your information
+• Deletion: Delete your account and associated data
+• Portability: Export your data in a machine-readable format
+• Withdrawal: Withdraw consent for data processing
+
+Contact Us
+
+If you have questions about this Privacy Policy, contact us at:
+Email: privacy@byesmoke.ai
+
+By using ByeSmoke AI, you consent to the collection and use of your information as described in this Privacy Policy.`;
+
+    const termsOfServiceContent = `Terms of Service for ByeSmoke AI
+
+Last Updated: January 2025
+
+1. Acceptance of Terms
+
+By downloading, installing, or using ByeSmoke AI ("the App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the App.
+
+2. Description of Service
+
+ByeSmoke AI is a mobile application designed to help users quit smoking through:
+• Progress tracking and statistics
+• Achievement and badge systems
+• AI-powered coaching and recommendations
+• Community features and referrals
+• Motivational content and reminders
+
+3. Medical Disclaimer
+
+IMPORTANT: ByeSmoke AI is NOT a medical device or treatment. It is a wellness app for informational and motivational purposes only.
+
+• The App does not provide medical advice, diagnosis, or treatment
+• Always consult healthcare professionals for medical concerns
+• Do not disregard professional medical advice because of information from the App
+• In case of medical emergencies, contact emergency services immediately
+
+4. User Accounts and Responsibilities
+
+Account Creation:
+• You must provide accurate and complete information
+• You are responsible for maintaining account security
+• You must be at least 13 years old to use the App
+• One account per person
+
+Prohibited Uses:
+You may not:
+• Use the App for illegal purposes
+• Share false or misleading health information
+• Attempt to hack, reverse engineer, or compromise the App
+• Create multiple accounts or impersonate others
+• Spam or harass other users
+• Upload malicious content or viruses
+
+5. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW:
+• The App is provided "AS IS" without warranties
+• We are not liable for any damages arising from App use
+• Our liability is limited to the amount you paid for the App
+• We are not responsible for third-party content or services
+
+6. Contact Information
+
+For questions about these Terms, contact us at:
+Email: legal@byesmoke.ai
+
+By using ByeSmoke AI, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.`;
+
+    const renderDocumentContent = (content: string) => {
+      const lines = content.split('\n');
+      
+      return lines.map((line, index) => {
+        if (line.trim() === '') {
+          return <View key={index} style={{ height: 10 }} />;
+        } else if (line.includes('Privacy Policy for ByeSmoke AI') || line.includes('Terms of Service for ByeSmoke AI')) {
+          return (
+            <Text key={index} style={[{ fontSize: 18, fontWeight: '700', marginBottom: 10, color: colors.textPrimary }]}>
+              {line}
+            </Text>
+          );
+        } else if (line.includes('Last Updated:') || line.includes('Introduction') || line.includes('Information We Collect') || line.includes('How We Use') || line.includes('Data Storage') || line.includes('Your Rights') || line.includes('Contact Us') || line.includes('Acceptance of Terms') || line.includes('Description of Service') || line.includes('Medical Disclaimer') || line.includes('User Accounts') || line.includes('Limitation of Liability')) {
+          return (
+            <Text key={index} style={[{ fontSize: 16, fontWeight: '600', marginTop: 15, marginBottom: 8, color: colors.textPrimary }]}>
+              {line}
+            </Text>
+          );
+        } else if (line.startsWith('•')) {
+          return (
+            <Text key={index} style={[{ fontSize: 14, marginBottom: 4, marginLeft: 10, color: colors.textSecondary }]}>
+              {line}
+            </Text>
+          );
+        } else {
+          return (
+            <Text key={index} style={[{ fontSize: 14, lineHeight: 20, marginBottom: 4, color: colors.textSecondary }]}>
+              {line}
+            </Text>
+          );
+        }
+      });
+    };
+
+    return (
+      <Modal
+        visible={legalModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setLegalModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setLegalModalVisible(false)}
+        >
           <TouchableOpacity 
-            style={[styles.modalButton, { backgroundColor: colors.primary }]}
-            onPress={() => setModalVisible(false)}
+            style={[styles.legalModalContainer, { backgroundColor: colors.surface }]}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
           >
-            <Text style={styles.modalButtonText}>{t.common.close}</Text>
+            {/* Header */}
+            <View style={[styles.legalModalHeader, { borderBottomColor: colors.lightGray }]}>
+              <TouchableOpacity
+                style={styles.legalModalCloseButton}
+                onPress={() => setLegalModalVisible(false)}
+              >
+                <MaterialIcons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+              <Text style={[styles.legalModalTitle, { color: colors.textPrimary }]}>
+                {legalDocument === 'privacy' 
+                  ? (language === 'en' ? 'Privacy Policy' : 'Kebijakan Privasi')
+                  : (language === 'en' ? 'Terms of Service' : 'Syarat Layanan')
+                }
+              </Text>
+              <View style={styles.legalModalHeaderSpacer} />
+            </View>
+
+            {/* Content */}
+            <ScrollView 
+              style={styles.legalModalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderDocumentContent(
+                legalDocument === 'privacy' ? privacyPolicyContent : termsOfServiceContent
+              )}
+            </ScrollView>
           </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    );
+  };
+
+  const handleSubscriptionSelect = async (planId: string) => {
+    setSubscriptionModalVisible(false);
+    await handleSubscription(planId, user?.id);
+  };
+
+  const renderSubscriptionModal = () => (
+    <Modal
+      visible={subscriptionModalVisible}
+      transparent={true}
+      animationType="none"
+      onRequestClose={() => setSubscriptionModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.subscriptionModalContainer, { backgroundColor: colors.surface }]}>
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setSubscriptionModalVisible(false)}
+          >
+            <MaterialIcons name="close" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+          
+          <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+            {language === 'en' ? 'Choose Premium Plan' : 'Pilih Paket Premium'}
+          </Text>
+          
+          <ScrollView style={styles.subscriptionScrollView} showsVerticalScrollIndicator={false}>
+            {SUBSCRIPTION_PLANS.map((plan) => (
+              <TouchableOpacity
+                key={plan.id}
+                style={[
+                  styles.subscriptionPlan,
+                  { backgroundColor: colors.surface },
+                  plan.popular && { 
+                    borderColor: '#FF6B35', // Warm orange for urgency
+                    borderWidth: 2,
+                    backgroundColor: '#FFF5F3' // Very light warm background
+                  },
+                  plan.id === 'trial' && {
+                    borderColor: '#00C851', // Success green for free trial
+                    borderWidth: 2,
+                    backgroundColor: '#F1F8E9' // Light green background
+                  },
+                  plan.id === 'yearly' && {
+                    borderColor: '#7B68EE', // Purple for premium/luxury
+                    borderWidth: 2,
+                    backgroundColor: '#F8F7FF' // Very light purple background
+                  },
+                  plan.id === 'monthly' && {
+                    borderColor: '#64B5F6', // Soft blue for standard option
+                    borderWidth: 1,
+                    backgroundColor: '#F3F9FF' // Very light blue background
+                  }
+                ]}
+                onPress={() => handleSubscriptionSelect(plan.id)}
+              >
+                {plan.popular && (
+                  <View style={[styles.popularBadge, { backgroundColor: '#FF6B35' }]}>
+                    <Text style={styles.popularText}>
+                      {language === 'en' ? 'POPULAR' : 'POPULER'}
+                    </Text>
+                  </View>
+                )}
+                
+                {plan.id === 'trial' && (
+                  <View style={[styles.popularBadge, { backgroundColor: '#00C851' }]}>
+                    <Text style={styles.popularText}>
+                      {language === 'en' ? 'FREE' : 'GRATIS'}
+                    </Text>
+                  </View>
+                )}
+                
+                {plan.id === 'yearly' && (
+                  <View style={[styles.popularBadge, { backgroundColor: '#7B68EE' }]}>
+                    <Text style={styles.popularText}>
+                      {language === 'en' ? 'BEST VALUE' : 'NILAI TERBAIK'}
+                    </Text>
+                  </View>
+                )}
+                
+                {plan.id === 'monthly' && (
+                  <View style={[styles.monthlyBadge, { backgroundColor: '#64B5F6' }]}>
+                    <Text style={styles.monthlyBadgeText}>
+                      {language === 'en' ? 'FLEXIBLE' : 'FLEKSIBEL'}
+                    </Text>
+                  </View>
+                )}
+                
+                <View style={styles.planHeader}>
+                  <Text style={[styles.planName, { color: colors.textPrimary }]}>
+                    {plan.name}
+                  </Text>
+                  <Text style={[
+                    styles.planPrice, 
+                    { 
+                      color: plan.id === 'trial' ? '#00C851' : 
+                             plan.id === 'yearly' ? '#7B68EE' :
+                             plan.id === 'monthly' ? '#64B5F6' :
+                             plan.popular ? '#FF6B35' : colors.primary 
+                    }
+                  ]}>
+                    {plan.price}
+                  </Text>
+                  
+                  {plan.id === 'yearly' && (
+                    <Text style={[styles.savingsText, { color: '#FF4444' }]}>
+                      {language === 'en' ? 'Save 60%' : 'Hemat 60%'}
+                    </Text>
+                  )}
+                  <Text style={[styles.planDuration, { color: colors.textSecondary }]}>
+                    {plan.duration}
+                  </Text>
+                </View>
+                
+                <View style={styles.planFeatures}>
+                  {plan.features.map((feature, index) => (
+                    <Text key={index} style={[styles.planFeature, { color: colors.textSecondary }]}>
+                      {feature}
+                    </Text>
+                  ))}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -361,8 +895,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
       animationType="fade"
       onRequestClose={() => setNotificationModalVisible(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setNotificationModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={[styles.modalContainer, { backgroundColor: colors.surface }]}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setNotificationModalVisible(false)}
+          >
+            <MaterialIcons name="close" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+          
           <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
             {t.settings.notifications}
           </Text>
@@ -439,16 +988,46 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
                 </View>
               </View>
             )}
+
+            {/* Streak Notifications Toggle */}
+            {user?.settings.notifications && (
+              <View style={styles.notificationSetting}>
+                <Text style={[styles.notificationSettingTitle, { color: colors.textPrimary }]}>
+                  {language === 'en' ? 'Streak Protection' : 'Perlindungan Streak'}
+                </Text>
+                <Text style={[styles.notificationSettingDesc, { color: colors.textSecondary, marginBottom: SIZES.sm }]}>
+                  {language === 'en' 
+                    ? 'Get reminded when your streak is at risk of being lost'
+                    : 'Dapatkan peringatan saat streak Anda berisiko hilang'
+                  }
+                </Text>
+                <View style={styles.notificationControlContainer}>
+                  <Text style={[styles.notificationStatusText, { color: colors.textSecondary }]}>
+                    {(user?.settings.streakNotifications ?? true) 
+                      ? (language === 'en' ? 'Enabled' : 'Aktif')
+                      : (language === 'en' ? 'Disabled' : 'Nonaktif')
+                    }
+                  </Text>
+                  <TouchableOpacity onPress={toggleStreakNotifications} style={styles.toggleContainer}>
+                    <View style={[
+                      styles.toggleSwitch, 
+                      { backgroundColor: colors.gray }, 
+                      (user?.settings.streakNotifications ?? true) && { backgroundColor: colors.secondary }
+                    ]}>
+                      <View style={[
+                        styles.toggleThumb, 
+                        { backgroundColor: colors.surface }, 
+                        (user?.settings.streakNotifications ?? true) && styles.toggleThumbActive
+                      ]} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
           
-          <TouchableOpacity 
-            style={[styles.modalButton, { backgroundColor: colors.primary }]}
-            onPress={() => setNotificationModalVisible(false)}
-          >
-            <Text style={styles.modalButtonText}>{t.common.close}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 
@@ -465,9 +1044,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
                 >
                   <MaterialIcons name="star" size={24} color={COLORS.white} />
                   <View style={styles.upgradeInfo}>
-                    <Text style={styles.upgradeTitle}>{t.profile.upgrade}</Text>
+                    <Text style={styles.upgradeTitle}>
+                      {language === 'en' ? 'Try Free for 7 Days' : 'Coba Gratis 7 Hari'}
+                    </Text>
                     <Text style={styles.upgradeSubtitle}>
-                      {t.premium.subtitle}
+                      {language === 'en' ? 'No payment required • Cancel anytime' : 'Tanpa pembayaran • Bisa dibatalkan kapan saja'}
                     </Text>
                   </View>
                   <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.white} />
@@ -476,6 +1057,21 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
               <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
             </>
           )}
+
+          <TouchableOpacity style={styles.settingItem} onPress={handleInviteFriends}>
+            <MaterialIcons name="people" size={24} color={colors.primary} />
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>
+                {language === 'en' ? 'Invite Friends' : 'Ajak Teman'}
+              </Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'Share ByeSmoke AI with friends and family' : 'Bagikan ByeSmoke AI dengan teman dan keluarga'}
+              </Text>
+            </View>
+            <MaterialIcons name="share" size={16} color={colors.gray} />
+          </TouchableOpacity>
+
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
 
           <TouchableOpacity style={styles.settingItem} onPress={handleNotifications}>
             <MaterialIcons name="notifications" size={24} color={colors.primary} />
@@ -574,6 +1170,51 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
 
           <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
 
+          <TouchableOpacity style={styles.settingItem} onPress={handlePrivacyPolicy}>
+            <MaterialIcons name="privacy-tip" size={24} color={colors.primary} />
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>
+                {language === 'en' ? 'Privacy Policy' : 'Kebijakan Privasi'}
+              </Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'How we handle your data' : 'Bagaimana kami menangani data Anda'}
+              </Text>
+            </View>
+            <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
+          </TouchableOpacity>
+
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
+
+          <TouchableOpacity style={styles.settingItem} onPress={handleTermsOfService}>
+            <MaterialIcons name="description" size={24} color={colors.primary} />
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>
+                {language === 'en' ? 'Terms of Service' : 'Syarat Layanan'}
+              </Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'App usage terms and conditions' : 'Syarat dan ketentuan penggunaan aplikasi'}
+              </Text>
+            </View>
+            <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
+          </TouchableOpacity>
+
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
+
+          <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
+            <MaterialIcons name="delete-forever" size={24} color={COLORS.error} />
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingTitle, { color: COLORS.error }]}>
+                {language === 'en' ? 'Delete Account' : 'Hapus Akun'}
+              </Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'Permanently delete your account and data' : 'Hapus akun dan data Anda secara permanen'}
+              </Text>
+            </View>
+            <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
+          </TouchableOpacity>
+
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
+
           <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
             <MaterialIcons name="logout" size={24} color={COLORS.error} />
             <View style={styles.settingInfo}>
@@ -598,12 +1239,30 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
             <Text style={styles.displayName}>{user.displayName}</Text>
             <Text style={styles.email}>{user.email}</Text>
             
-            {user.isPremium && (
-              <View style={styles.premiumBadge}>
-                <MaterialIcons name="star" size={16} color={COLORS.accent} />
-                <Text style={styles.premiumText}>{t.profile.premium}</Text>
+            {/* Subscription Status */}
+            <View style={styles.subscriptionContainer}>
+              <View style={[styles.subscriptionStatus, user.isPremium ? styles.premiumStatus : styles.freeStatus]}>
+                <MaterialIcons 
+                  name={user.isPremium ? "star" : "star-border"} 
+                  size={16} 
+                  color={user.isPremium ? COLORS.accent : colors.textSecondary} 
+                />
+                <Text style={[styles.subscriptionText, user.isPremium ? styles.premiumText : styles.freeText]}>
+                  {formatSubscriptionStatus(user)}
+                </Text>
               </View>
-            )}
+              
+              {!user.isPremium && (
+                <TouchableOpacity 
+                  style={styles.upgradeButton}
+                  onPress={() => showSubscriptionOptions(user.id)}
+                >
+                  <Text style={styles.upgradeButtonText}>
+                    {language === 'en' ? 'Try Free for 7 Days' : 'Coba Gratis 7 Hari'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </LinearGradient>
 
@@ -612,7 +1271,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
         </View>
       </ScrollView>
       {renderCustomAlert()}
+      {renderLegalModal()}
       {renderNotificationModal()}
+      {renderSubscriptionModal()}
     </>
   );
 };
@@ -675,6 +1336,46 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.accent,
     marginLeft: SIZES.xs,
+  },
+  subscriptionContainer: {
+    marginTop: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  subscriptionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  premiumStatus: {
+    backgroundColor: 'rgba(255, 215, 0, 0.2)', // Golden background for premium
+  },
+  freeStatus: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  subscriptionText: {
+    ...TYPOGRAPHY.bodySmall,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  freeText: {
+    color: COLORS.white,
+    opacity: 0.9,
+  },
+  upgradeButton: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 4,
+  },
+  upgradeButtonText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.white,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -805,7 +1506,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: SIZES.md,
     width: Math.min(width * 0.9, 380), // Max width for larger screens
-    maxHeight: Math.min(height * 0.75, 500), // Reduced max height for small screens
+    maxHeight: Math.min(height * 0.85, 600), // Increased max height to fit content
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
@@ -821,6 +1522,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: SIZES.sm,
+    marginTop: SIZES.xs,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: SIZES.sm,
+    right: SIZES.sm,
+    padding: SIZES.xs,
+    zIndex: 1,
   },
   modalMessage: {
     fontSize: Math.min(width * 0.035, 14), // Responsive text size, max 14px
@@ -830,25 +1539,27 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     borderRadius: 12,
-    paddingVertical: SIZES.sm, // Reduced vertical padding
-    paddingHorizontal: SIZES.md, // Reduced horizontal padding
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.md,
     alignItems: 'center',
-    marginTop: SIZES.xs, // Reduced top margin
+    marginTop: SIZES.sm,
+    marginBottom: SIZES.xs,
   },
   modalButtonText: {
     color: COLORS.white,
-    fontSize: Math.min(width * 0.04, 16), // Responsive font size
+    fontSize: Math.min(width * 0.04, 16),
     fontWeight: '600',
   },
   // Notification Modal Styles
   notificationSettingsContainer: {
-    marginVertical: SIZES.sm, // Reduced margin for compact layout
+    marginVertical: SIZES.xs,
   },
   notificationSetting: {
     flexDirection: 'column',
-    paddingVertical: SIZES.sm, // Reduced padding for compact layout
+    paddingVertical: SIZES.xs,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGray,
+    paddingHorizontal: SIZES.xs,
   },
   notificationControlContainer: {
     flexDirection: 'row',
@@ -868,7 +1579,7 @@ const styles = StyleSheet.create({
   notificationSettingTitle: {
     fontSize: 16,
     fontWeight: '500',
-    marginBottom: SIZES.sm,
+    marginBottom: SIZES.xs,
   },
   notificationSettingDesc: {
     fontSize: 14,
@@ -877,7 +1588,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SIZES.xs,
     flexWrap: 'wrap',
-    marginTop: SIZES.sm,
+    marginTop: SIZES.xs,
   },
   timePickerButton: {
     paddingHorizontal: SIZES.md,
@@ -890,6 +1601,129 @@ const styles = StyleSheet.create({
   timePickerText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Legal Modal Styles
+  legalModalContainer: {
+    flex: 1,
+    marginTop: 50,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  legalModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    borderBottomWidth: 1,
+  },
+  legalModalCloseButton: {
+    padding: SIZES.xs,
+  },
+  legalModalTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+    marginHorizontal: SIZES.sm,
+  },
+  legalModalHeaderSpacer: {
+    width: 40,
+  },
+  legalModalContent: {
+    flex: 1,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+  },
+  // Subscription Modal Styles
+  subscriptionModalContainer: {
+    borderRadius: 20,
+    padding: SIZES.md,
+    width: Math.min(width * 0.9, 400),
+    maxHeight: Math.min(height * 0.8, 600),
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  subscriptionScrollView: {
+    maxHeight: Math.min(height * 0.5, 400),
+    marginVertical: SIZES.sm,
+  },
+  subscriptionPlan: {
+    borderRadius: 16,
+    padding: SIZES.md,
+    marginBottom: SIZES.md,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: -8,
+    right: SIZES.md,
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  popularText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.white,
+    letterSpacing: 0.5,
+  },
+  planHeader: {
+    marginBottom: SIZES.sm,
+  },
+  planName: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  planPrice: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  planDuration: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  planFeatures: {
+    gap: 6,
+  },
+  planFeature: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  
+  // Additional Badge Styles
+  monthlyBadge: {
+    position: 'absolute',
+    top: -6,
+    right: SIZES.md,
+    paddingHorizontal: SIZES.xs,
+    paddingVertical: 2,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  monthlyBadgeText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: COLORS.white,
+    letterSpacing: 0.3,
+  },
+  savingsText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 2,
+    textAlign: 'center',
   },
 });
 

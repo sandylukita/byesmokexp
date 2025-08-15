@@ -17,6 +17,7 @@ const SwipeableTabNavigator: React.FC<SwipeableTabNavigatorProps> = ({
   currentTabIndex,
   tabRoutes,
 }) => {
+  console.log('📱 SwipeableTabNavigator rendering for tab:', tabRoutes[currentTabIndex]);
   const [activeIndex, setActiveIndex] = useState(currentTabIndex);
 
   const navigateToTab = (index: number) => {
@@ -27,9 +28,16 @@ const SwipeableTabNavigator: React.FC<SwipeableTabNavigatorProps> = ({
   };
 
   const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: (evt, gestureState) => {
+      // Don't capture on initial touch - let children handle taps
+      return false;
+    },
     onMoveShouldSetPanResponder: (evt, gestureState) => {
-      // Only respond to horizontal swipes
-      return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
+      // Only respond to horizontal swipes that are clearly intended for navigation
+      // Require more movement and clear horizontal direction
+      const horizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2;
+      const significantMovement = Math.abs(gestureState.dx) > 50;
+      return horizontalSwipe && significantMovement;
     },
     onPanResponderMove: (evt, gestureState) => {
       // Optional: Add visual feedback during swipe

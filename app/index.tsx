@@ -1,6 +1,6 @@
-import { Redirect } from 'expo-router';
+import Main from './main';
 
 export default function Index() {
-  // Redirect to the main app screen
-  return <Redirect href="/main" />;
+  // Directly load the main app without expo-router
+  return <Main />;
 }

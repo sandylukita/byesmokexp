@@ -13,9 +13,25 @@ export interface SubscriptionPlan {
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
+    id: 'trial',
+    name: 'Coba Gratis',
+    price: 'GRATIS',
+    duration: '7 hari',
+    popular: true,
+    features: [
+      '🎉 Akses penuh semua fitur premium',
+      '🤖 Misi harian dari AI (3 misi)',
+      '💡 Motivasi personal dari AI',
+      '🌙 Mode gelap eksklusif',
+      '🚫 Bebas iklan',
+      '📊 Analytics mendalam',
+      '⏰ Tanpa komitmen - bisa dibatalkan kapan saja',
+    ],
+  },
+  {
     id: 'monthly',
     name: 'Premium Bulanan',
-    price: 'Rp 29.000',
+    price: 'Rp 9.900',
     duration: 'per bulan',
     features: [
       'Misi harian dari AI (3 misi)',
@@ -29,9 +45,8 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'yearly',
     name: 'Premium Tahunan',
-    price: 'Rp 299.000',
+    price: 'Rp 99.000',
     duration: 'per tahun',
-    popular: true,
     features: [
       'Semua fitur bulanan',
       'Hemat 2 bulan (17% diskon)',
@@ -54,10 +69,12 @@ export const PREMIUM_FEATURES = {
   MONTHLY_REPORTS: 'monthly_reports',
 };
 
-export const checkPremiumFeature = (isPremium: boolean, feature: string): boolean => {
-  if (!isPremium) return false;
+export const checkPremiumFeature = (isPremium: boolean, feature: string, user?: any): boolean => {
+  // Check if user is on trial or has premium access
+  const hasAccess = isPremium || (user?.isOnTrial && user?.isPremium);
+  if (!hasAccess) return false;
   
-  // All features are available for premium users
+  // All features are available for premium/trial users
   return Object.values(PREMIUM_FEATURES).includes(feature);
 };
 
@@ -72,26 +89,54 @@ export const showUpgradePrompt = (featureName: string): void => {
   );
 };
 
-export const showSubscriptionOptions = (): void => {
-  const options = SUBSCRIPTION_PLANS.map(plan => 
-    `${plan.name} - ${plan.price} ${plan.duration}`
-  );
-  
-  Alert.alert(
-    'Pilih Paket Premium',
-    'Nikmati fitur lengkap ByeSmoke AI dengan berlangganan premium:',
-    [
-      { text: 'Batal', style: 'cancel' },
-      ...SUBSCRIPTION_PLANS.map(plan => ({
-        text: plan.name,
-        onPress: () => handleSubscription(plan.id),
-      })),
-    ]
-  );
+// Navigation reference for opening subscription screen
+let navigationRef: any = null;
+
+export const setSubscriptionNavigation = (navRef: any) => {
+  navigationRef = navRef;
 };
 
-export const handleSubscription = async (planId: string): Promise<void> => {
+export const showSubscriptionOptions = (userId?: string): void => {
+  if (navigationRef) {
+    // Navigate to subscription screen if navigation is available
+    navigationRef.navigate('Subscription', { userId });
+  } else {
+    // Fallback to alert-based system
+    const options = SUBSCRIPTION_PLANS.map(plan => 
+      `${plan.name} - ${plan.price} ${plan.duration}`
+    );
+    
+    Alert.alert(
+      'Pilih Paket Premium',
+      'Nikmati fitur lengkap ByeSmoke AI dengan berlangganan premium:',
+      [
+        { text: 'Batal', style: 'cancel' },
+        ...SUBSCRIPTION_PLANS.map(plan => ({
+          text: plan.name,
+          onPress: () => handleSubscription(plan.id),
+        })),
+      ]
+    );
+  }
+};
+
+export const handleSubscription = async (planId: string, userId?: string): Promise<void> => {
   try {
+    if (planId === 'trial') {
+      // Handle free trial activation
+      if (userId) {
+        await startFreeTrial(userId);
+      } else {
+        Alert.alert(
+          'Free Trial',
+          'Untuk memulai free trial, Anda perlu login terlebih dahulu.',
+          [{ text: 'OK' }]
+        );
+      }
+      return;
+    }
+    
+    // Handle paid subscriptions
     // In a real app, this would integrate with payment systems like:
     // - Google Play Billing (Android)
     // - App Store In-App Purchases (iOS)
@@ -199,6 +244,9 @@ const getSubscriptionEndDate = (planId: string): string => {
   const now = new Date();
   
   switch (planId) {
+    case 'trial':
+      now.setDate(now.getDate() + 7); // 7 days for trial
+      break;
     case 'monthly':
       now.setMonth(now.getMonth() + 1);
       break;
@@ -222,6 +270,15 @@ export const getSubscriptionRemainingDays = (endDate: string): number => {
 };
 
 export const formatSubscriptionStatus = (user: any): string => {
+  if (user.isOnTrial) {
+    const remainingDays = user.trialEndDate ? getSubscriptionRemainingDays(user.trialEndDate) : 0;
+    if (remainingDays > 0) {
+      return `Trial Premium (${remainingDays} hari tersisa)`;
+    } else {
+      return 'Trial Berakhir';
+    }
+  }
+  
   if (!user.isPremium) return 'Free';
   
   if (user.subscriptionEndDate) {
@@ -235,6 +292,93 @@ export const formatSubscriptionStatus = (user: any): string => {
   }
   
   return 'Premium';
+};
+
+// Trial-specific functions
+export const startFreeTrial = async (userId: string): Promise<void> => {
+  try {
+    const now = new Date();
+    const trialEndDate = new Date();
+    trialEndDate.setDate(now.getDate() + 7); // 7 days trial
+
+    const trialData = {
+      isOnTrial: true,
+      isPremium: true, // Give premium access during trial
+      trialStartDate: now.toISOString(),
+      trialEndDate: trialEndDate.toISOString(),
+      hasUsedTrial: true,
+      subscriptionPlan: 'trial',
+      subscriptionStatus: 'trial_active',
+    };
+
+    const userDoc = doc(db, 'users', userId);
+    await updateDoc(userDoc, trialData);
+
+    Alert.alert(
+      '🎉 Trial Dimulai!',
+      'Selamat! Free trial Premium 7 hari Anda sudah aktif. Nikmati semua fitur premium secara gratis!',
+      [{ text: 'Mulai Sekarang!' }]
+    );
+  } catch (error) {
+    console.error('Error starting free trial:', error);
+    Alert.alert('Error', 'Gagal memulai free trial. Silakan coba lagi.');
+    throw error;
+  }
+};
+
+export const checkTrialEligibility = (user: any): { eligible: boolean; reason?: string } => {
+  if (user.hasUsedTrial) {
+    return { eligible: false, reason: 'Anda sudah pernah menggunakan free trial sebelumnya.' };
+  }
+  
+  if (user.isPremium && !user.isOnTrial) {
+    return { eligible: false, reason: 'Anda sudah berlangganan Premium.' };
+  }
+  
+  return { eligible: true };
+};
+
+export const checkTrialStatus = async (user: any): Promise<boolean> => {
+  try {
+    if (!user.isOnTrial) return false;
+    
+    // Check if trial is still valid
+    if (user.trialEndDate) {
+      const endDate = new Date(user.trialEndDate);
+      const now = new Date();
+      
+      if (now > endDate) {
+        // Trial expired, update user status
+        const userDoc = doc(db, 'users', user.id);
+        await updateDoc(userDoc, {
+          isOnTrial: false,
+          isPremium: false,
+          subscriptionStatus: 'trial_expired',
+        });
+        
+        Alert.alert(
+          '⏰ Trial Berakhir',
+          'Free trial Premium Anda sudah berakhir. Upgrade sekarang untuk terus menikmati fitur premium!',
+          [
+            { text: 'Nanti', style: 'cancel' },
+            { text: 'Upgrade Sekarang', onPress: () => showSubscriptionOptions(user.id) },
+          ]
+        );
+        
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking trial status:', error);
+    return user.isOnTrial || false;
+  }
+};
+
+export const getTrialRemainingDays = (user: any): number => {
+  if (!user.isOnTrial || !user.trialEndDate) return 0;
+  return getSubscriptionRemainingDays(user.trialEndDate);
 };
 
 // Mock payment methods for demo
@@ -283,29 +427,98 @@ export const processPayment = async (
   userId: string
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // In a real app, this would call actual payment APIs
-    // For demo, we'll simulate success
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
-    
     if (!plan) {
       throw new Error('Invalid subscription plan');
     }
+
+    // Handle free trial separately (no payment processing needed)
+    if (planId === 'trial') {
+      await startFreeTrial(userId);
+      return {
+        success: true,
+        message: `🎉 ${plan.name} dimulai!\n\nAnda sekarang memiliki akses penuh ke semua fitur premium selama 7 hari gratis!`,
+      };
+    }
+
+    // Simulate payment processing time for paid plans
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Simulate different payment method behaviors
+    switch (paymentMethodId) {
+      case 'google_play':
+      case 'apple_pay':
+        // Simulate in-app purchase flow
+        console.log(`Processing ${paymentMethodId} payment...`);
+        break;
+      
+      case 'credit_card':
+        // Simulate credit card processing
+        console.log('Processing credit card payment...');
+        // In production: integrate with Stripe, Square, etc.
+        break;
+      
+      case 'bank_transfer':
+        // For bank transfer, we might show different success message
+        console.log('Processing bank transfer...');
+        break;
+      
+      case 'gopay':
+      case 'ovo':
+        // Indonesian digital wallet processing
+        console.log(`Processing ${paymentMethodId} payment...`);
+        // In production: integrate with Midtrans or similar
+        break;
+      
+      default:
+        throw new Error('Unsupported payment method');
+    }
     
-    // Activate premium subscription
-    await activatePremiumSubscription(userId, planId);
+    // For demo purposes, always succeed
+    // In production, this would depend on actual payment result
+    const paymentSuccess = true;
     
-    return {
-      success: true,
-      message: `Pembayaran ${plan.name} berhasil diproses!`,
-    };
+    if (paymentSuccess) {
+      // Activate premium subscription
+      await activatePremiumSubscription(userId, planId);
+      
+      return {
+        success: true,
+        message: `🎉 ${plan.name} subscription activated successfully!\n\nPayment Method: ${PAYMENT_METHODS.find(p => p.id === paymentMethodId)?.name}\nAmount: ${plan.price}`,
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Payment was declined. Please check your payment method and try again.',
+      };
+    }
   } catch (error) {
     console.error('Payment processing error:', error);
     return {
       success: false,
-      message: 'Pembayaran gagal. Silakan coba lagi.',
+      message: 'Payment processing failed. Please try again or contact support.',
     };
   }
+};
+
+// Real payment integration helpers (for future implementation)
+export const initializeRealPayments = async () => {
+  // This would initialize actual payment SDKs
+  console.log('🔄 Initializing payment systems...');
+  
+  // Example integrations:
+  // 1. Google Play Billing
+  // 2. Apple In-App Purchases  
+  // 3. Stripe
+  // 4. Midtrans (Indonesia)
+  // 5. PayPal
+};
+
+export const getPlatformPaymentMethods = (): any[] => {
+  // Return platform-specific payment methods
+  // This would filter based on Platform.OS and region
+  return PAYMENT_METHODS.filter(method => {
+    // Platform-specific filtering logic
+    return true; // For demo, show all methods
+  });
 };

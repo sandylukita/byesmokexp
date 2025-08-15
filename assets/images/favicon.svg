@@ -1,0 +1,26 @@
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="faviconGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FF9447;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E8482F;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Outer circle -->
+  <circle cx="24" cy="24" r="24" fill="url(#faviconGradient)" />
+  
+  <!-- Cigarette body -->
+  <rect x="16" y="22" width="8" height="2" rx="1" fill="white" />
+  
+  <!-- Cigarette filter -->
+  <rect x="24" y="22" width="3" height="2" rx="1" fill="white" />
+  
+  <!-- Cigarette tip -->
+  <rect x="27" y="22.5" width="1.5" height="1.5" rx="0.75" fill="white" />
+  
+  <!-- Smoke -->
+  <path d="M 28 22.5 Q 30 21 31 19" stroke="white" stroke-width="0.5" fill="none" stroke-linecap="round" />
+  
+  <!-- Prohibition slash -->
+  <rect x="10" y="23" width="22" height="2" rx="1" fill="#E8482F" transform="rotate(-45 21 24)" />
+</svg>

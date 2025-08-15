@@ -13,6 +13,15 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
+  
+  // Use web-safe AdMob service on web platform
+  if (moduleName.includes('./services/adMob') && platform === 'web') {
+    return {
+      filePath: context.originModulePath.replace('/adMob', '/adMob.web'),
+      type: 'sourceFile',
+    };
+  }
+  
   return context.resolveRequest(context, moduleName, platform);
 };
 

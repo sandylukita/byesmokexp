@@ -29,7 +29,7 @@ export const COLORS = {
   black: '#000000',
   
   // Background colors
-  background: '#F7F3F1',
+  background: '#F0EBE8',
   surface: '#FFFDFB',
   card: '#FFFFFF',
   
@@ -230,6 +230,14 @@ export const FONTS = {
 
 export const BADGES = [
   {
+    id: 'new-member',
+    name: 'Anggota Baru',
+    description: 'Bergabung dengan komunitas ByeSmoke',
+    icon: 'person-add',
+    color: '#4CAF50',
+    requirement: 'Mendaftar akun'
+  },
+  {
     id: 'first-day',
     name: 'Langkah Pertama',
     description: 'Melakukan check-in pertama kali',
@@ -385,6 +393,44 @@ export const BADGES = [
     color: '#9370DB',
     requirement: '30 hari + 500 XP dalam sebulan',
     isPremium: true
+  },
+
+  // Referral badges
+  {
+    id: 'social-influencer',
+    name: 'Influencer Sosial',
+    description: 'Berhasil mengajak 1 teman bergabung',
+    icon: 'people',
+    color: '#3498DB',
+    requirement: '1 referral berhasil',
+    isPremium: false
+  },
+  {
+    id: 'community-builder',
+    name: 'Pembangun Komunitas',
+    description: 'Berhasil mengajak 5 teman bergabung',
+    icon: 'groups',
+    color: '#9B59B6',
+    requirement: '5 referral berhasil',
+    isPremium: false
+  },
+  {
+    id: 'community-leader',
+    name: 'Pemimpin Komunitas',
+    description: 'Berhasil mengajak 10 teman bergabung',
+    icon: 'supervisor-account',
+    color: '#E67E22',
+    requirement: '10 referral berhasil',
+    isPremium: false
+  },
+  {
+    id: 'smoke-free-ambassador',
+    name: 'Duta Bebas Rokok',
+    description: 'Berhasil mengajak 25 teman bergabung',
+    icon: 'campaign',
+    color: '#F39C12',
+    requirement: '25 referral berhasil',
+    isPremium: false
   }
 ];
 
@@ -466,6 +512,55 @@ export const STATIC_MISSIONS = [
     description: 'Konsumsi buah atau sayuran sebagai cemilan',
     xpReward: 15,
     difficulty: 'easy' as const
+  },
+  {
+    id: 'deep-breathing',
+    title: 'Pernapasan Dalam',
+    description: 'Lakukan latihan pernapasan dalam selama 5 menit',
+    xpReward: 12,
+    difficulty: 'easy' as const
+  },
+  {
+    id: 'walk-outside',
+    title: 'Jalan Kaki',
+    description: 'Jalan kaki di luar ruangan selama 20 menit',
+    xpReward: 18,
+    difficulty: 'easy' as const
+  },
+  {
+    id: 'read-book',
+    title: 'Membaca',
+    description: 'Baca buku atau artikel positif selama 15 menit',
+    xpReward: 16,
+    difficulty: 'easy' as const
+  },
+  {
+    id: 'gratitude-journal',
+    title: 'Jurnal Syukur',
+    description: 'Tulis 3 hal yang kamu syukuri hari ini',
+    xpReward: 14,
+    difficulty: 'easy' as const
+  },
+  {
+    id: 'stretch-yoga',
+    title: 'Peregangan',
+    description: 'Lakukan peregangan atau yoga ringan selama 10 menit',
+    xpReward: 17,
+    difficulty: 'easy' as const
+  },
+  {
+    id: 'social-connection',
+    title: 'Koneksi Sosial',
+    description: 'Hubungi teman atau keluarga untuk berbagi kabar baik',
+    xpReward: 13,
+    difficulty: 'easy' as const
+  },
+  {
+    id: 'hobby-time',
+    title: 'Waktu Hobi',
+    description: 'Luangkan 20 menit untuk hobi yang kamu sukai',
+    xpReward: 19,
+    difficulty: 'medium' as const
   }
 ];
 

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import BadgeStatisticsScreen from '../screens/BadgeStatisticsScreen';
@@ -16,34 +16,35 @@ interface AppNavigatorProps {
   onLogout: () => void;
 }
 
+// Define tab routes for swipe navigation
 const TAB_ROUTES = ['Dashboard', 'Progress', 'BadgeStats', 'Profile'];
 
-const getCurrentTabIndex = (routeName: string): number => {
-  return TAB_ROUTES.indexOf(routeName);
-};
+// Create wrapper components - SwipeableTabNavigator temporarily disabled
+const DashboardWrapper: React.FC<{ onLogout: () => void; navigation: any; route: any }> = ({ onLogout, navigation, route }) => (
+  <DashboardScreen onLogout={onLogout} />
+);
 
-interface SwipeableScreenProps {
-  children: React.ReactNode;
-  routeName: string;
-  navigation: any;
-}
+const ProgressWrapper: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => (
+  <ProgressScreen />
+);
 
-const SwipeableScreen: React.FC<SwipeableScreenProps> = ({ children, routeName, navigation }) => {
-  const currentTabIndex = getCurrentTabIndex(routeName);
-  
-  return (
-    <SwipeableTabNavigator
-      navigation={navigation}
-      currentTabIndex={currentTabIndex}
-      tabRoutes={TAB_ROUTES}
-    >
-      {children}
-    </SwipeableTabNavigator>
-  );
-};
+const BadgeStatsWrapper: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => (
+  <BadgeStatisticsScreen />
+);
+
+const ProfileWrapper: React.FC<{ onLogout: () => void; navigation: any; route: any }> = ({ onLogout, navigation, route }) => (
+  <ProfileScreen onLogout={onLogout} navigation={navigation} />
+);
 
 const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
   const { colors } = useTheme();
+  
+  // Simplified components without useMemo to test touch issues
+  const DashboardComponent = ({ navigation, route }: any) => <DashboardWrapper onLogout={onLogout} navigation={navigation} route={route} />;
+  const ProgressComponent = ({ navigation, route }: any) => <ProgressWrapper navigation={navigation} route={route} />;
+  const BadgeStatsComponent = ({ navigation, route }: any) => <BadgeStatsWrapper navigation={navigation} route={route} />;
+  const ProfileComponent = ({ navigation, route }: any) => <ProfileWrapper onLogout={onLogout} navigation={navigation} route={route} />;
+  
   return (
     <Tab.Navigator
         screenOptions={({ route }) => ({
@@ -92,52 +93,32 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
           options={{ 
             tabBarLabel: 'Beranda',
           }}
-        >
-          {({ navigation }) => (
-            <SwipeableScreen routeName="Dashboard" navigation={navigation}>
-              <DashboardScreen onLogout={onLogout} />
-            </SwipeableScreen>
-          )}
-        </Tab.Screen>
+          component={DashboardComponent}
+        />
         
         <Tab.Screen 
           name="Progress" 
           options={{ 
             tabBarLabel: 'Progress',
           }}
-        >
-          {({ navigation }) => (
-            <SwipeableScreen routeName="Progress" navigation={navigation}>
-              <ProgressScreen />
-            </SwipeableScreen>
-          )}
-        </Tab.Screen>
+          component={ProgressComponent}
+        />
         
         <Tab.Screen 
           name="BadgeStats" 
           options={{ 
-            tabBarLabel: 'Badge Stats',
+            tabBarLabel: 'Achievements',
           }}
-        >
-          {({ navigation }) => (
-            <SwipeableScreen routeName="BadgeStats" navigation={navigation}>
-              <BadgeStatisticsScreen />
-            </SwipeableScreen>
-          )}
-        </Tab.Screen>
+          component={BadgeStatsComponent}
+        />
         
         <Tab.Screen 
           name="Profile" 
           options={{ 
             tabBarLabel: 'Profil',
           }}
-        >
-          {({ navigation }) => (
-            <SwipeableScreen routeName="Profile" navigation={navigation}>
-              <ProfileScreen onLogout={onLogout} />
-            </SwipeableScreen>
-          )}
-        </Tab.Screen>
+          component={ProfileComponent}
+        />
       </Tab.Navigator>
   );
 };

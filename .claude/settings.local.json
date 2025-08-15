@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(find:*)",
@@ -35,8 +36,36 @@
       "Bash(npm start:*)",
       "WebFetch(domain:docs.expo.dev)",
       "Bash(npx expo lint:*)",
-      "Bash(del test-locale.js)"
+      "Bash(del test-locale.js)",
+      "Bash(npx expo export:*)",
+      "Bash(TASKKILL /f /im node.exe)",
+      "Bash(powershell:*)",
+      "Bash(eas build:*)",
+      "Bash(eas credentials:*)",
+      "Bash(./gradlew:*)",
+      "Bash(npx expo prebuild:*)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:expo.dev)",
+      "Bash(EXPO_NO_PROMPTS=1 eas build --profile development --platform android)",
+      "Bash(npx:*)",
+      "Bash(npm ls:*)",
+      "Bash(java:*)",
+      "Bash(echo $JAVA_HOME)",
+      "Bash(where java)",
+      "Bash(dir:*)",
+      "Bash(tasklist:*)",
+      "Bash(TASKKILL /F /IM node.exe)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(adb uninstall:*)",
+      "Bash(adb install:*)",
+      "Bash(ren:*)",
+      "Bash(mv:*)",
+      "Bash(sed:*)",
+      "Bash(git stash push:*)",
+      "Bash(git stash:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

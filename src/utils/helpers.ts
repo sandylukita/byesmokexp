@@ -190,9 +190,11 @@ export const needsNewDailyMotivation = (user: User): boolean => {
 
 // Get or generate daily motivation for premium users
 export const getDailyMotivation = (user: User, language: Language = 'id'): string => {
-  // For non-premium users, return random from basic quotes
+  // Personal motivator is premium-only feature
   if (!user.isPremium) {
-    return getRandomMotivation(language);
+    return language === 'en' 
+      ? 'Upgrade to Premium for personalized AI motivation'
+      : 'Upgrade ke Premium untuk motivasi AI yang personal';
   }
   
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -268,9 +270,9 @@ export const canUseAIThisMonth = (user: User): { canUse: boolean; callsUsed: num
 // Determine if AI insight should be triggered and what type
 export const shouldTriggerAIInsight = (user: User): { 
   shouldTrigger: boolean; 
-  triggerType: 'milestone' | 'streak_recovery' | 'none';
+  triggerType: 'milestone' | 'streak_recovery' | 'daily_motivation' | 'none';
   triggerData: any;
-  priority: number; // 1 = highest, 2 = medium
+  priority: number; // 1 = highest, 2 = medium, 3 = daily
 } => {
   if (!user.isPremium) {
     return { shouldTrigger: false, triggerType: 'none', triggerData: null, priority: 0 };
@@ -300,6 +302,23 @@ export const shouldTriggerAIInsight = (user: User): {
       triggerType: 'milestone',
       triggerData: milestone,
       priority: 2
+    };
+  }
+  
+  // Priority 3: Daily AI motivation for all premium users (if no AI insight today)
+  const today = new Date().toISOString().split('T')[0];
+  if (!user.lastAICallDate || user.lastAICallDate !== today) {
+    return {
+      shouldTrigger: true,
+      triggerType: 'daily_motivation',
+      triggerData: {
+        streak: user.streak || 0,
+        totalDays: user.totalDays || 0,
+        level: user.level || 1,
+        badges: user.badges || [],
+        xp: user.xp || 0
+      },
+      priority: 3
     };
   }
   
@@ -333,7 +352,9 @@ export const getMotivationContent = (user: User, language: Language = 'id'): {
 } => {
   if (!user.isPremium) {
     return {
-      content: getRandomMotivation(language),
+      content: language === 'en' 
+        ? 'Upgrade to Premium for personalized AI motivation'
+        : 'Upgrade ke Premium untuk motivasi AI yang personal',
       isAIGenerated: false,
       shouldUseAI: false
     };
@@ -509,4 +530,136 @@ export const getDailyXP = (dailyXP: { [date: string]: number } | undefined, date
                   String(date.getMonth() + 1).padStart(2, '0') + '-' + 
                   String(date.getDate()).padStart(2, '0');
   return dailyXP?.[dateKey] || 0;
+};
+
+// Smart Streak Notifications - Streak Risk Detection
+export interface StreakRiskInfo {
+  isAtRisk: boolean;
+  hoursUntilExpiry: number;
+  currentStreak: number;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  shouldNotify: boolean;
+  nextNotificationTime?: Date;
+}
+
+export const detectStreakRisk = (user: User): StreakRiskInfo => {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentStreak = user.streak || 0;
+  
+  // If user hasn't checked in today and it's past 8 PM
+  const hasCheckedInToday = !canCheckInToday(user.lastCheckIn);
+  const hoursUntilMidnight = 24 - currentHour;
+  
+  if (hasCheckedInToday || currentStreak === 0) {
+    return {
+      isAtRisk: false,
+      hoursUntilExpiry: hoursUntilMidnight,
+      currentStreak,
+      riskLevel: 'low',
+      shouldNotify: false
+    };
+  }
+  
+  // Determine risk level based on time
+  let riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  let shouldNotify = false;
+  let nextNotificationTime: Date | undefined;
+  
+  if (currentHour >= 20 && currentHour < 21) { // 8 PM - 9 PM
+    riskLevel = 'medium';
+    shouldNotify = true;
+    nextNotificationTime = new Date(now.getTime() + (60 * 60 * 1000)); // 1 hour later
+  } else if (currentHour >= 21 && currentHour < 22) { // 9 PM - 10 PM
+    riskLevel = 'high';
+    shouldNotify = true;
+    nextNotificationTime = new Date(now.getTime() + (60 * 60 * 1000)); // 1 hour later
+  } else if (currentHour >= 22) { // 10 PM and later
+    riskLevel = 'critical';
+    shouldNotify = true;
+    nextNotificationTime = new Date(now.getTime() + (30 * 60 * 1000)); // 30 minutes later
+  } else {
+    riskLevel = 'low';
+  }
+  
+  return {
+    isAtRisk: true,
+    hoursUntilExpiry: hoursUntilMidnight,
+    currentStreak,
+    riskLevel,
+    shouldNotify,
+    nextNotificationTime
+  };
+};
+
+export const getStreakNotificationContent = (streakRisk: StreakRiskInfo, language: 'en' | 'id' = 'id'): { title: string; body: string } => {
+  const streak = streakRisk.currentStreak;
+  const hours = streakRisk.hoursUntilExpiry;
+  
+  const isEnglish = language === 'en';
+  
+  switch (streakRisk.riskLevel) {
+    case 'medium':
+      return {
+        title: isEnglish ? "🔥 Don't Lose Your Streak!" : "🔥 Jangan Sampai Streak Hilang!",
+        body: isEnglish 
+          ? `Your ${streak}-day streak is waiting for you! Quick check-in keeps the momentum going 💪`
+          : `Streak ${streak} hari Anda sedang menunggu! Check-in cepat untuk menjaga momentum 💪`
+      };
+    
+    case 'high':
+      return {
+        title: isEnglish ? "🚨 Streak Alert!" : "🚨 Peringatan Streak!",
+        body: isEnglish
+          ? `Only ${hours} hours left to maintain your ${streak}-day streak! Don't let progress slip away 🏃‍♂️`
+          : `Hanya ${hours} jam tersisa untuk mempertahankan streak ${streak} hari! Jangan biarkan progress hilang 🏃‍♂️`
+      };
+    
+    case 'critical':
+      return {
+        title: isEnglish ? "⏰ URGENT: Save Your Streak!" : "⏰ MENDESAK: Selamatkan Streak Anda!",
+        body: isEnglish
+          ? `Your ${streak}-day streak expires in ${hours} hours! Quick tap to save your amazing progress 🆘`
+          : `Streak ${streak} hari berakhir dalam ${hours} jam! Tap cepat untuk menyelamatkan progress luar biasa Anda 🆘`
+      };
+    
+    default:
+      return {
+        title: isEnglish ? "🔥 Keep Your Streak Alive" : "🔥 Jaga Streak Tetap Hidup",
+        body: isEnglish
+          ? `Your ${streak}-day journey continues! Check in to maintain your progress 🌟`
+          : `Perjalanan ${streak} hari berlanjut! Check-in untuk mempertahankan progress Anda 🌟`
+      };
+  }
+};
+
+export const shouldScheduleStreakReminder = (user: User): boolean => {
+  const streakRisk = detectStreakRisk(user);
+  const hasNotificationsEnabled = user.settings?.notifications ?? true;
+  const hasStreakNotificationsEnabled = user.settings?.streakNotifications ?? true; // Default to true
+  
+  return hasNotificationsEnabled && hasStreakNotificationsEnabled && streakRisk.shouldNotify && streakRisk.currentStreak > 0;
+};
+
+export const getOptimalReminderTimes = (user: User): string[] => {
+  // Analyze user's typical check-in pattern
+  const lastCheckIn = user.lastCheckIn ? new Date(user.lastCheckIn) : null;
+  const typicalHour = lastCheckIn ? lastCheckIn.getHours() : 9;
+  
+  // Schedule reminders 2 hours before typical check-in time, then escalating
+  const reminderTimes: string[] = [];
+  
+  // First reminder: 2 hours before typical time or 8 PM, whichever is earlier
+  const firstReminderHour = Math.min(Math.max(typicalHour - 2, 20), 22);
+  reminderTimes.push(`${firstReminderHour.toString().padStart(2, '0')}:00`);
+  
+  // Additional escalating reminders
+  if (firstReminderHour < 21) {
+    reminderTimes.push('21:00'); // 9 PM
+  }
+  if (firstReminderHour < 22) {
+    reminderTimes.push('22:00'); // 10 PM
+  }
+  
+  return reminderTimes;
 };

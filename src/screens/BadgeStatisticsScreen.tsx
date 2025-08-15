@@ -11,20 +11,23 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { getBadgeStatistics, initializeBadgeStatistics } from '../services/gamification';
+import { initializeCommunityStats } from '../utils/initializeCommunityStats';
 
-import { Badge } from '../types';
+import { Badge, User } from '../types';
 import { BADGES, COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { getTranslatedBadge } from '../utils/translations';
+import CommunityStatsTab from '../components/CommunityStatsTab';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // Cache for badge statistics to avoid repeated Firebase calls
 let cachedBadgeStats: {[badgeId: string]: number} | null = null;
@@ -33,6 +36,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 // Fallback statistics for immediate display
 const FALLBACK_STATS: {[badgeId: string]: number} = {
+  'new-member': 3205,
   'first-day': 2847,
   'week-warrior': 1623,
   'month-master': 943,
@@ -58,6 +62,8 @@ const BadgeStatisticsScreen: React.FC = () => {
   const { t, language } = useTranslation();
   const [badgeStats, setBadgeStats] = useState<{[badgeId: string]: number}>(FALLBACK_STATS);
   const [userBadges, setUserBadges] = useState<Badge[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState<'badges' | 'community'>('badges');
   const [loading, setLoading] = useState(false); // Start with false, show fallback data immediately
   const [refreshing, setRefreshing] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -92,10 +98,11 @@ const BadgeStatisticsScreen: React.FC = () => {
         setLoading(true);
       }
       
-      // Load both in parallel for efficiency
+      // Load all data in parallel for efficiency
       await Promise.all([
         loadBadgeStatistics(),
-        loadUserBadges()
+        loadUserBadges(),
+        loadUserData()
       ]);
       
     } catch (error) {
@@ -123,6 +130,13 @@ const BadgeStatisticsScreen: React.FC = () => {
           initializeBadgeStatistics().catch(err => 
             console.log('Non-critical: Could not initialize baseline stats:', err.message)
           );
+          
+          // Also initialize community stats for the first time
+          console.log('🚀 First app load - initializing community statistics...');
+          initializeCommunityStats().catch(err => 
+            console.log('Non-critical: Could not initialize community stats:', err.message)
+          );
+          
           await AsyncStorage.setItem('badgeStatsInitialized', 'true');
         }
       } catch (e) {
@@ -191,6 +205,42 @@ const BadgeStatisticsScreen: React.FC = () => {
     }
   };
 
+  const loadUserData = async () => {
+    try {
+      // First try Firebase user
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        try {
+          // Fetch user data from Firestore
+          const userDoc = doc(db, 'users', firebaseUser.uid);
+          const userSnapshot = await getDoc(userDoc);
+          
+          if (userSnapshot.exists()) {
+            const userData = { id: firebaseUser.uid, ...userSnapshot.data() } as User;
+            console.log('✅ Badge Screen: Firebase user data loaded:', userData.email);
+            setUser(userData);
+            return;
+          }
+        } catch (firebaseError) {
+          console.error('Firebase error loading user data:', firebaseError);
+        }
+      }
+      
+      // Fallback to demo user
+      const demoUser = demoGetCurrentUser() || await demoRestoreUser();
+      if (demoUser) {
+        setUser(demoUser);
+        console.log('✅ Badge Screen: Demo user data loaded:', demoUser.email);
+      } else {
+        console.log('⚠️ No user found for badge screen');
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setUser(null);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     // Clear cache to force fresh data
@@ -198,6 +248,11 @@ const BadgeStatisticsScreen: React.FC = () => {
     lastStatsLoadTime = 0;
     await loadBadgeData();
     setRefreshing(false);
+  };
+
+  const handleNavigateToSubscription = () => {
+    // Navigation will be handled by parent component or navigation context
+    console.log('Navigate to subscription screen - upgrade button pressed');
   };
 
   const isUserBadgeUnlocked = (badgeId: string): boolean => {
@@ -263,7 +318,7 @@ const BadgeStatisticsScreen: React.FC = () => {
 
   if (loading && isFirstLoad) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t.badges.loading}</Text>
       </View>
@@ -274,52 +329,117 @@ const BadgeStatisticsScreen: React.FC = () => {
   const unlockedBadges = BADGES.filter(badge => isUserBadgeUnlocked(badge.id));
   const lockedBadges = BADGES.filter(badge => !isUserBadgeUnlocked(badge.id));
 
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        showsVerticalScrollIndicator={false}
-      >
-        <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
-          <Text style={styles.headerTitle}>{t.badges.title}</Text>
-          <Text style={styles.headerSubtitle}>
-            Lihat pencapaian komunitas global
-          </Text>
-          <View style={styles.userBadgeCount}>
-            <Text style={styles.userBadgeText}>
-              {t.badges.youHave} {unlockedBadges.length} {t.badges.of} {BADGES.length} badge
-            </Text>
-          </View>
-        </LinearGradient>
-        {unlockedBadges.length > 0 && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.badges.badgesOwned}</Text>
-            </View>
-            <View style={styles.badgeContainer}>
-              {unlockedBadges.map((badge, index) => renderBadgeItem(badge, index))}
-            </View>
-          </>
-        )}
-
-        {lockedBadges.length > 0 && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.badges.otherBadges}</Text>
-            </View>
-            <View style={styles.badgeContainer}>
-              {lockedBadges.map((badge, index) => renderBadgeItem(badge, index))}
-            </View>
-          </>
-        )}
-
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            {t.badges.updateInfo}
+    <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
+        <Text style={styles.headerTitle}>{t.badges.title}</Text>
+        <Text style={styles.headerSubtitle}>
+          {t.badges.subtitle}
+        </Text>
+        <View style={styles.userBadgeCount}>
+          <Text style={styles.userBadgeText}>
+            {t.badges.youHave} {unlockedBadges.length} {t.badges.of} {BADGES.length} badge
           </Text>
         </View>
-      </ScrollView>
+      </LinearGradient>
+
+      {/* Floating Tab Navigation - Matching Progress Page */}
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
+        <TouchableOpacity
+          style={[
+            styles.tab, 
+            { backgroundColor: activeTab === 'badges' ? colors.primary : 'transparent' }
+          ]}
+          onPress={() => setActiveTab('badges')}
+        >
+          <MaterialIcons 
+            name="emoji-events" 
+            size={Math.min(width * 0.045, 18)} 
+            color={activeTab === 'badges' ? colors.white : colors.gray} 
+          />
+          <Text style={[
+            styles.tabText,
+            { color: activeTab === 'badges' ? colors.white : colors.textSecondary }
+          ]}>
+            {t.badges.myBadges}
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            { backgroundColor: activeTab === 'community' ? colors.primary : 'transparent' }
+          ]}
+          onPress={() => setActiveTab('community')}
+        >
+          <MaterialIcons 
+            name="people" 
+            size={Math.min(width * 0.045, 18)} 
+            color={activeTab === 'community' ? colors.white : colors.gray} 
+          />
+          <Text style={[
+            styles.tabText,
+            { color: activeTab === 'community' ? colors.white : colors.textSecondary }
+          ]}>
+            {t.badges.communityStats}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tab Content */}
+      {activeTab === 'badges' ? (
+        // Badges Tab - Existing Content
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          showsVerticalScrollIndicator={false}
+        >
+          {unlockedBadges.length > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.badges.badgesOwned}</Text>
+              </View>
+              <View style={styles.badgeContainer}>
+                {unlockedBadges.map((badge, index) => renderBadgeItem(badge, index))}
+              </View>
+            </>
+          )}
+
+          {lockedBadges.length > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.badges.otherBadges}</Text>
+              </View>
+              <View style={styles.badgeContainer}>
+                {lockedBadges.map((badge, index) => renderBadgeItem(badge, index))}
+              </View>
+            </>
+          )}
+
+          <View style={styles.footer}>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+              {t.badges.updateInfo}
+            </Text>
+          </View>
+        </ScrollView>
+      ) : (
+        // Community Tab - Real Component with Premium Check
+        user ? (
+          <CommunityStatsTab 
+            user={user} 
+            onUpgradePress={handleNavigateToSubscription}
+          />
+        ) : (
+          <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+              {language === 'en' ? 'Loading community data...' : 'Memuat data komunitas...'}
+            </Text>
+          </View>
+        )
+      )}
     </View>
   );
 };
@@ -327,6 +447,7 @@ const BadgeStatisticsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
@@ -341,8 +462,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: SIZES.lg,
+    paddingTop: Math.max(45, height * 0.05), // Balanced top padding like dashboard
+    paddingBottom: SIZES.xl, // Similar to dashboard but not responsive
     paddingHorizontal: SIZES.screenPadding,
     alignItems: 'center',
   },
@@ -356,6 +477,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.white,
     opacity: 0.9,
+    textAlign: 'center',
   },
   userBadgeCount: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -378,7 +500,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SIZES.xs || 4,
     paddingHorizontal: SIZES.screenPadding,
-    marginTop: SIZES.md,
+    marginTop: SIZES.xs,
   },
   sectionTitle: {
     ...TYPOGRAPHY.h1,
@@ -426,7 +548,12 @@ const styles = StyleSheet.create({
   },
   badgeDescription: {
     fontSize: 14,
-    marginBottom: 12,
+    marginBottom: 6,
+  },
+  badgeRarity: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginBottom: 6,
   },
   badgeRequirement: {
     fontSize: 12,
@@ -457,6 +584,72 @@ const styles = StyleSheet.create({
   footerText: {
     ...TYPOGRAPHY.bodySmall,
     textAlign: 'center',
+  },
+  
+  // Tab navigation styles - Matching Progress Page
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    marginHorizontal: SIZES.screenPadding,
+    borderRadius: SIZES.buttonRadius || 12,
+    padding: Math.max(width * 0.015, 6),
+    marginTop: -SIZES.lg,
+    marginBottom: SIZES.xs,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Math.max(width * 0.025, 10),
+    paddingHorizontal: Math.max(width * 0.015, 4),
+    borderRadius: SIZES.buttonRadius || 12,
+    minHeight: 60,
+  },
+  tabText: {
+    fontSize: Math.min(width * 0.032, 12),
+    color: COLORS.gray,
+    marginTop: 2,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: Math.min(width * 0.04, 14),
+  },
+  
+  // Placeholder styles
+  placeholderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.screenPadding,
+  },
+  placeholderCard: {
+    borderRadius: SIZES.buttonRadius || 16,
+    padding: SIZES.xl,
+    alignItems: 'center',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    width: '100%',
+    maxWidth: 300,
+  },
+  placeholderTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: SIZES.md,
+    marginBottom: SIZES.sm,
+    textAlign: 'center',
+  },
+  placeholderSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

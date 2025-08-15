@@ -24,6 +24,16 @@ export interface User {
   lastAICallDate?: string; // Track when AI was last called (YYYY-MM-DD)
   lastAIInsight?: string; // Cache latest AI-generated insight
   aiCallsResetMonth?: string; // Track which month the counter was reset (YYYY-MM)
+  // Referral system fields
+  referralCode: string; // Unique 6-character code for this user
+  referredBy?: string; // Referral code of the user who referred this user
+  referralCount: number; // Count of successful referrals
+  referralRewards: number; // Total XP earned from referrals
+  // Trial system fields
+  isOnTrial?: boolean; // Whether user is currently on free trial
+  trialStartDate?: string; // When trial started (ISO string)
+  trialEndDate?: string; // When trial ends (ISO string)
+  hasUsedTrial?: boolean; // Whether user has used their free trial
 }
 
 export interface Badge {
@@ -51,6 +61,7 @@ export interface Mission {
 export interface UserSettings {
   darkMode: boolean;
   notifications: boolean;
+  streakNotifications?: boolean; // Smart streak protection notifications
   language: string;
   reminderTime: string;
   leaderboardDisplayPreference: 'username' | 'displayName';

@@ -1,6 +1,7 @@
 // Demo authentication service for testing without Firebase setup
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
+import { generateReferralCode } from '../utils/referrals';
 
 interface DemoUser extends User {
   password: string;
@@ -55,7 +56,12 @@ const DEMO_USERS: DemoUser[] = [
       leaderboardDisplayPreference: 'username'
     },
     onboardingCompleted: true,
-    dailyXP: {}
+    dailyXP: {},
+    // Referral fields
+    referralCode: 'ADMIN1',
+    referredBy: undefined,
+    referralCount: 2,
+    referralRewards: 100
   },
   {
     id: 'demo-user',
@@ -83,7 +89,12 @@ const DEMO_USERS: DemoUser[] = [
       leaderboardDisplayPreference: 'username'
     },
     onboardingCompleted: true,
-    dailyXP: {}
+    dailyXP: {},
+    // Referral fields
+    referralCode: 'TEST01',
+    referredBy: 'ADMIN1',
+    referralCount: 0,
+    referralRewards: 0
   },
   {
     id: 'demo-new-user',
@@ -111,7 +122,12 @@ const DEMO_USERS: DemoUser[] = [
       leaderboardDisplayPreference: 'username'
     },
     onboardingCompleted: false,
-    dailyXP: {}
+    dailyXP: {},
+    // Referral fields
+    referralCode: 'NEWB99',
+    referredBy: undefined,
+    referralCount: 0,
+    referralRewards: 0
   }
 ];
 
@@ -139,9 +155,34 @@ export const demoSignIn = async (email: string, password: string): Promise<DemoU
   });
 };
 
-export const demoSignUp = async (email: string, password: string, displayName: string, username: string): Promise<DemoUser> => {
+export const demoSignUp = async (email: string, password: string, displayName: string, username: string, referralCode?: string): Promise<DemoUser> => {
   return new Promise(async (resolve) => {
     setTimeout(async () => {
+      // Generate unique referral code for new user
+      let userReferralCode: string;
+      do {
+        userReferralCode = generateReferralCode();
+      } while (DEMO_USERS.some(u => u.referralCode === userReferralCode));
+
+      // Handle referral tracking
+      let referralXPBonus = 0;
+      let referrerUser = null;
+      
+      if (referralCode) {
+        referrerUser = DEMO_USERS.find(u => u.referralCode === referralCode.toUpperCase());
+        if (referrerUser) {
+          // Give bonus XP to new user
+          referralXPBonus = 25;
+          
+          // Award referrer
+          referrerUser.referralCount = (referrerUser.referralCount || 0) + 1;
+          referrerUser.referralRewards = (referrerUser.referralRewards || 0) + 50;
+          referrerUser.xp = (referrerUser.xp || 0) + 50;
+          
+          console.log(`✓ Demo referral: ${referralCode} -> +50 XP to referrer, +25 XP to new user`);
+        }
+      }
+
       const newUser: DemoUser = {
         id: `demo-${Date.now()}`,
         email,
@@ -155,7 +196,7 @@ export const demoSignUp = async (email: string, password: string, displayName: s
         streak: 0,
         longestStreak: 0,
         totalDays: 0,
-        xp: 0,
+        xp: referralXPBonus,
         level: 1,
         lastCheckIn: null,
         badges: [],
@@ -168,8 +209,14 @@ export const demoSignUp = async (email: string, password: string, displayName: s
           leaderboardDisplayPreference: 'username'
         },
         onboardingCompleted: false,
-        dailyXP: {}
+        dailyXP: {},
+        // Referral fields
+        referralCode: userReferralCode,
+        referredBy: referralCode?.toUpperCase() || undefined,
+        referralCount: 0,
+        referralRewards: 0
       };
+      
       DEMO_USERS.push(newUser);
       currentUser = newUser;
       await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(newUser));
@@ -194,8 +241,26 @@ export const demoRestoreUser = async (): Promise<DemoUser | null> => {
     const userStr = await AsyncStorage.getItem(DEMO_USER_STORAGE_KEY);
     if (userStr) {
       const user = JSON.parse(userStr);
+      
+      // Ensure user has a referral code (for users created before this feature)
+      if (!user.referralCode) {
+        console.log('User missing referral code, generating one...');
+        let userReferralCode: string;
+        do {
+          userReferralCode = generateReferralCode();
+        } while (DEMO_USERS.some(u => u.referralCode === userReferralCode));
+        
+        user.referralCode = userReferralCode;
+        user.referralCount = user.referralCount || 0;
+        user.referralRewards = user.referralRewards || 0;
+        
+        // Save updated user back to storage
+        await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(user));
+        console.log('✓ Generated referral code for existing user:', userReferralCode);
+      }
+      
       currentUser = user;
-      console.log('User restored successfully:', user.email);
+      console.log('User restored successfully:', user.email, 'with referral code:', user.referralCode);
       return user;
     }
     console.log('No user found in AsyncStorage');
@@ -208,6 +273,23 @@ export const demoRestoreUser = async (): Promise<DemoUser | null> => {
 
 export const demoGetCurrentUser = (): DemoUser | null => {
   return currentUser;
+};
+
+export const demoDeleteUser = async (): Promise<void> => {
+  try {
+    console.log('Deleting demo user account...');
+    
+    // Clear current user from memory
+    currentUser = null;
+    
+    // Clear user data from AsyncStorage
+    await AsyncStorage.removeItem(DEMO_USER_STORAGE_KEY);
+    
+    console.log('✓ Demo user account deleted successfully');
+  } catch (error) {
+    console.error('Error deleting demo user:', error);
+    throw error;
+  }
 };
 
 export const demoUpdateUser = async (userId: string, updates: Partial<User>): Promise<void> => {
@@ -230,7 +312,13 @@ export const demoUpdateUser = async (userId: string, updates: Partial<User>): Pr
   }
 };
 
-export const demoCreateUserDocument = async (email: string, displayName: string, username: string): Promise<Partial<User>> => {
+export const demoCreateUserDocument = async (email: string, displayName: string, username: string, referralCode?: string): Promise<Partial<User>> => {
+  // Generate unique referral code for new user
+  let userReferralCode: string;
+  do {
+    userReferralCode = generateReferralCode();
+  } while (DEMO_USERS.some(u => u.referralCode === userReferralCode));
+
   const userData: Partial<User> = {
     email,
     displayName,
@@ -255,7 +343,12 @@ export const demoCreateUserDocument = async (email: string, displayName: string,
       leaderboardDisplayPreference: 'username'
     },
     onboardingCompleted: false,
-    dailyXP: {}
+    dailyXP: {},
+    // Referral fields
+    referralCode: userReferralCode,
+    referredBy: referralCode?.toUpperCase() || undefined,
+    referralCount: 0,
+    referralRewards: 0
   };
   
   return userData;

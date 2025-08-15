@@ -4,10 +4,12 @@ import { BADGES } from '../utils/constants';
 import { User, Badge, Mission } from '../types';
 import { demoGetCurrentUser, demoUpdateUser } from './demoAuth';
 import { calculateLevel, calculateMoneySaved, addDailyXP } from '../utils/helpers';
+// import { showInterstitialAd } from './adMob';
 
 // Baseline badge statistics to make the app feel established
 const BASELINE_BADGE_STATS: {[badgeId: string]: number} = {
   // Common badges - most users achieve these
+  'new-member': 3205,   // Highest count - all registered users get this
   'first-day': 2847,
   'week-warrior': 1623,
   
@@ -18,6 +20,12 @@ const BASELINE_BADGE_STATS: {[badgeId: string]: number} = {
   
   // Hard badges - fewer users
   'streak-master': 234,
+  
+  // Referral badges - social sharing encourages growth
+  'social-influencer': 892,      // Many users refer at least 1 friend
+  'community-builder': 234,      // Fewer achieve 5 referrals
+  'community-leader': 87,        // Even fewer achieve 10 referrals
+  'smoke-free-ambassador': 23,   // Very few achieve 25 referrals
   
   // Premium badges - moderate numbers
   'elite-year': 156,
@@ -156,6 +164,10 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
 
     // Check badge requirements
     switch (badgeTemplate.id) {
+      case 'new-member':
+        // Auto-awarded to all users (this should be given during registration)
+        shouldAward = true;
+        break;
       case 'first-day':
         // Award badge after first check-in (when user has done at least one check-in)
         shouldAward = user.lastCheckIn !== null && user.lastCheckIn !== undefined;
@@ -175,6 +187,21 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
       case 'mission-master':
         shouldAward = (user.completedMissions?.length || 0) >= 50;
         break;
+      
+      // Referral Badges
+      case 'social-influencer':
+        shouldAward = (user.referralCount || 0) >= 1;
+        break;
+      case 'community-builder':
+        shouldAward = (user.referralCount || 0) >= 5;
+        break;
+      case 'community-leader':
+        shouldAward = (user.referralCount || 0) >= 10;
+        break;
+      case 'smoke-free-ambassador':
+        shouldAward = (user.referralCount || 0) >= 25;
+        break;
+      
       // Premium Badges
       case 'elite-year':
         shouldAward = user.totalDays >= 365;
@@ -261,6 +288,19 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
         }
       } catch (error) {
         console.error('Firebase error awarding badges:', error);
+      }
+    }
+    
+    // Show interstitial ad when user earns badges (async, don't await)
+    if (newBadges.length > 0) {
+      // Get user's premium status to determine if we should show ad
+      const shouldShowAd = !user.isPremium;
+      if (shouldShowAd) {
+        // Show ad after a short delay, don't block the function
+        setTimeout(() => {
+          // showInterstitialAd(user.isPremium, `badge_earned_${newBadges[0].id}`); // Commented out for web compatibility
+          console.log('🎯 Badge earned ad would show here on native platforms');
+        }, 3000); // 3 second delay to let user enjoy the badge notification
       }
     }
   }

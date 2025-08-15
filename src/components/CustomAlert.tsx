@@ -61,41 +61,40 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
       animationType="fade"
       onRequestClose={onDismiss}
     >
-      <View style={styles.overlay}>
+      <TouchableOpacity 
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onDismiss}
+      >
         <TouchableOpacity 
-          style={styles.overlayTouch} 
-          activeOpacity={1} 
-          onPress={onDismiss}
+          style={[styles.alertContainer, { backgroundColor: colors.surface }]}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
         >
-          <View style={[styles.alertContainer, { backgroundColor: colors.surface }]}>
-            <View style={styles.iconContainer}>
-              <MaterialIcons 
-                name={getIconName() as any} 
-                size={32} 
-                color={getIconColor()} 
-              />
-            </View>
-            
-            <Text style={[styles.title, { color: colors.textPrimary }]}>
-              {title}
-            </Text>
-            
-            <Text style={[styles.message, { color: colors.textSecondary }]}>
-              {message}
-            </Text>
-            
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary }]}
-              onPress={onDismiss}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.buttonText, { color: colors.white }]}>
-                OK
-              </Text>
-            </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={onDismiss}
+          >
+            <MaterialIcons name="close" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+          
+          <View style={styles.iconContainer}>
+            <MaterialIcons 
+              name={getIconName() as any} 
+              size={32} 
+              color={getIconColor()} 
+            />
           </View>
+          
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {title}
+          </Text>
+          
+          <Text style={[styles.message, { color: colors.textSecondary }]}>
+            {message}
+          </Text>
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -106,12 +105,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  overlayTouch: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
   },
   alertContainer: {
     backgroundColor: '#FFFFFF',
@@ -125,9 +118,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 8,
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: SIZES.sm,
+    right: SIZES.sm,
+    padding: SIZES.xs,
+    zIndex: 1,
   },
   iconContainer: {
     marginBottom: SIZES.md,
+    marginTop: SIZES.xs,
   },
   title: {
     ...TYPOGRAPHY.h3,
@@ -138,19 +140,7 @@ const styles = StyleSheet.create({
   message: {
     ...TYPOGRAPHY.bodyMedium,
     textAlign: 'center',
-    marginBottom: SIZES.lg,
+    marginBottom: SIZES.sm,
     lineHeight: 22,
-  },
-  button: {
-    backgroundColor: '#F99546',
-    paddingHorizontal: SIZES.xl,
-    paddingVertical: SIZES.md,
-    borderRadius: SIZES.buttonRadius || 12,
-    minWidth: 80,
-  },
-  buttonText: {
-    ...TYPOGRAPHY.button,
-    color: '#FFFFFF',
-    textAlign: 'center',
   },
 });
