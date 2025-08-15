@@ -109,16 +109,26 @@ export interface Translations {
   // Badge Statistics Screen
   badges: {
     title: string;
+    subtitle: string;
     loading: string;
     youHave: string;
     of: string;
     badgesOwned: string;
     otherBadges: string;
     updateInfo: string;
+    // Internal tabs
+    myBadges: string;
+    communityStats: string;
+    // Community features
+    communityRanking: string;
+    communityInsights: string;
+    premiumRequired: string;
+    premiumCommunityDesc: string;
   };
 
   // Badge Names and Descriptions
   badgeNames: {
+    'new-member': string;
     'first-day': string;
     'week-warrior': string;
     'month-master': string;
@@ -140,6 +150,7 @@ export interface Translations {
   };
 
   badgeDescriptions: {
+    'new-member': string;
     'first-day': string;
     'week-warrior': string;
     'month-master': string;
@@ -161,6 +172,7 @@ export interface Translations {
   };
 
   badgeRequirements: {
+    'new-member': string;
     'first-day': string;
     'week-warrior': string;
     'month-master': string;
@@ -441,16 +453,26 @@ export const translations: Record<Language, Translations> = {
     },
 
     badges: {
-      title: 'Statistik Badge',
-      loading: 'Memuat statistik badge...',
+      title: 'Pencapaian & Statistik',
+      subtitle: 'Lihat pencapaian dan ranking komunitas global',
+      loading: 'Memuat data pencapaian...',
       youHave: 'Kamu:',
       of: 'dari',
       badgesOwned: 'Badge yang Kamu Miliki',
       otherBadges: 'Badge Lainnya',
       updateInfo: 'Statistik diperbarui secara real-time • Tarik untuk refresh',
+      // Internal tabs
+      myBadges: 'Badge Saya',
+      communityStats: 'Statistik Komunitas',
+      // Community features
+      communityRanking: 'Ranking Komunitas',
+      communityInsights: 'Insight Komunitas',
+      premiumRequired: 'Fitur Premium Diperlukan',
+      premiumCommunityDesc: 'Lihat ranking dan statistik komunitas lengkap dengan upgrade ke Premium',
     },
 
     badgeNames: {
+      'new-member': 'Anggota Baru',
       'first-day': 'Langkah Pertama',
       'week-warrior': 'Pejuang Seminggu',
       'month-master': 'Master Sebulan',
@@ -472,6 +494,7 @@ export const translations: Record<Language, Translations> = {
     },
 
     badgeDescriptions: {
+      'new-member': 'Bergabung dengan komunitas ByeSmoke',
       'first-day': 'Melakukan check-in pertama kali',
       'week-warrior': 'Bertahan selama 7 hari',
       'month-master': 'Bertahan selama 30 hari',
@@ -493,6 +516,7 @@ export const translations: Record<Language, Translations> = {
     },
 
     badgeRequirements: {
+      'new-member': 'Mendaftar akun',
       'first-day': 'Check-in pertama',
       'week-warrior': '7 hari berturut-turut',
       'month-master': '30 hari berturut-turut',
@@ -621,7 +645,7 @@ export const translations: Record<Language, Translations> = {
       darkMode: 'Mode Gelap',
       language: 'Bahasa',
       help: 'Bantuan & Dukungan',
-      helpContent: 'Butuh bantuan? FAQ dan panduan akan segera tersedia. Untuk bantuan langsung, hubungi tim pengembang.',
+      helpContent: 'Ada pertanyaan atau butuh bantuan? Hubungi tim dukungan kami di sandy@zaynstudio.app',
       about: 'ByeSmoke AI v1.0.0',
       aboutContent: 'Aplikasi ini dibuat untuk membantu Anda dalam perjalanan berhenti merokok. Lacak progres Anda dan dapatkan motivasi harian.',
     },
@@ -656,18 +680,18 @@ export const translations: Record<Language, Translations> = {
 
     quotes: {
       streakBroken: [
-        "Jatuh itu manusiawi, bangkit itu pilihan. Mulai lagi hari ini dengan keyakinan yang lebih kuat.",
-        "Setiap juara pernah mengalami kekalahan. Yang membedakan adalah keberanian untuk mencoba lagi.",
-        "Tidak ada yang namanya kegagalan, yang ada hanya pelajaran. Hari ini adalah awal yang baru.",
-        "Streak terputus bukan berarti semua usaha sia-sia. Semua progress sebelumnya tetap berarti.",
-        "Kesempurnaan bukanlah tujuan, konsistensi adalah kunci. Mari mulai lagi dengan lebih bijaksana.",
+        "Sebagai dokter yang telah menangani ribuan pasien, saya ingin mengatakan bahwa jatuh dalam perjalanan berhenti merokok adalah hal yang sangat wajar. Yang terpenting adalah bangkit kembali dengan pemahaman yang lebih dalam tentang pemicu Anda. Setiap kali Anda mencoba lagi, otak Anda menjadi lebih kuat dalam melawan kecanduan nikotin. Mari kita analisis bersama apa yang memicu kembalinya kebiasaan ini dan buat strategi yang lebih baik untuk masa depan.",
+        "Dalam praktik medis saya, setiap pasien yang berhasil berhenti merokok pernah mengalami kegagalan berkali-kali. Ini bukan tanda kelemahan, melainkan proses alami pembentukan ulang jalur saraf di otak Anda. Penelitian menunjukkan bahwa rata-rata seseorang mencoba berhenti merokok 6-7 kali sebelum benar-benar berhasil. Pengalaman sebelumnya adalah data berharga yang akan membantu Anda mengidentifikasi pola dan mencegah kesalahan yang sama terulang kembali.",
+        "Izinkan saya menjelaskan dari sudut pandang medis: ketika Anda kembali merokok setelah berhenti, tubuh Anda sebenarnya sudah mengalami banyak perbaikan yang tidak akan hilang begitu saja. Sirkulasi darah yang membaik, fungsi paru-paru yang meningkat, dan penurunan risiko penyakit jantung tetap memberikan manfaat jangka panjang. Yang perlu kita lakukan sekarang adalah membangun kembali momentum dengan strategi yang lebih tepat sasaran berdasarkan pengalaman sebelumnya.",
+        "Dari perspektif neurologi, setiap hari Anda tidak merokok telah menciptakan jalur saraf baru di otak yang mendukung kebiasaan sehat. Meskipun streak terputus, fondasi neurologis ini tidak hilang sepenuhnya. Seperti otot yang pernah dilatih, otak Anda akan lebih mudah kembali ke pola sehat. Mari kita manfaatkan periode ini untuk menganalisis pemicu emosional dan lingkungan yang menyebabkan kembalinya kebiasaan lama, sehingga kita bisa membangun strategi pertahanan yang lebih kuat.",
+        "Sebagai profesional kesehatan, saya selalu mengingatkan pasien bahwa berhenti merokok adalah maraton, bukan sprint. Perfeksionisme seringkali menjadi musuh terbesar dalam proses ini. Yang penting adalah tren jangka panjang menuju kehidupan bebas rokok. Setiap kali Anda mencoba, Anda mengumpulkan wawasan berharga tentang diri sendiri. Mari kita gunakan pengetahuan ini untuk menciptakan rencana yang lebih personal dan realistis, dengan fokus pada progress berkelanjutan daripada kesempurnaan sesaat.",
       ],
       newUser: [
-        "Selamat datang dalam perjalanan bebas rokok! Setiap langkah kecil adalah kemenangan besar.",
-        "Keputusan berhenti merokok adalah investasi terbaik untuk masa depan yang cerah.",
-        "Hari pertama adalah yang tersulit. Anda sudah melewatinya dengan baik!",
-        "Tubuh Anda mulai pulih dari hari pertama. Rasakan perubahan positifnya.",
-        "Perjalanan seribu mil dimulai dari satu langkah. Anda sudah mengambil langkah terpenting.",
+        "Selamat! Sebagai dokter, saya sangat bangga dengan keputusan Anda untuk memulai perjalanan bebas rokok. Dalam 20 menit pertama setelah rokok terakhir, detak jantung dan tekanan darah Anda sudah mulai normal. Dalam 8-12 jam, kadar karbon monoksida dalam darah turun signifikan, dan oksigen mulai mengalir lebih baik ke seluruh tubuh. Hari-hari pertama memang challenging karena tubuh sedang melakukan detoksifikasi nikotin, tapi ingatlah bahwa setiap gejala withdrawal yang Anda rasakan adalah tanda bahwa tubuh sedang memperbaiki diri. Tetap semangat!",
+        "Dari sudut pandang medis, keputusan Anda berhenti merokok adalah investasi kesehatan terbaik yang pernah ada. Riset menunjukkan bahwa dalam 24 jam pertama, risiko serangan jantung sudah mulai menurun. Dalam 48-72 jam, indra penciuman dan perasa akan mulai membaik drastis. Sebagai dokter yang telah melihat perbedaan luar biasa pada pasien yang berhasil berhenti, saya yakin Anda akan merasakan peningkatan energi, kualitas tidur yang lebih baik, dan stamina yang meningkat dalam minggu-minggu mendatang.",
+        "Hari pertama adalah pencapaian monumental! Dari perspektif fisiologis, tubuh Anda sudah mulai proses penyembuhan yang luar biasa. Silia di paru-paru mulai berfungsi normal kembali, membantu membersihkan lendir dan partikel berbahaya. Sistem kekebalan tubuh mulai menguat. Yang Anda rasakan sekarang - mungkin sedikit gelisah atau sulit konsentrasi - adalah reaksi normal otak yang sedang menyesuaikan kadar dopamin tanpa nikotin. Dalam 3-5 hari, gejala fisik withdrawal akan mulai mereda dan Anda akan merasakan kejernihan mental yang luar biasa.",
+        "Sebagai dokter yang telah menangani ribuan kasus berhenti merokok, saya ingin menjelaskan apa yang terjadi dalam tubuh Anda saat ini. Setiap jam tanpa rokok, tubuh bekerja keras memulihkan kerusakan yang telah terjadi. Aliran darah ke tangan dan kaki membaik, suhu tubuh kembali normal, dan yang paling penting - sel-sel dalam paru-paru mulai beregenerasi. Proses ini akan terus berlanjut selama berbulan-bulan kedepan. Percayalah pada kemampuan luar biasa tubuh Anda untuk menyembuhkan diri.",
+        "Langkah pertama ini menunjukkan kekuatan karakter dan komitmen terhadap kesehatan yang luar biasa. Dari pengalaman klinis saya, pasien yang berhasil melewati minggu pertama memiliki peluang 90% lebih tinggi untuk berhasil jangka panjang. Yang perlu Anda ingat adalah bahwa nikotin akan sepenuhnya keluar dari tubuh dalam 72 jam. Setelah itu, semua gejala yang Anda rasakan adalah psikologis dan dapat diatasi dengan strategi yang tepat. Mari kita bangun fondasi yang kuat untuk perjalanan sehat Anda!",
       ],
       earlyJourney: [
         "Minggu pertama adalah fondasi kuat untuk perjalanan sehat yang panjang.",
@@ -691,11 +715,14 @@ export const translations: Record<Language, Translations> = {
         "Dari perokok menjadi teladan hidup sehat. Transformasi yang menginspirasi!",
       ],
       generalDaily: [
-        "Setiap hari tanpa rokok adalah kemenangan kecil yang bermakna besar.",
-        "Kesehatan adalah investasi terbaik untuk masa depan yang cerah.",
-        "Kamu lebih kuat dari kecanduan apapun. Percayalah pada diri sendiri.",
-        "Perubahan dimulai dari keputusan kecil yang konsisten.",
-        "Hidup sehat adalah hadiah terbaik untuk orang-orang yang kamu cintai.",
+        "Setiap hari tanpa rokok adalah kemenangan kecil yang bermakna besar. Hari ini, kamu telah memilih untuk menghargai tubuhmu, menghormati kesehatanmu, dan memberikan yang terbaik untuk masa depan. Setiap napas yang kamu ambil sekarang adalah napas yang lebih bersih, lebih bebas, dan lebih penuh makna.",
+        "Kesehatan adalah investasi terbaik untuk masa depan yang cerah. Dengan setiap hari yang berlalu tanpa rokok, kamu sedang membangun fondasi yang kuat untuk kehidupan yang lebih panjang, lebih bahagia, dan lebih bermakna. Tubuhmu sedang menyembuhkan diri, dan setiap sel dalam tubuhmu berterima kasih atas keputusan bijak yang telah kamu buat.",
+        "Kamu lebih kuat dari kecanduan apapun. Percayalah pada diri sendiri. Dalam setiap momen ketika kamu merasa tergoda, ingatlah bahwa kamu memiliki kekuatan yang luar biasa dalam dirimu. Kamu telah membuktikan bahwa kamu bisa mengambil kendali atas hidupmu sendiri, dan itu adalah pencapaian yang sangat luar biasa.",
+        "Perubahan dimulai dari keputusan kecil yang konsisten. Setiap hari yang kamu lewati tanpa rokok adalah bukti nyata bahwa kamu mampu menciptakan transformasi positif dalam hidupmu. Kebiasaan baik yang kamu bangun hari ini akan menjadi fondasi untuk kebiasaan-kebiasaan hebat lainnya di masa depan.",
+        "Hidup sehat adalah hadiah terbaik untuk orang-orang yang kamu cintai. Dengan berhenti merokok, kamu tidak hanya memberikan yang terbaik untuk dirimu sendiri, tetapi juga untuk keluarga, teman, dan semua orang yang peduli padamu. Kamu sedang menjadi contoh yang menginspirasi bagi mereka yang melihat perjuanganmu.",
+        "Paru-parumu sedang bernapas lega hari ini. Setiap hari tanpa rokok adalah hari dimana tubuhmu memiliki kesempatan untuk menyembuhkan diri. Sirkulasi darahmu membaik, oksigen mengalir lebih lancar, dan energimu akan semakin meningkat. Kamu sedang memberikan hadiah kesehatan yang tak ternilai untuk dirimu sendiri.",
+        "Kebebasan sejati dimulai ketika kamu tidak lagi bergantung pada rokok. Hari ini, kamu adalah versi yang lebih bebas dari dirimu. Bebas dari kecemasan mencari rokok, bebas dari kekhawatiran tentang kesehatan, dan bebas untuk menikmati hidup dengan cara yang lebih autentik dan bermakna.",
+        "Setiap rupiah yang tidak kamu habiskan untuk rokok adalah investasi untuk mimpi-mimpimu. Bayangkan semua hal indah yang bisa kamu lakukan dengan uang yang sekarang kamu hemat. Liburan bersama keluarga, hobi baru, atau bahkan tabungan untuk masa depan - semuanya menjadi lebih mungkin karena keputusan bijak yang telah kamu ambil."
       ],
     },
   },
@@ -800,16 +827,26 @@ export const translations: Record<Language, Translations> = {
     },
 
     badges: {
-      title: 'Badge Statistics',
-      loading: 'Loading badge statistics...',
+      title: 'Achievements & Stats',
+      subtitle: 'View your achievements and global community rankings',
+      loading: 'Loading achievements data...',
       youHave: 'You:',
       of: 'of',
       badgesOwned: 'Badges You Own',
       otherBadges: 'Other Badges',
       updateInfo: 'Statistics updated in real-time • Pull to refresh',
+      // Internal tabs
+      myBadges: 'My Badges',
+      communityStats: 'Community Stats',
+      // Community features
+      communityRanking: 'Community Ranking',
+      communityInsights: 'Community Insights',
+      premiumRequired: 'Premium Required',
+      premiumCommunityDesc: 'View complete community rankings and statistics with Premium upgrade',
     },
 
     badgeNames: {
+      'new-member': 'New Member',
       'first-day': 'First Step',
       'week-warrior': 'Week Warrior',
       'month-master': 'Month Master',
@@ -831,6 +868,7 @@ export const translations: Record<Language, Translations> = {
     },
 
     badgeDescriptions: {
+      'new-member': 'Join the ByeSmoke community',
       'first-day': 'Complete your first check-in',
       'week-warrior': 'Stay smoke-free for 7 days',
       'month-master': 'Stay smoke-free for 30 days',
@@ -852,6 +890,7 @@ export const translations: Record<Language, Translations> = {
     },
 
     badgeRequirements: {
+      'new-member': 'Register account',
       'first-day': 'First check-in',
       'week-warrior': '7 consecutive days',
       'month-master': '30 consecutive days',
@@ -980,7 +1019,7 @@ export const translations: Record<Language, Translations> = {
       darkMode: 'Dark Mode',
       language: 'Language',
       help: 'Help & Support',
-      helpContent: 'Need help? FAQ and guides will be available soon. For direct support, contact the development team.',
+      helpContent: 'Have any question or need help? Contact our support team at sandy@zaynstudio.app',
       about: 'ByeSmoke AI v1.0.0',
       aboutContent: 'This app is designed to help you on your journey to quit smoking. Track your progress and get daily motivation.',
     },
@@ -1022,18 +1061,18 @@ export const translations: Record<Language, Translations> = {
         "Perfection isn't the goal, consistency is the key. Let's start again with more wisdom.",
       ],
       newUser: [
-        "Welcome to your smoke-free journey! Every small step is a huge victory.",
-        "The decision to quit smoking is the best investment for a brighter future.",
-        "The first day is the hardest. You've gotten through it well!",
-        "Your body starts healing from day one. Feel the positive changes.",
-        "A journey of a thousand miles begins with one step. You've taken the most important one.",
+        "Congratulations! As a doctor, I am incredibly proud of your decision to begin this smoke-free journey. Within the first 20 minutes after your last cigarette, your heart rate and blood pressure have already begun to normalize. In 8-12 hours, the carbon monoxide levels in your blood drop significantly, and oxygen starts flowing better throughout your body. The first few days are indeed challenging as your body undergoes nicotine detoxification, but remember that every withdrawal symptom you experience is a sign that your body is healing itself. Stay strong!",
+        "From a medical perspective, your decision to quit smoking is the best health investment ever made. Research shows that within the first 24 hours, your risk of heart attack already begins to decrease. In 48-72 hours, your sense of smell and taste will start improving dramatically. As a doctor who has witnessed the extraordinary difference in patients who successfully quit, I'm confident you will experience increased energy, better sleep quality, and improved stamina in the weeks to come.",
+        "The first day is a monumental achievement! From a physiological perspective, your body has already begun an incredible healing process. The cilia in your lungs are starting to function normally again, helping to clear mucus and harmful particles. Your immune system is beginning to strengthen. What you're experiencing now - perhaps some restlessness or difficulty concentrating - is your brain's normal response as it adjusts dopamine levels without nicotine. In 3-5 days, physical withdrawal symptoms will start to subside and you'll experience remarkable mental clarity.",
+        "As a doctor who has handled thousands of smoking cessation cases, I want to explain what's happening in your body right now. Every hour without cigarettes, your body works hard to repair the damage that has occurred. Blood flow to your hands and feet improves, body temperature returns to normal, and most importantly - cells in your lungs begin to regenerate. This process will continue for months ahead. Trust in your body's incredible ability to heal itself.",
+        "This first step demonstrates extraordinary character strength and commitment to health. From my clinical experience, patients who successfully pass the first week have a 90% higher chance of long-term success. What you need to remember is that nicotine will be completely out of your body within 72 hours. After that, all symptoms you experience are psychological and can be overcome with the right strategies. Let's build a strong foundation for your healthy journey!",
       ],
       earlyJourney: [
-        "The first week is a strong foundation for a long healthy journey.",
-        "Every day without cigarettes is proof of extraordinary mental strength.",
-        "Your breathing is getting easier, energy is increasing. Keep it up!",
-        "New habits need 21 days to form. You're on the right track.",
-        "Your body is in a natural detoxification process. Amazing!",
+        "Excellent progress! As a medical professional with decades of experience, I want you to understand the remarkable transformations occurring in your body during these crucial early weeks. Your respiratory system is undergoing significant healing - the tiny hair-like structures called cilia in your lungs are regenerating and beginning to effectively clear mucus and toxins. Your cardiovascular system is also improving dramatically; blood circulation to your extremities is normalizing, and your heart no longer has to work overtime to compensate for the toxic effects of smoking. These foundational changes you're experiencing now will continue to compound over the coming months.",
+        "From a neurological standpoint, what you're accomplishing right now is extraordinary. Your brain is actively rewiring itself, creating new neural pathways that support healthy behaviors while weakening the old addiction pathways. Every day you maintain this smoke-free lifestyle, you're strengthening your mental resilience and proving to yourself that you have complete control over your choices. The psychological confidence you're building during this period will serve as a powerful foundation for all future challenges in your life.",
+        "I want to highlight the remarkable physiological improvements you're experiencing right now. Your lung capacity is increasing daily, your oxygen saturation levels are normalizing, and the chronic inflammation in your respiratory system is subsiding. Many patients tell me they notice improved energy levels, better sleep quality, and enhanced mental clarity during this phase. These aren't just temporary benefits - they're permanent improvements that will continue to enhance your quality of life for decades to come.",
+        "As someone who has guided thousands of patients through this journey, I can confidently say that the habit reformation you're undergoing follows well-established neuroplasticity principles. Research shows that it takes approximately 21-66 days to establish new neural patterns, and you're well within this critical window. Your brain is becoming increasingly efficient at maintaining these healthy behaviors, making each subsequent day easier than the last. The consistency you're demonstrating is building unshakeable foundations for lifelong success.",
+        "The natural detoxification process your body is undergoing right now is truly remarkable. Your liver is working efficiently to metabolize and eliminate the thousands of toxic compounds that were accumulating in your system. Your kidneys are filtering your blood more effectively, your skin is beginning to regain its healthy glow, and your digestive system is functioning more optimally. This comprehensive cellular renewal process is one of the most powerful examples of your body's incredible capacity for self-healing.",
       ],
       milestoneAchiever: [
         "One month smoke-free! You've proven you're stronger than old habits.",
@@ -1050,11 +1089,14 @@ export const translations: Record<Language, Translations> = {
         "From smoker to healthy living example. An inspiring transformation!",
       ],
       generalDaily: [
-        "Every day without cigarettes is a small victory with great meaning.",
-        "Health is the best investment for a bright future.",
-        "You're stronger than any addiction. Believe in yourself.",
-        "Change starts from small, consistent decisions.",
-        "Healthy living is the best gift for people you love.",
+        "Every day without cigarettes is a small victory with great meaning. Today, you've chosen to honor your body, respect your health, and give your best to the future. Every breath you take now is cleaner, freer, and more meaningful. You're not just surviving without cigarettes - you're thriving.",
+        "Health is the best investment for a bright future. With each passing day without cigarettes, you're building a strong foundation for a longer, happier, and more meaningful life. Your body is healing itself, and every cell in your body is grateful for the wise decision you've made.",
+        "You're stronger than any addiction. Believe in yourself. In every moment when you feel tempted, remember that you have extraordinary strength within you. You've proven that you can take control of your own life, and that is an absolutely remarkable achievement.",
+        "Change starts from small, consistent decisions. Every day you pass without cigarettes is concrete proof that you're capable of creating positive transformation in your life. The good habits you're building today will become the foundation for other great habits in the future.",
+        "Healthy living is the best gift for people you love. By quitting smoking, you're not only giving your best to yourself, but also to your family, friends, and everyone who cares about you. You're becoming an inspiring example for those who witness your journey.",
+        "Your lungs are breathing easier today. Every day without cigarettes is a day when your body has the chance to heal itself. Your blood circulation improves, oxygen flows more smoothly, and your energy will continue to increase. You're giving yourself the invaluable gift of health.",
+        "True freedom begins when you're no longer dependent on cigarettes. Today, you are a freer version of yourself. Free from the anxiety of searching for cigarettes, free from health worries, and free to enjoy life in a more authentic and meaningful way.",
+        "Every dollar you don't spend on cigarettes is an investment in your dreams. Imagine all the beautiful things you can do with the money you're now saving. Family vacations, new hobbies, or even savings for the future - everything becomes more possible because of the wise decision you've made."
       ],
     },
   },

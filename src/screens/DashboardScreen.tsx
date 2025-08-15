@@ -6,8 +6,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Dimensions,
+    Modal,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -20,6 +20,10 @@ import { demoGetCurrentUser, demoRestoreUser, demoUpdateUser } from '../services
 import { auth, db } from '../services/firebase';
 import { upgradeUserToPremium } from '../services/auth';
 import { generateAIMotivation, generateAIMilestoneInsight } from '../services/gemini';
+import { 
+  SUBSCRIPTION_PLANS,
+  handleSubscription
+} from '../services/subscription';
 
 import { BentoCard, BentoGrid } from '../components/BentoGrid';
 import { Mission, User } from '../types';
@@ -27,6 +31,7 @@ import { COLORS, DARK_COLORS, SIZES, STATIC_MISSIONS } from '../utils/constants'
 import { useTranslation } from '../hooks/useTranslation';
 import { Language } from '../utils/translations';
 import { completeMission, checkAndAwardBadges } from '../services/gamification';
+import { contributeAnonymousStats } from '../services/communityStats';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDelayedInterstitialAd } from '../hooks/useInterstitialAd';
 import {
@@ -81,6 +86,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     message: '',
     type: 'success'
   });
+  const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
   const { colors, updateUser } = useTheme();
 
   const showCustomAlert = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') => {
@@ -137,49 +143,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     }
   };
 
-  // Set up Firebase Auth state listener to handle session restoration
+  // Simple initial data loading - no auth state listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('🔐 Auth state changed:', firebaseUser?.email || 'no user');
-      
-      if (firebaseUser) {
-        // Firebase user is authenticated, load their data
-        try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            const userData = { id: firebaseUser.uid, ...userDoc.data() } as User;
-            console.log('✅ Firebase user data loaded from auth state change:', userData.email);
-            console.log('  - Completed missions count:', userData.completedMissions?.length || 0);
-            console.log('  - Completed missions:', userData.completedMissions?.map(m => ({ id: m.id, completedAt: m.completedAt })) || []);
-            setUser(userData);
-            updateUser(userData);
-            setLoading(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Error loading Firebase user data:', error);
-        }
-      }
-      
-      // No Firebase user or error loading, try demo user
-      await loadUserData();
-    });
-    
-    // Timeout fallback to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.log('Loading timeout reached, forcing loading to false');
-        setLoading(false);
-      }
-    }, 10000); // 10 second timeout
-    
-    return () => {
-      unsubscribe();
-      clearTimeout(timeout);
-    };
-  }, []);
+    loadUserData();
+  }, []); // Load user data once on mount
 
-  // Set up real-time listener for Firebase user data
+  // Real-time listener with smart loop prevention
   useEffect(() => {
     const firebaseUser = auth.currentUser;
     if (firebaseUser) {
@@ -374,71 +343,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   }, [user]);
 
 
-  // Handle hybrid motivation system (contextual + AI insights)
+  // Temporarily simplified motivation system to fix loading loop
   useEffect(() => {
-    if (user) {
-      const handleHybridMotivation = async () => {
-        const motivationData = getMotivationContent(user);
-        
-        if (motivationData.shouldUseAI) {
-          console.log(`🤖 AI insight triggered: ${motivationData.triggerType}`);
-          try {
-            // Call AI for milestone or streak recovery insight
-            const aiTrigger = shouldTriggerAIInsight(user);
-            const aiInsight = await generateAIMilestoneInsight(user, aiTrigger.triggerType, aiTrigger.triggerData);
-            
-            // Update AI call counter and cache insight
-            const counterUpdate = updateAICallCounter(user);
-            const updatedUser = {
-              ...user,
-              ...counterUpdate,
-              lastAIInsight: aiInsight
-            };
-            
-            // Save to database
-            try {
-              if (auth.currentUser) {
-                const userDoc = doc(db, 'users', user.id);
-                await updateDoc(userDoc, {
-                  ...counterUpdate,
-                  lastAIInsight: aiInsight
-                });
-                console.log('✅ AI insight cached to Firebase');
-              } else {
-                await demoUpdateUser(user.id, {
-                  ...counterUpdate,
-                  lastAIInsight: aiInsight
-                });
-                console.log('✅ AI insight cached for demo user');
-              }
-            } catch (error) {
-              console.error('Error saving AI insight:', error);
-            }
-            
-            setDailyMotivation(aiInsight);
-            updateUser(updatedUser);
-            console.log(`✅ AI insight generated for ${motivationData.triggerType}`);
-            
-          } catch (error) {
-            console.error('Error generating AI insight:', error);
-            // Fallback to contextual quote
-            const fallbackContent = getDailyMotivation(user, language as Language);
-            setDailyMotivation(fallbackContent);
-          }
-        } else {
-          // Use existing content (cached AI or contextual quotes)
-          setDailyMotivation(motivationData.content);
-          if (motivationData.isAIGenerated) {
-            console.log('✅ Using cached AI insight');
-          } else {
-            console.log('✅ Using contextual motivation');
-          }
-        }
-      };
-      
-      handleHybridMotivation();
+    if (user && !dailyMotivation) {
+      // Simple fallback - just set basic motivation once
+      const fallbackContent = getDailyMotivation(user, language as Language);
+      setDailyMotivation(fallbackContent);
+      console.log('✅ Using simple contextual motivation');
     }
-  }, [user?.id, user?.isPremium, user?.totalDays, user?.streak, user?.lastAICallDate]);
+  }, [user?.id]); // Simplified dependency to avoid loops
 
   const loadUserData = async () => {
     console.log('Starting loadUserData...');
@@ -456,7 +369,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             const userData = { id: currentUser.uid, ...userDoc.data() } as User;
             console.log('Firebase user data loaded:', userData.email);
             setUser(userData);
-            updateUser(userData);
+            // updateUser(userData); // Temporarily disabled to prevent infinite loop
             setLoading(false);
             return;
           } else {
@@ -477,6 +390,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         console.log('Demo user found in memory:', demoUser.email);
         setUser(demoUser);
         updateUser(demoUser);
+        setUserDataLoaded(true);
         setLoading(false);
         return;
       }
@@ -488,6 +402,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         console.log('Demo user restored from storage:', restoredUser.email);
         setUser(restoredUser);
         updateUser(restoredUser);
+        setUserDataLoaded(true);
         setLoading(false);
         return;
       }
@@ -495,7 +410,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       console.log('No user found in any data source');
     } catch (error) {
       console.error('Error loading user data:', error);
-      Alert.alert('Error', 'Failed to load user data. Please try logging in again.');
+      showCustomAlert('Error', 'Failed to load user data. Please try logging in again.', 'error');
     } finally {
       console.log('Setting loading to false');
       setLoading(false);
@@ -510,7 +425,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
   const handleCheckIn = async () => {
     if (!user || !canCheckInToday(user.lastCheckIn)) {
-      Alert.alert('Info', t.dashboard.checkedIn + '!');
+      showCustomAlert('Info', t.dashboard.checkedIn + '!', 'info');
       return;
     }
 
@@ -612,6 +527,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         setUser(updatedUser);
       }
 
+      // Contribute anonymous stats to community
+      try {
+        await contributeAnonymousStats(updatedUser);
+        console.log('✅ Anonymous stats contributed to community');
+      } catch (error) {
+        console.error('⚠️ Failed to contribute anonymous stats:', error);
+        // Don't break check-in flow for this
+      }
+
       // Mark check-in mission as completed and record it permanently
       if (!completedMissions.includes('daily-checkin')) {
         setCompletedMissions(prev => [...prev, 'daily-checkin']);
@@ -680,21 +604,13 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       // const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
       // message += `\nDebug: Daily XP today: ${todayXP}`;
       
-      Alert.alert(
-        t.dashboard.checkInSuccess, 
-        message, 
-        [{ text: 'OK', style: 'default' }],
-        { 
-          cancelable: true,
-          userInterfaceStyle: colors === DARK_COLORS ? 'dark' : 'light'
-        }
-      );
+      showCustomAlert(t.dashboard.checkInSuccess, message, 'success');
       
       // Show interstitial ad after successful check-in (for free users only)
       showAdAfterDelay('daily_checkin');
       
     } catch (error) {
-      Alert.alert('Error', 'Gagal melakukan check-in');
+      showCustomAlert('Error', 'Gagal melakukan check-in', 'error');
     } finally {
       setCheckingIn(false);
       // Reset the local updating flag after a short delay to allow Firebase to sync
@@ -740,15 +656,21 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     const today = new Date();
     const dateString = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
     
-    // Simple seeded random function based on date
-    const seedRandom = (str: string) => {
+    // Improved seeded random function based on date
+    const createSeededRandom = (str: string) => {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
         hash = hash & hash; // Convert to 32bit integer
       }
-      return Math.abs(hash);
+      
+      // Create a proper seeded random number generator
+      let state = Math.abs(hash);
+      return () => {
+        state = (state * 1664525 + 1013904223) % Math.pow(2, 32);
+        return state / Math.pow(2, 32);
+      };
     };
     
     // Always include daily check-in as first mission
@@ -760,26 +682,57 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     // Number of additional missions based on premium status
     const additionalMissionsCount = user?.isPremium ? 3 : 0;
     
-    // Shuffle other missions based on today's date seed
-    const seed = seedRandom(dateString + (user?.id || 'demo'));
+    // Create seeded random generator with user ID and date
+    const seedString = `${dateString}-${user?.id || 'demo'}`;
+    const seededRandom = createSeededRandom(seedString);
     const shuffledMissions = [...otherMissions];
     
-    // Fisher-Yates shuffle with seeded random
+    // Proper Fisher-Yates shuffle with seeded random
     for (let i = shuffledMissions.length - 1; i > 0; i--) {
-      const j = Math.floor(((seed + i) % 1000) / 1000 * (i + 1));
+      const j = Math.floor(seededRandom() * (i + 1));
       [shuffledMissions[i], shuffledMissions[j]] = [shuffledMissions[j], shuffledMissions[i]];
     }
     
-    // Combine check-in mission with randomly selected additional missions
-    const selectedMissions = [checkInMission, ...shuffledMissions.slice(0, additionalMissionsCount)];
+    // For premium users, ensure variety with the expanded mission pool
+    let selectedAdditionalMissions = shuffledMissions.slice(0, additionalMissionsCount);
+    
+    // Enhanced variety logic for premium users with larger mission pool
+    if (user?.isPremium && otherMissions.length > additionalMissionsCount) {
+      const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Create rotating windows of missions for better variety
+      const totalOtherMissions = otherMissions.length;
+      const windowSize = additionalMissionsCount + 2; // Window larger than needed for variety
+      
+      // Calculate starting position based on day of year
+      const startPosition = dayOfYear % (totalOtherMissions - windowSize + 1);
+      
+      // Get a window of missions and shuffle within that window
+      const missionWindow = otherMissions.slice(startPosition, startPosition + windowSize);
+      
+      // Shuffle the window
+      for (let i = missionWindow.length - 1; i > 0; i--) {
+        const j = Math.floor(seededRandom() * (i + 1));
+        [missionWindow[i], missionWindow[j]] = [missionWindow[j], missionWindow[i]];
+      }
+      
+      // Take the first 3 missions from the shuffled window
+      selectedAdditionalMissions = missionWindow.slice(0, additionalMissionsCount);
+    }
+    
+    // Combine check-in mission with selected additional missions
+    const selectedMissions = [checkInMission, ...selectedAdditionalMissions];
     
     // Debug logging (only when actually recalculating)
     console.log('🎲 Daily missions calculated:', {
       dateString,
-      seed,
+      seedString,
       isPremium: user?.isPremium,
       totalMissions: selectedMissions.length,
-      missionIds: selectedMissions.map(m => m.id)
+      missionIds: selectedMissions.map(m => m.id),
+      availableMissions: otherMissions.length,
+      dayOfYear: user?.isPremium ? Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)) : 'N/A',
+      windowStart: user?.isPremium ? Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)) % (otherMissions.length - 5 + 1) : 'N/A'
     });
     
     const hasCheckedInToday = !canCheckInToday(user?.lastCheckIn);
@@ -900,14 +853,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               
               // Show badge notification if new badges were earned
               if (result.newBadges.length > 0) {
-                Alert.alert(
+                showCustomAlert(
                   t.dashboard.newBadge, 
                   translate('dashboard.badgeEarned', { count: result.newBadges.length }),
-                  [{ text: 'OK', style: 'default' }],
-                  { 
-                    cancelable: true,
-                    userInterfaceStyle: colors === DARK_COLORS ? 'dark' : 'light'
-                  }
+                  'success'
                 );
               }
             }
@@ -970,21 +919,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               }
               
               if (newBadges.length > 0) {
-                Alert.alert(
+                showCustomAlert(
                   t.dashboard.newBadge, 
                   translate('dashboard.badgeEarned', { count: newBadges.length }),
-                  [{ text: 'OK', style: 'default' }],
-                  { 
-                    cancelable: true,
-                    userInterfaceStyle: colors === DARK_COLORS ? 'dark' : 'light'
-                  }
+                  'success'
                 );
               }
             }
           }
         } catch (error) {
           console.error('Error completing mission:', error);
-          Alert.alert('Error', 'Gagal menyelesaikan misi');
+          showCustomAlert('Error', 'Gagal menyelesaikan misi', 'error');
         } finally {
           // Reset the local updating flag after a short delay
           setTimeout(() => {
@@ -1000,14 +945,24 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       try {
         const success = await upgradeUserToPremium(user.email);
         if (success) {
-          Alert.alert('Success', 'Account upgraded to premium!');
+          showCustomAlert('Success', 'Account upgraded to premium!', 'success');
           // Reload user data to reflect changes
           await loadUserData();
         }
       } catch (error) {
-        Alert.alert('Error', 'Failed to upgrade to premium');
+        showCustomAlert('Error', 'Failed to upgrade to premium', 'error');
       }
     }
+  };
+
+  const handleNavigateToSubscription = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSubscriptionModalVisible(true);
+  };
+
+  const handleSubscriptionSelect = async (planId: string) => {
+    setSubscriptionModalVisible(false);
+    await handleSubscription(planId, user?.id);
   };
 
   // Memoize daily missions to prevent recalculation on every render
@@ -1157,11 +1112,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         </View>
       </View>
 
-      {/* Section Title */}
-      <View style={[styles.sectionHeader, { marginTop: SIZES.xs }]}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.dashboard.dailyMissions}</Text>
-      </View>
-
       {/* Daily Missions Card */}
       <View style={[styles.missionCardContainer, { backgroundColor: colors.surface }]}>
         <LinearGradient
@@ -1170,6 +1120,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           end={{ x: 1, y: 1 }}
           style={styles.missionCardGradient}
         >
+          {/* Card Title */}
+          <Text style={[styles.missionCardTitle, { color: colors.textPrimary }]}>{t.dashboard.dailyMissions}</Text>
         {dailyMissions.map((mission) => (
           <TouchableOpacity 
             key={mission.id} 
@@ -1215,17 +1167,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         {!user.isPremium && (
           <View style={styles.upgradePrompt}>
             <Text style={[styles.upgradePromptText, { color: colors.textSecondary }]}>{t.premium.features.threeMissions}</Text>
-            <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.upgradeButtonText, { color: colors.white }]}>Upgrade Premium</Text>
+            <TouchableOpacity 
+              style={[styles.upgradeButton, { backgroundColor: colors.secondary }]}
+              onPress={handleNavigateToSubscription}
+            >
+              <Text style={[styles.upgradeButtonText, { color: colors.white }]}>
+                {language === 'en' ? 'Try Free for 7 Days' : 'Coba Gratis 7 Hari'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
         </LinearGradient>
-      </View>
-
-      {/* Motivation Section Title */}
-      <View style={[styles.sectionHeader, { marginTop: SIZES.md }]}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.dashboard.personalMotivator}</Text>
       </View>
 
       {/* Personal Motivator Card */}
@@ -1236,6 +1188,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           end={{ x: 1, y: 1 }}
           style={styles.motivationCardGradient}
         >
+          {/* Card Title */}
+          <Text style={[styles.motivationCardTitle, { color: colors.textPrimary }]}>{t.dashboard.personalMotivator}</Text>
         {user.isPremium ? (
           <Text style={[styles.motivationText, { color: colors.textPrimary }]}>{dailyMotivation || getDailyMotivation(user, language as Language)}</Text>
         ) : (
@@ -1243,8 +1197,13 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             <MaterialIcons name="psychology" size={32} color={colors.accent} />
             <Text style={[styles.lockedText, { color: colors.textPrimary }]}>{t.dashboard.personalMotivatorDesc}</Text>
             <Text style={[styles.lockedSubtext, { color: colors.textSecondary }]}>{t.premium.features.dailyMotivation + ' + ' + t.premium.features.personalConsultation}</Text>
-            <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.upgradeButtonText, { color: colors.white }]}>{t.dashboard.activateMotivator}</Text>
+            <TouchableOpacity 
+              style={[styles.upgradeButton, { backgroundColor: colors.secondary }]}
+              onPress={handleNavigateToSubscription}
+            >
+              <Text style={[styles.upgradeButtonText, { color: colors.white }]}>
+                {language === 'en' ? 'Try Free for 7 Days' : 'Coba Gratis 7 Hari'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1259,6 +1218,131 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       type={customAlert.type}
       onDismiss={hideCustomAlert}
     />
+    
+    {/* Subscription Modal */}
+    <Modal
+      visible={subscriptionModalVisible}
+      transparent={true}
+      animationType="none"
+      onRequestClose={() => setSubscriptionModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.subscriptionModalContainer, { backgroundColor: colors.surface }]}>
+          {/* Subtle gradient background for warmth */}
+          <View style={[styles.modalBackground, { backgroundColor: colors.surface }]} />
+          
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setSubscriptionModalVisible(false)}
+          >
+            <MaterialIcons name="close" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+          
+          <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+            {language === 'en' ? 'Choose Premium Plan' : 'Pilih Paket Premium'}
+          </Text>
+          
+          <ScrollView style={styles.subscriptionScrollView} showsVerticalScrollIndicator={false}>
+            {SUBSCRIPTION_PLANS.map((plan) => (
+              <TouchableOpacity
+                key={plan.id}
+                style={[
+                  styles.subscriptionPlan,
+                  { backgroundColor: colors.surface },
+                  plan.popular && { 
+                    borderColor: '#FF6B35', // Warm orange for urgency
+                    borderWidth: 2,
+                    backgroundColor: '#FFF5F3' // Very light warm background
+                  },
+                  plan.id === 'trial' && {
+                    borderColor: '#00C851', // Success green for free trial
+                    borderWidth: 2,
+                    backgroundColor: '#F1F8E9' // Light green background
+                  },
+                  plan.id === 'yearly' && {
+                    borderColor: '#7B68EE', // Purple for premium/luxury
+                    borderWidth: 2,
+                    backgroundColor: '#F8F7FF' // Very light purple background
+                  },
+                  plan.id === 'monthly' && {
+                    borderColor: '#64B5F6', // Soft blue for standard option
+                    borderWidth: 1,
+                    backgroundColor: '#F3F9FF' // Very light blue background
+                  }
+                ]}
+                onPress={() => handleSubscriptionSelect(plan.id)}
+              >
+                {plan.popular && (
+                  <View style={[styles.popularBadge, { backgroundColor: '#FF6B35' }]}>
+                    <Text style={styles.popularText}>
+                      {language === 'en' ? 'POPULAR' : 'POPULER'}
+                    </Text>
+                  </View>
+                )}
+                
+                {plan.id === 'trial' && (
+                  <View style={[styles.popularBadge, { backgroundColor: '#00C851' }]}>
+                    <Text style={styles.popularText}>
+                      {language === 'en' ? 'FREE' : 'GRATIS'}
+                    </Text>
+                  </View>
+                )}
+                
+                {plan.id === 'yearly' && (
+                  <View style={[styles.popularBadge, { backgroundColor: '#7B68EE' }]}>
+                    <Text style={styles.popularText}>
+                      {language === 'en' ? 'BEST VALUE' : 'NILAI TERBAIK'}
+                    </Text>
+                  </View>
+                )}
+                
+                {plan.id === 'monthly' && (
+                  <View style={[styles.monthlyBadge, { backgroundColor: '#64B5F6' }]}>
+                    <Text style={styles.monthlyBadgeText}>
+                      {language === 'en' ? 'FLEXIBLE' : 'FLEKSIBEL'}
+                    </Text>
+                  </View>
+                )}
+                
+                <View style={styles.planHeader}>
+                  <Text style={[styles.planName, { color: colors.textPrimary }]}>
+                    {plan.name}
+                  </Text>
+                  <Text style={[
+                    styles.planPrice, 
+                    { 
+                      color: plan.id === 'trial' ? '#00C851' : 
+                             plan.id === 'yearly' ? '#7B68EE' :
+                             plan.id === 'monthly' ? '#64B5F6' :
+                             plan.popular ? '#FF6B35' : colors.primary 
+                    }
+                  ]}>
+                    {plan.price}
+                  </Text>
+                  
+                  {plan.id === 'yearly' && (
+                    <Text style={[styles.savingsText, { color: '#FF4444' }]}>
+                      {language === 'en' ? 'Save 60%' : 'Hemat 60%'}
+                    </Text>
+                  )}
+                  <Text style={[styles.planDuration, { color: colors.textSecondary }]}>
+                    {plan.duration}
+                  </Text>
+                </View>
+                
+                <View style={styles.planFeatures}>
+                  {plan.features.map((feature, index) => (
+                    <Text key={index} style={[styles.planFeature, { color: colors.textSecondary }]}>
+                      {feature}
+                    </Text>
+                  ))}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
     </>
   );
 };
@@ -1336,7 +1420,7 @@ const styles = StyleSheet.create({
   communityBanner: {
     marginHorizontal: SIZES.screenPadding,
     marginTop: -SIZES.lg, // Overlap slightly with header
-    marginBottom: SIZES.md,
+    marginBottom: SIZES.xs,
     borderRadius: SIZES.cardRadius,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
@@ -1369,7 +1453,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: SIZES.buttonRadius || 12,
     padding: SIZES.cardPadding,
-    marginBottom: SIZES.md,
+    marginBottom: 4,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1377,7 +1461,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   levelContainer: {
-    marginBottom: SIZES.md,
+    marginBottom: SIZES.xs,
   },
 
   statsContainer: {
@@ -1397,7 +1481,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodySmallSecondary,
   },
   checkInButton: {
-    marginBottom: SIZES.md,
+    marginBottom: 4,
     borderRadius: SIZES.borderRadiusLg,
     overflow: 'hidden',
   },
@@ -1421,7 +1505,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SIZES.md,
+    marginBottom: SIZES.xs,
   },
   cardTitle: {
     ...TYPOGRAPHY.bodyLarge,
@@ -1505,6 +1589,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.textPrimary,
     fontStyle: 'italic',
+    textAlign: 'center',
   },
   lockedContent: {
     alignItems: 'center',
@@ -1532,7 +1617,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
     marginTop: -Math.max(SIZES.lg, height * 0.04), // Responsive negative margin for floating effect
-    marginBottom: Math.max(SIZES.md, height * 0.025), // Responsive bottom margin
+    marginBottom: 4, // Minimal bottom margin
     padding: Math.max(SIZES.sm, width * 0.04), // Responsive padding
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
@@ -1749,7 +1834,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
-    marginTop: 0,
+    marginTop: SIZES.sm,
     marginBottom: SIZES.xs || 4,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
@@ -1765,7 +1850,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
-    marginTop: 0,
+    marginTop: SIZES.sm,
     marginBottom: SIZES.xs || 4,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
@@ -1779,10 +1864,22 @@ const styles = StyleSheet.create({
     minHeight: 160,
     flex: 1,
   },
+  missionCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: SIZES.sm,
+  },
   motivationCardGradient: {
     padding: SIZES.sm,
     minHeight: 'auto',
     flex: 1,
+  },
+  motivationCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: SIZES.sm,
   },
   levelTopLeftGroup: {
     flexDirection: 'row',
@@ -1844,6 +1941,141 @@ const styles = StyleSheet.create({
     fontSize: Math.min(width * 0.032, 12),
     lineHeight: Math.min(width * 0.04, 16),
     flexShrink: 1,
+    textAlign: 'center',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Slightly darker for better focus
+    padding: Math.min(SIZES.md, width * 0.04),
+    paddingTop: Math.max(50, height * 0.1),
+    paddingBottom: Math.max(20, height * 0.05),
+  },
+  modalBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+  },
+  modalTitle: {
+    fontSize: Math.min(width * 0.05, 18),
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: SIZES.sm,
+    marginTop: SIZES.xs,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: SIZES.sm,
+    right: SIZES.sm,
+    padding: SIZES.xs,
+    zIndex: 1,
+  },
+  modalButton: {
+    borderRadius: 12,
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.md,
+    alignItems: 'center',
+    marginTop: SIZES.sm,
+    marginBottom: SIZES.xs,
+  },
+  modalButtonText: {
+    color: COLORS.white,
+    fontSize: Math.min(width * 0.04, 16),
+    fontWeight: '600',
+  },
+  
+  // Subscription Modal Styles
+  subscriptionModalContainer: {
+    borderRadius: 20,
+    padding: SIZES.md,
+    width: Math.min(width * 0.9, 400),
+    maxHeight: Math.min(height * 0.8, 600),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.3,
+    shadowRadius: 25,
+    elevation: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)', // Subtle highlight border
+  },
+  subscriptionScrollView: {
+    maxHeight: Math.min(height * 0.5, 400),
+    marginVertical: SIZES.sm,
+  },
+  subscriptionPlan: {
+    borderRadius: 16,
+    padding: SIZES.md,
+    marginBottom: SIZES.sm,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: -8,
+    right: SIZES.md,
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  popularText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.white,
+    letterSpacing: 0.5,
+  },
+  planHeader: {
+    marginBottom: SIZES.sm,
+  },
+  planName: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  planPrice: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  planDuration: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  planFeatures: {
+    gap: 6,
+  },
+  planFeature: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  
+  // Additional Badge Styles
+  monthlyBadge: {
+    position: 'absolute',
+    top: -6,
+    right: SIZES.md,
+    paddingHorizontal: SIZES.xs,
+    paddingVertical: 2,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  monthlyBadgeText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: COLORS.white,
+    letterSpacing: 0.3,
+  },
+  savingsText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 2,
     textAlign: 'center',
   },
 });
