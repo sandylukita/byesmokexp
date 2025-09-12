@@ -2,7 +2,6 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -13,7 +12,10 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { CustomAlert } from '../components/CustomAlert';
 import { signIn } from '../services/auth';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../services/firebase';
 import { demoSignIn } from '../services/demoAuth';
 import { COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
@@ -27,10 +29,63 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'success' | 'info' | 'warning' | 'error';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success'
+  });
+
+  const showCustomAlert = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'error') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  const hideCustomAlert = () => {
+    setCustomAlert(prev => ({ ...prev, visible: false }));
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      showCustomAlert('Kesalahan', 'Silakan masukkan email Anda terlebih dahulu');
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showCustomAlert(
+        'Berhasil', 
+        'Email reset password telah dikirim ke ' + email + '. Silakan cek inbox atau folder spam Anda.',
+        'success'
+      );
+    } catch (error: any) {
+      let errorMessage = 'Gagal mengirim email reset password';
+      
+      // Handle specific Firebase errors
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'Email tidak ditemukan. Silakan periksa email Anda atau daftar akun baru.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Format email tidak valid';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
+      }
+      
+      showCustomAlert('Kesalahan', errorMessage);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Silakan isi email dan password');
+      showCustomAlert('Kesalahan', 'Silakan isi email dan password');
       return;
     }
 
@@ -56,7 +111,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
         onLogin();
       } catch (firebaseError: any) {
         console.log('Firebase auth failed:', firebaseError.message);
-        Alert.alert('Error', firebaseError.message || 'Gagal masuk');
+        showCustomAlert('Kesalahan', firebaseError.message || 'Gagal masuk');
       }
     } finally {
       setLoading(false);
@@ -67,13 +122,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <LinearGradient
         colors={[COLORS.primary, COLORS.primaryDark]}
         style={styles.background}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.content}>
             <View style={styles.header}>
               <Image 
@@ -120,6 +180,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
                 </Text>
               </TouchableOpacity>
 
+              <TouchableOpacity 
+                style={styles.forgotPasswordContainer}
+                onPress={handleForgotPassword}
+              >
+                <Text style={styles.forgotPasswordText}>Lupa Password?</Text>
+              </TouchableOpacity>
 
               <View style={styles.footer}>
                 <Text style={styles.footerText}>Belum punya akun? </Text>
@@ -134,6 +200,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
           </View>
         </ScrollView>
       </LinearGradient>
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.title}
+        message={customAlert.message}
+        type={customAlert.type}
+        onDismiss={hideCustomAlert}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -147,11 +220,13 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
+    minHeight: '100%',
+    justifyContent: 'center',
   },
   content: {
-    flex: 1,
     justifyContent: 'center',
     paddingHorizontal: SIZES.xl,
+    paddingVertical: SIZES.xl,
     maxWidth: 350,
     width: '100%',
     alignSelf: 'center',
@@ -218,6 +293,16 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyMediumWhite,
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  forgotPasswordContainer: {
+    alignItems: 'center',
+    marginTop: SIZES.md,
+  },
+  forgotPasswordText: {
+    ...TYPOGRAPHY.bodyMediumWhite,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+    opacity: 0.9,
   },
 });
 

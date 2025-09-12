@@ -1,5 +1,5 @@
 import { getAnalytics, logEvent, setUserId, setUserProperties, isSupported } from 'firebase/analytics';
-import { app } from './firebase';
+import app from './firebase';
 import { canUseAnalytics, log } from '../config/environment';
 
 // Initialize Firebase Analytics only if supported

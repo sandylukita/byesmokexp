@@ -132,18 +132,6 @@ export const TYPOGRAPHY = {
     fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
     letterSpacing: 0,
   },
-  caption: {
-    fontSize: 13,
-    fontWeight: '400',
-    fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
-    letterSpacing: 0,
-  },
-  button: {
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: "Inter, 'SF Pro', 'Roboto', sans-serif",
-    letterSpacing: 0.1,
-  },
 };
 
 // Helper function to create custom text styles

@@ -11,13 +11,17 @@ interface SplashScreenProps {
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   useEffect(() => {
+    console.log('🎬 SplashScreen: Component mounted, starting timer...');
     const timer = setTimeout(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      console.log('🎬 SplashScreen: Timer finished, calling onFinish()');
       onFinish();
-    }, 2000);
+    }, 500); // Shortened for debugging
 
-    return () => clearTimeout(timer);
-  }, [onFinish]);
+    return () => {
+      console.log('🎬 SplashScreen: Cleaning up timer');
+      clearTimeout(timer);
+    };
+  }, []);
 
   return (
     <LinearGradient

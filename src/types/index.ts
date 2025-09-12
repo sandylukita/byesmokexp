@@ -17,6 +17,7 @@ export interface User {
   completedMissions: Mission[];
   settings: UserSettings;
   onboardingCompleted?: boolean;
+  tutorialCompleted?: boolean; // Track if user completed feature discovery tutorial
   dailyXP?: { [date: string]: number }; // Track XP earned per day
   lastMotivationDate?: string; // Track when motivation was last generated (YYYY-MM-DD)
   dailyMotivation?: string; // Cache today's motivation message
@@ -24,16 +25,19 @@ export interface User {
   lastAICallDate?: string; // Track when AI was last called (YYYY-MM-DD)
   lastAIInsight?: string; // Cache latest AI-generated insight
   aiCallsResetMonth?: string; // Track which month the counter was reset (YYYY-MM)
-  // Referral system fields
-  referralCode: string; // Unique 6-character code for this user
-  referredBy?: string; // Referral code of the user who referred this user
-  referralCount: number; // Count of successful referrals
-  referralRewards: number; // Total XP earned from referrals
   // Trial system fields
   isOnTrial?: boolean; // Whether user is currently on free trial
   trialStartDate?: string; // When trial started (ISO string)
   trialEndDate?: string; // When trial ends (ISO string)
   hasUsedTrial?: boolean; // Whether user has used their free trial
+  // Popup timing fields
+  createdAt?: string; // User registration date for popup timing
+  lastUpgradePopupDismissed?: string; // Track popup dismissal to prevent spam
+  // Craving tracking fields
+  cravingsHandled?: number; // Total cravings handled using the app
+  lastCravingDate?: string; // Last date a craving was logged (YYYY-MM-DD)
+  // System migration tracking
+  migrationVersion?: string; // Track data migrations for system changes
 }
 
 export interface Badge {
@@ -56,6 +60,8 @@ export interface Mission {
   completedAt: Date | null;
   isAIGenerated: boolean;
   difficulty: 'easy' | 'medium' | 'hard';
+  isLocked?: boolean; // Whether mission is locked
+  unlockMethod?: 'ad' | 'premium'; // How to unlock the mission
 }
 
 export interface UserSettings {
@@ -91,6 +97,15 @@ export interface LeaderboardEntry {
   xp: number;
   level: number;
   rank: number;
+}
+
+export interface CravingLog {
+  id: string;
+  userId: string;
+  timestamp: Date;
+  intensity: number; // 1-5 scale
+  method?: 'breathing' | 'distraction' | 'reasons'; // How they handled it
+  duration?: number; // How long the session lasted in seconds
 }
 
 export interface AppState {

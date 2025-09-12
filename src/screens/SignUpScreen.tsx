@@ -3,19 +3,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
     Alert,
-    Image,
     KeyboardAvoidingView,
     Platform,
-    ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { signUp } from '../services/auth';
-import { COLORS, SIZES } from '../utils/constants';
-import { TYPOGRAPHY } from '../utils/typography';
+import { COLORS } from '../utils/constants';
+import SignUpStepOne from '../components/SignUpStepOne';
+import SignUpStepTwo from '../components/SignUpStepTwo';
+import SignUpStepThree from '../components/SignUpStepThree';
+import SignUpSuccess from '../components/SignUpSuccess';
+import ProgressBar from '../components/ProgressBar';
+import { CustomConfirmDialog } from '../components/CustomConfirmDialog';
 
 interface SignUpScreenProps {
   onSignUp: () => void;
@@ -23,39 +25,84 @@ interface SignUpScreenProps {
 }
 
 const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const totalSteps = 4;
+
+  const handleNext = () => {
+    setCurrentStep(prev => prev + 1);
+  };
+
+  const handleBack = () => {
+    setCurrentStep(prev => prev - 1);
+  };
 
   const handleSignUp = async () => {
-    if (!name || !username || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Silakan isi semua field');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Password tidak sama');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password minimal 6 karakter');
-      return;
-    }
-
     setLoading(true);
     try {
-      await signUp(email, password, name, username);
+      // The signUp function now handles all validation internally
+      await signUp(email, password, confirmPassword, name);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      // Don't show alert, directly go to onboarding
-      onSignUp();
+      setCurrentStep(4); // Go to success step
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Gagal membuat akun');
+      setErrorMessage(error.message || 'Gagal membuat akun');
+      setShowErrorDialog(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSuccess = () => {
+    onSignUp();
+  };
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <SignUpStepOne
+            name={name}
+            onNameChange={setName}
+            onNext={handleNext}
+          />
+        );
+      case 2:
+        return (
+          <SignUpStepTwo
+            email={email}
+            onEmailChange={setEmail}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 3:
+        return (
+          <SignUpStepThree
+            password={password}
+            confirmPassword={confirmPassword}
+            onPasswordChange={setPassword}
+            onConfirmPasswordChange={setConfirmPassword}
+            onNext={handleSignUp}
+            onBack={handleBack}
+            loading={loading}
+          />
+        );
+      case 4:
+        return (
+          <SignUpSuccess
+            name={name}
+            onContinue={handleSuccess}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -68,85 +115,31 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
         colors={[COLORS.primary, COLORS.primaryDark]}
         style={styles.background}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.content}>
-            <View style={styles.header}>
-              <Image 
-                source={require('../../assets/images/icon.png')} 
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <Text style={styles.title}>Bergabung</Text>
-              <Text style={styles.subtitle}>Mulai perjalanan sehat</Text>
-            </View>
-
-            <View style={styles.form}>
-              <TextInput
-                style={styles.input}
-                placeholder="Nama Lengkap"
-                placeholderTextColor={COLORS.gray}
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-                autoComplete="name"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Username"
-                placeholderTextColor={COLORS.gray}
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-                autoComplete="username"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor={COLORS.gray}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={COLORS.gray}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="new-password"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Konfirmasi Password"
-                placeholderTextColor={COLORS.gray}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                autoComplete="new-password"
-              />
-
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleSignUp}
-                disabled={loading}
-              >
-                <Text style={styles.buttonText}>
-                  {loading ? 'Membuat Akun...' : 'Daftar'}
-                </Text>
-              </TouchableOpacity>
-
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Sudah punya akun? </Text>
-                <TouchableOpacity onPress={onLogin}>
-                  <Text style={styles.linkText}>Masuk sekarang</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+        {currentStep < 4 && (
+          <ProgressBar currentStep={currentStep} totalSteps={3} />
+        )}
+        {renderCurrentStep()}
+        {currentStep === 1 && (
+          <View style={styles.loginPrompt}>
+            <TouchableOpacity onPress={onLogin} style={styles.loginPromptButton}>
+              <Text style={styles.loginPromptText}>
+                Sudah punya akun? Masuk sekarang
+              </Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
+        )}
+        
+        <CustomConfirmDialog
+          visible={showErrorDialog}
+          title="Error"
+          message={errorMessage}
+          confirmText="OK"
+          cancelText=""
+          onConfirm={() => setShowErrorDialog(false)}
+          onCancel={() => setShowErrorDialog(false)}
+          type="danger"
+          icon="error"
+        />
       </LinearGradient>
     </KeyboardAvoidingView>
   );
@@ -159,78 +152,20 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
   },
-  scrollContainer: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: SIZES.xl,
-    maxWidth: 350,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  header: {
+  loginPrompt: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    marginBottom: SIZES.xxs,
   },
-  logo: {
-    width: 64,
-    height: 64,
-    marginBottom: SIZES.sm,
-    marginTop: SIZES.xl,
+  loginPromptButton: {
+    padding: 12,
   },
-  title: {
-    ...TYPOGRAPHY.h1White,
-    marginBottom: 0,
-  },
-  subtitle: {
-    ...TYPOGRAPHY.bodyLargeWhite,
-    opacity: 0.9,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  form: {
-    marginTop: 0,
-  },
-  input: {
-    backgroundColor: COLORS.white,
-    borderRadius: SIZES.inputRadius,
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.sm,
-    marginBottom: SIZES.sm,
-    fontSize: SIZES.bodyMedium,
-    color: COLORS.textPrimary,
-    height: 48,
-  },
-  button: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: SIZES.buttonRadius,
-    paddingVertical: SIZES.sm,
-    alignItems: 'center',
-    marginTop: SIZES.sm,
-    height: 48,
-    justifyContent: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    ...TYPOGRAPHY.button,
+  loginPromptText: {
     color: COLORS.white,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: SIZES.lg,
-    marginBottom: SIZES.xl,
-  },
-  footerText: {
-    ...TYPOGRAPHY.bodyMediumWhite,
-  },
-  linkText: {
-    ...TYPOGRAPHY.bodyMediumWhite,
-    fontWeight: '600',
+    fontSize: 14,
+    opacity: 0.8,
     textDecorationLine: 'underline',
   },
 });

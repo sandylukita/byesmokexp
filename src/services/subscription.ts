@@ -1,6 +1,21 @@
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
+
+// For production: Install with `expo install expo-in-app-purchases`
+// import * as InAppPurchases from 'expo-in-app-purchases';
+
+// Product IDs for store subscriptions (REPLACE WITH YOUR ACTUAL IDs)
+const SUBSCRIPTION_SKUS = {
+  android: {
+    monthly: 'byesmoke_premium_monthly',
+    yearly: 'byesmoke_premium_yearly',
+  },
+  ios: {
+    monthly: 'com.zaynstudio.byesmoke.premium.monthly', 
+    yearly: 'com.zaynstudio.byesmoke.premium.yearly',
+  }
+};
 
 export interface SubscriptionPlan {
   id: string;
@@ -16,7 +31,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'trial',
     name: 'Coba Gratis',
     price: 'GRATIS',
-    duration: '7 hari',
+    duration: '3 hari',
     popular: true,
     features: [
       '🎉 Akses penuh semua fitur premium',
@@ -31,29 +46,30 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'monthly',
     name: 'Premium Bulanan',
-    price: 'Rp 9.900',
+    price: 'Rp 14.900',
     duration: 'per bulan',
     features: [
-      'Misi harian dari AI (3 misi)',
-      'Motivasi personal dari AI',
-      'Mode gelap eksklusif',
-      'Bebas iklan',
-      'Tips personal harian',
-      'Analytics mendalam',
+      '💸 Lebih murah dari 2 batang rokok!',
+      '🤖 Misi harian dari AI (4 misi total)',
+      '💡 Motivasi personal dari AI',
+      '🌙 Mode gelap eksklusif',
+      '🚫 Bebas iklan',
+      '📊 Analytics mendalam',
     ],
   },
   {
     id: 'yearly',
     name: 'Premium Tahunan',
-    price: 'Rp 99.000',
+    price: 'Rp 149.000',
     duration: 'per tahun',
     features: [
-      'Semua fitur bulanan',
-      'Hemat 2 bulan (17% diskon)',
-      'Coaching AI mingguan',
-      'Laporan progress bulanan',
-      'Akses beta fitur baru',
-      'Support prioritas',
+      '🔥 Cuma Rp 12.417/bulan - SUPER HEMAT!',
+      '💰 Hemat Rp 29.800 (setara 1 karton rokok)',
+      '🤖 Semua fitur premium',
+      '📈 Coaching AI mingguan',
+      '📊 Laporan progress bulanan',
+      '🚀 Akses beta fitur baru',
+      '⭐ Support prioritas',
     ],
   },
 ];
@@ -245,7 +261,7 @@ const getSubscriptionEndDate = (planId: string): string => {
   
   switch (planId) {
     case 'trial':
-      now.setDate(now.getDate() + 7); // 7 days for trial
+      now.setDate(now.getDate() + 3); // 3 days for trial
       break;
     case 'monthly':
       now.setMonth(now.getMonth() + 1);
@@ -299,7 +315,7 @@ export const startFreeTrial = async (userId: string): Promise<void> => {
   try {
     const now = new Date();
     const trialEndDate = new Date();
-    trialEndDate.setDate(now.getDate() + 7); // 7 days trial
+    trialEndDate.setDate(now.getDate() + 3); // 3 days trial
 
     const trialData = {
       isOnTrial: true,
@@ -316,7 +332,7 @@ export const startFreeTrial = async (userId: string): Promise<void> => {
 
     Alert.alert(
       '🎉 Trial Dimulai!',
-      'Selamat! Free trial Premium 7 hari Anda sudah aktif. Nikmati semua fitur premium secara gratis!',
+      'Selamat! Free trial Premium 3 hari Anda sudah aktif. Nikmati semua fitur premium secara gratis!',
       [{ text: 'Mulai Sekarang!' }]
     );
   } catch (error) {
@@ -437,7 +453,7 @@ export const processPayment = async (
       await startFreeTrial(userId);
       return {
         success: true,
-        message: `🎉 ${plan.name} dimulai!\n\nAnda sekarang memiliki akses penuh ke semua fitur premium selama 7 hari gratis!`,
+        message: `🎉 ${plan.name} dimulai!\n\nAnda sekarang memiliki akses penuh ke semua fitur premium selama 3 hari gratis!`,
       };
     }
 

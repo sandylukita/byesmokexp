@@ -2,6 +2,77 @@ import Constants from 'expo-constants';
 
 export type Environment = 'development' | 'staging' | 'production';
 
+// Secure environment configuration
+export const ENV_CONFIG = {
+  // Firebase configuration from environment variables
+  FIREBASE: {
+    apiKey: Constants.expoConfig?.extra?.firebaseApiKey || process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    authDomain: Constants.expoConfig?.extra?.firebaseAuthDomain || process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: Constants.expoConfig?.extra?.firebaseProjectId || process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: Constants.expoConfig?.extra?.firebaseStorageBucket || process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: Constants.expoConfig?.extra?.firebaseMessagingSenderId || process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: Constants.expoConfig?.extra?.firebaseAppId || process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+    measurementId: Constants.expoConfig?.extra?.firebaseMeasurementId || process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  },
+  
+  // Gemini API configuration
+  GEMINI: {
+    apiKey: Constants.expoConfig?.extra?.geminiApiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY,
+  },
+  
+  // AdMob configuration
+  ADMOB: {
+    interstitialAndroid: Constants.expoConfig?.extra?.adMobInterstitialAndroid || process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID,
+    interstitialIOS: Constants.expoConfig?.extra?.adMobInterstitialIOS || process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS,
+    rewardedAndroid: Constants.expoConfig?.extra?.adMobRewardedAndroid || process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID,
+    rewardedIOS: Constants.expoConfig?.extra?.adMobRewardedIOS || process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS,
+  },
+};
+
+// Security validation functions
+export const isValidApiKey = (key: string): boolean => {
+  return key && key.length > 20 && !key.includes('your_') && !key.includes('xxxxxxxx');
+};
+
+export const validateEnvironmentConfig = (): void => {
+  const requiredKeys = [
+    { path: 'FIREBASE.apiKey', value: ENV_CONFIG.FIREBASE.apiKey },
+    { path: 'FIREBASE.authDomain', value: ENV_CONFIG.FIREBASE.authDomain },
+    { path: 'FIREBASE.projectId', value: ENV_CONFIG.FIREBASE.projectId },
+    { path: 'GEMINI.apiKey', value: ENV_CONFIG.GEMINI.apiKey }
+  ];
+  
+  const missingKeys: string[] = [];
+  const invalidKeys: string[] = [];
+  
+  requiredKeys.forEach(({ path, value }) => {
+    if (!value) {
+      missingKeys.push(path);
+    } else if (path.includes('apiKey') && !isValidApiKey(value)) {
+      invalidKeys.push(path);
+    }
+  });
+  
+  if (missingKeys.length > 0 || invalidKeys.length > 0) {
+    const isDev = __DEV__;
+    let message = '';
+    
+    if (missingKeys.length > 0) {
+      message += `Missing: ${missingKeys.join(', ')}`;
+    }
+    if (invalidKeys.length > 0) {
+      message += `${message ? '; ' : ''}Invalid: ${invalidKeys.join(', ')}`;
+    }
+    
+    if (isDev) {
+      console.warn('⚠️ Security Warning:', message);
+      console.warn('📝 Please create .env file or configure app.config.js with required keys');
+    } else {
+      throw new Error(`Configuration Error: ${message}`);
+    }
+  }
+};
+
 interface Config {
   environment: Environment;
   apiUrl: string;
@@ -138,5 +209,24 @@ export const log = {
     console.error(...args);
   },
 };
+
+// Security status logging for development
+export const logSecurityStatus = (): void => {
+  if (__DEV__) {
+    const firebaseConfigured = isValidApiKey(ENV_CONFIG.FIREBASE.apiKey || '');
+    const geminiConfigured = isValidApiKey(ENV_CONFIG.GEMINI.apiKey || '');
+    
+    console.log('🔐 Security Status:');
+    console.log(`  Firebase API Key: ${firebaseConfigured ? '✅ Configured' : '❌ Missing/Invalid'}`);
+    console.log(`  Gemini API Key: ${geminiConfigured ? '✅ Configured' : '❌ Missing/Invalid'}`);
+    console.log(`  Environment: ${config.environment}`);
+  }
+};
+
+// Initialize validation on import (development only)
+if (__DEV__) {
+  validateEnvironmentConfig();
+  logSecurityStatus();
+}
 
 export default config;

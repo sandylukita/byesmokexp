@@ -4,6 +4,8 @@ import { BADGES } from '../utils/constants';
 import { User, Badge, Mission } from '../types';
 import { demoGetCurrentUser, demoUpdateUser } from './demoAuth';
 import { calculateLevel, calculateMoneySaved, addDailyXP } from '../utils/helpers';
+import { getTranslatedMissions, getTranslatedMissionsWithSeed } from '../utils/missionTranslations';
+import { getTranslation } from '../utils/translations';
 // import { showInterstitialAd } from './adMob';
 
 // Baseline badge statistics to make the app feel established
@@ -97,18 +99,34 @@ export const incrementBadgeCount = async (badgeId: string): Promise<void> => {
 
 export const getBadgeStatistics = async (): Promise<{[badgeId: string]: number}> => {
   try {
-    const badgeStatsRef = collection(db, 'badgeStats');
-    const snapshot = await getDocs(badgeStatsRef);
+    // Optimized: Read only specific badge documents instead of scanning entire collection
+    const badgeIds = BADGES.map(badge => badge.id);
+    const readPromises = badgeIds.map(async (badgeId) => {
+      try {
+        const badgeDocRef = doc(db, 'badgeStats', badgeId);
+        const badgeDoc = await getDoc(badgeDocRef);
+        return {
+          id: badgeId,
+          count: badgeDoc.exists() ? (badgeDoc.data().count || 0) : 0
+        };
+      } catch (error) {
+        console.log(`Failed to read badge stat for ${badgeId}:`, error);
+        return { id: badgeId, count: 0 };
+      }
+    });
+    
+    // Execute all reads in parallel (much faster than collection scan)
+    const results = await Promise.all(readPromises);
     
     const firebaseStats: {[badgeId: string]: number} = {};
-    snapshot.forEach((doc) => {
-      firebaseStats[doc.id] = doc.data().count || 0;
+    results.forEach(result => {
+      firebaseStats[result.id] = result.count;
     });
     
     // Merge Firebase data with baseline, ensuring all badges have statistics
     const stats = mergeWithBaseline(firebaseStats);
     
-    console.log('✓ Badge statistics loaded from Firebase:', Object.keys(firebaseStats).length, 'badges, merged with baseline');
+    console.log('✓ Badge statistics loaded from Firebase (optimized reads):', Object.keys(firebaseStats).length, 'badges, merged with baseline');
     return stats;
   } catch (error) {
     console.error('Error loading badge statistics from Firebase, using baseline data:', error);
@@ -474,59 +492,60 @@ export const getLevelProgress = (xp: number) => {
 
 export const generateDailyMissions = (
   user: User,
-  isPremium: boolean = false
+  isPremium: boolean = false,
+  language: 'en' | 'id' = 'id',
+  isAdUnlocked: boolean = false
 ): Mission[] => {
-  const staticMissions = [
-    {
-      title: 'Check-in Harian',
-      description: 'Lakukan check-in hari ini untuk melanjutkan streak',
-      xpReward: 10,
-      difficulty: 'easy' as const,
-    },
-    {
-      title: 'Minum Air Putih',
-      description: 'Minum minimal 8 gelas air putih hari ini',
-      xpReward: 15,
-      difficulty: 'easy' as const,
-    },
-    {
-      title: 'Olahraga Ringan',
-      description: 'Lakukan aktivitas fisik selama 15-30 menit',
-      xpReward: 25,
-      difficulty: 'medium' as const,
-    },
-    {
-      title: 'Meditasi',
-      description: 'Luangkan 10 menit untuk meditasi atau relaksasi',
-      xpReward: 20,
-      difficulty: 'medium' as const,
-    },
-    {
-      title: 'Cemilan Sehat',
-      description: 'Pilih buah atau sayuran sebagai cemilan hari ini',
-      xpReward: 15,
-      difficulty: 'easy' as const,
-    },
-    {
-      title: 'Napas Dalam',
-      description: 'Latihan pernapasan dalam 5 menit saat merasa stress',
-      xpReward: 10,
-      difficulty: 'easy' as const,
-    },
-  ];
-
-  // Randomly select missions based on premium status
-  const numberOfMissions = isPremium ? 3 : 1;
-  const shuffled = staticMissions.sort(() => 0.5 - Math.random());
-  const selectedMissions = shuffled.slice(0, numberOfMissions);
-
-  return selectedMissions.map((mission, index) => ({
-    id: `mission-${Date.now()}-${index}`,
-    ...mission,
+  const t = getTranslation(language);
+  const missions: Mission[] = [];
+  
+  // Mission 1: Daily check-in (always unlocked)
+  missions.push({
+    id: 'daily-checkin',
+    title: t.missions.checkInDaily,
+    description: t.missions.checkInDailyDesc,
+    xpReward: 10,
     isCompleted: false,
     completedAt: null,
     isAIGenerated: false,
-  }));
+    difficulty: 'easy'
+  });
+  
+  // Mission 2: Always show first random mission (before and after ad)
+  const firstRandomMission = getTranslatedMissionsWithSeed(language, 1, `${user.id}-daily-${new Date().toDateString()}`);
+  if (firstRandomMission.length > 0) {
+    missions.push({
+      ...firstRandomMission[0],
+      id: `random-mission-1-${new Date().toDateString()}`,
+    });
+  }
+
+  if (isAdUnlocked) {
+    // After ad: Add 2 more random missions (missions 3 & 4)
+    const additionalMissions = getTranslatedMissionsWithSeed(language, 2, `${user.id}-unlocked-${new Date().toDateString()}`);
+    additionalMissions.forEach((mission, index) => {
+      missions.push({
+        ...mission,
+        id: `random-mission-${index + 2}-${new Date().toDateString()}`,
+      });
+    });
+  } else {
+    // Before ad: Show "watch ad" button as mission 3
+    missions.push({
+      id: 'watch-ad-for-missions',
+      title: language === 'en' ? 'Watch Ad for More Missions' : 'Tonton Iklan untuk Misi Lebih',
+      description: language === 'en' ? 'Get 2 exciting & rewarding challenges!' : 'Dapatkan 2 misi seru & menantang!',
+      xpReward: 0,
+      isCompleted: false,
+      completedAt: null,
+      isAIGenerated: false,
+      difficulty: 'easy',
+      isLocked: true,
+      unlockMethod: 'ad'
+    });
+  }
+  
+  return missions;
 };
 
 export const getMotivationalMessage = (user: User): string => {

@@ -2,6 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
 import { generateReferralCode } from '../utils/referrals';
+import { migrateToCheckInSystem } from '../utils/helpers';
 
 interface DemoUser extends User {
   password: string;
@@ -19,9 +20,9 @@ const DEMO_USERS: DemoUser[] = [
     quitDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
     cigarettesPerDay: 20,
     cigarettePrice: 25000,
-    streak: 12,
-    longestStreak: 15,
-    totalDays: 15,
+    streak: 0,
+    longestStreak: 0,
+    totalDays: 0,
     xp: 450,
     level: 2,
     lastCheckIn: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
@@ -61,7 +62,12 @@ const DEMO_USERS: DemoUser[] = [
     referralCode: 'ADMIN1',
     referredBy: undefined,
     referralCount: 2,
-    referralRewards: 100
+    referralRewards: 100,
+    // Craving tracking fields
+    cravingsHandled: 0,
+    lastCravingDate: null,
+    // Migration tracking
+    migrationVersion: 'v2-checkin-only'
   },
   {
     id: 'demo-user',
@@ -73,9 +79,9 @@ const DEMO_USERS: DemoUser[] = [
     quitDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
     cigarettesPerDay: 12,
     cigarettePrice: 20000,
-    streak: 3,
-    longestStreak: 5,
-    totalDays: 5,
+    streak: 0,
+    longestStreak: 0,
+    totalDays: 0,
     xp: 120,
     level: 1,
     lastCheckIn: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
@@ -94,7 +100,12 @@ const DEMO_USERS: DemoUser[] = [
     referralCode: 'TEST01',
     referredBy: 'ADMIN1',
     referralCount: 0,
-    referralRewards: 0
+    referralRewards: 0,
+    // Craving tracking fields
+    cravingsHandled: 0,
+    lastCravingDate: null,
+    // Migration tracking
+    migrationVersion: 'v2-checkin-only'
   },
   {
     id: 'demo-new-user',
@@ -127,7 +138,12 @@ const DEMO_USERS: DemoUser[] = [
     referralCode: 'NEWB99',
     referredBy: undefined,
     referralCount: 0,
-    referralRewards: 0
+    referralRewards: 0,
+    // Craving tracking fields
+    cravingsHandled: 0,
+    lastCravingDate: null,
+    // Migration tracking
+    migrationVersion: 'v2-checkin-only'
   }
 ];
 
@@ -140,14 +156,16 @@ export const demoSignIn = async (email: string, password: string): Promise<DemoU
     setTimeout(async () => {
       const user = DEMO_USERS.find(u => u.email === email && u.password === password);
       if (user) {
-        currentUser = user;
+        // Apply check-in system migration if needed
+        const migrationResult = migrateToCheckInSystem(user);
+        currentUser = migrationResult.user;
         try {
-          await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(user));
-          console.log('User saved to AsyncStorage:', user.email);
+          await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(migrationResult.user));
+          console.log('User saved to AsyncStorage:', migrationResult.user.email);
         } catch (error) {
           console.error('Error saving user to AsyncStorage:', error);
         }
-        resolve(user);
+        resolve(migrationResult.user);
       } else {
         reject(new Error('Invalid email or password'));
       }
@@ -259,9 +277,30 @@ export const demoRestoreUser = async (): Promise<DemoUser | null> => {
         console.log('✓ Generated referral code for existing user:', userReferralCode);
       }
       
-      currentUser = user;
-      console.log('User restored successfully:', user.email, 'with referral code:', user.referralCode);
-      return user;
+      // Ensure user has craving tracking fields (for users created before this feature)
+      if (user.cravingsHandled === undefined || user.lastCravingDate === undefined) {
+        console.log('User missing craving fields, adding defaults...');
+        user.cravingsHandled = user.cravingsHandled || 0;
+        user.lastCravingDate = user.lastCravingDate || null;
+        
+        // Save updated user back to storage
+        await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(user));
+        console.log('✓ Added craving tracking fields to existing user');
+      }
+      
+      // Apply check-in system migration if needed
+      const migrationResult = migrateToCheckInSystem(user);
+      if (migrationResult.migrationApplied) {
+        // Migration occurred, save the updated user
+        await AsyncStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(migrationResult.user));
+        console.log('✓ Applied check-in system migration to existing user');
+        currentUser = migrationResult.user;
+      } else {
+        currentUser = migrationResult.user;
+      }
+      
+      console.log('User restored successfully:', currentUser.email, 'with referral code:', currentUser.referralCode);
+      return currentUser;
     }
     console.log('No user found in AsyncStorage');
     return null;

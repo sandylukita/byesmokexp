@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     Dimensions,
     RefreshControl,
@@ -16,6 +17,79 @@ import {
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
+
+// Cache constants for Progress screen data
+const PROGRESS_CACHE_KEY = 'progress_user_cache';
+const COMMUNITY_CACHE_KEY = 'community_comparison_cache';
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache for user progress data
+
+// Load user data from AsyncStorage cache
+const loadCachedUserData = async (): Promise<User | null> => {
+  try {
+    const cached = await AsyncStorage.getItem(PROGRESS_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.data && parsed.timestamp) {
+        const age = Date.now() - parsed.timestamp;
+        if (age < CACHE_DURATION) {
+          console.log('✓ Loaded fresh user data from Progress cache');
+          return parsed.data;
+        }
+      }
+    }
+  } catch (error) {
+    console.log('Error loading cached user data:', error);
+  }
+  return null;
+};
+
+// Save user data to AsyncStorage cache
+const cacheUserData = async (userData: User) => {
+  try {
+    const cacheData = {
+      data: userData,
+      timestamp: Date.now()
+    };
+    await AsyncStorage.setItem(PROGRESS_CACHE_KEY, JSON.stringify(cacheData));
+    console.log('✓ User data cached for Progress screen');
+  } catch (error) {
+    console.log('Error caching user data:', error);
+  }
+};
+
+// Load community comparison from cache
+const loadCachedCommunityComparison = async (userId: string): Promise<any | null> => {
+  try {
+    const cached = await AsyncStorage.getItem(`${COMMUNITY_CACHE_KEY}_${userId}`);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.data && parsed.timestamp) {
+        const age = Date.now() - parsed.timestamp;
+        if (age < CACHE_DURATION) {
+          console.log('✓ Using cached community comparison');
+          return parsed.data;
+        }
+      }
+    }
+  } catch (error) {
+    console.log('Error loading cached community comparison:', error);
+  }
+  return null;
+};
+
+// Cache community comparison data
+const cacheCommunityComparison = async (userId: string, comparison: any) => {
+  try {
+    const cacheData = {
+      data: comparison,
+      timestamp: Date.now()
+    };
+    await AsyncStorage.setItem(`${COMMUNITY_CACHE_KEY}_${userId}`, JSON.stringify(cacheData));
+    console.log('✓ Community comparison cached');
+  } catch (error) {
+    console.log('Error caching community comparison:', error);
+  }
+};
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { User } from '../types';
@@ -35,73 +109,147 @@ import { TYPOGRAPHY } from '../utils/typography';
 const ProgressScreen: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [selectedTab, setSelectedTab] = useState<'health' | 'savings' | 'stats'>('stats');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Show cached data immediately
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date()); // For month navigation
   const { colors, updateUser, language } = useTheme();
   const { t } = useTranslation();
 
   useEffect(() => {
-    loadUserData();
+    initializeProgressData();
   }, []);
 
-  // Real-time listener for Firebase user data sync
+  const initializeProgressData = async () => {
+    // First load cached data for instant display
+    const cachedData = await loadCachedUserData();
+    if (cachedData) {
+      setUser(cachedData);
+      console.log('✓ Progress screen showing cached data instantly');
+    }
+    
+    // Then load fresh data in background
+    loadUserData();
+  };
+
+  // Optimized real-time listener with better error handling
   useEffect(() => {
     const firebaseUser = auth.currentUser;
-    if (firebaseUser) {
-      console.log('Setting up real-time listener for ProgressScreen...');
-      const userDocRef = doc(db, 'users', firebaseUser.uid);
-      
-      const unsubscribe = onSnapshot(userDocRef, (doc) => {
-        if (auth.currentUser && doc.exists()) {
+    if (!firebaseUser) return;
+
+    console.log('Setting up optimized real-time listener for ProgressScreen...');
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    
+    const unsubscribe = onSnapshot(
+      userDocRef, 
+      {
+        includeMetadataChanges: false, // Only listen for actual data changes
+        source: 'default' // Allow cached data to reduce reads
+      },
+      (doc) => {
+        // Only process if user is still authenticated and doc exists
+        if (auth.currentUser && doc.exists() && !doc.metadata.fromCache) {
           const userData = { id: firebaseUser.uid, ...doc.data() } as User;
-          console.log('Progress real-time update received:', {
+          console.log('🔄 Progress real-time update received:', {
             email: userData.email,
             xp: userData.xp,
             totalDays: userData.totalDays,
-            streak: userData.streak
+            streak: userData.streak,
+            dailyXPEntries: Object.keys(userData.dailyXP || {}).length,
+            completedMissions: userData.completedMissions?.length || 0,
+            lastCheckIn: userData.lastCheckIn
           });
           
-          // Update user data with smart logic
+          // Update user data with smart logic and cache it
           setUser(currentUser => {
-            if (!currentUser) return userData;
+            if (!currentUser) {
+              console.log('Setting initial Progress screen user data');
+              cacheUserData(userData);
+              return userData;
+            }
             
-            // Only accept updates with newer or equal XP to prevent stale data
-            if (userData.xp >= currentUser.xp) {
-              console.log('Accepting Progress screen Firebase update');
+            // Accept updates if any of these conditions are met:
+            // 1. XP increased (mission completed or check-in)
+            // 2. lastCheckIn changed (new check-in)
+            // 3. dailyXP has new entries (mission completed)
+            // 4. completedMissions count changed
+            const shouldUpdate = 
+              userData.xp >= currentUser.xp || // XP same or increased
+              userData.lastCheckIn !== currentUser.lastCheckIn || // New check-in
+              (userData.dailyXP && Object.keys(userData.dailyXP).length !== Object.keys(currentUser.dailyXP || {}).length) || // New daily XP entries
+              (userData.completedMissions?.length || 0) !== (currentUser.completedMissions?.length || 0); // Mission count changed
+              
+            if (shouldUpdate) {
+              console.log('✅ Accepting Progress screen Firebase update:', {
+                xpChange: userData.xp - currentUser.xp,
+                checkInChanged: userData.lastCheckIn !== currentUser.lastCheckIn,
+                dailyXPEntries: Object.keys(userData.dailyXP || {}).length,
+                previousDailyXPEntries: Object.keys(currentUser.dailyXP || {}).length,
+                missionsChange: (userData.completedMissions?.length || 0) - (currentUser.completedMissions?.length || 0),
+                todaysDailyXP: (() => {
+                  const today = new Date();
+                  const todayKey = today.getFullYear() + '-' + 
+                    (today.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+                    today.getDate().toString().padStart(2, '0');
+                  return userData.dailyXP?.[todayKey] || 0;
+                })()
+              });
+              cacheUserData(userData);
               return userData;
             } else {
-              console.log('Ignoring stale Progress data from Firebase');
+              console.log('⏭️ Ignoring stale Progress data from Firebase');
               return currentUser;
             }
           });
         }
-      }, (error) => {
-        if (auth.currentUser) {
-          console.error('Error in Progress real-time listener:', error);
+      }, 
+      (error) => {
+        // Handle authentication errors gracefully
+        if (error.code === 'permission-denied') {
+          console.log('🔐 Progress screen: User authentication changed, stopping listener');
+          return; // Don't log error for expected auth changes
         }
-      });
-      
-      return () => {
-        console.log('Cleaning up Progress real-time listener');
-        unsubscribe();
-      };
-    }
+        
+        // Handle network errors gracefully  
+        if (error.code === 'unavailable' || error.code === 'failed-precondition') {
+          console.log('📶 Progress screen: Firebase temporarily unavailable');
+          return; // Don't log error for expected network issues
+        }
+        
+        // Only log unexpected errors if user is still authenticated
+        if (auth.currentUser) {
+          console.error('Progress real-time listener error:', error.code || error.message);
+        }
+      }
+    );
+    
+    return () => {
+      console.log('Cleaning up Progress real-time listener');
+      unsubscribe();
+    };
   }, [auth.currentUser]);
 
 
-  // Reload data when screen comes into focus
+  // Only reload data when screen comes into focus if cache is stale
   useFocusEffect(
     useCallback(() => {
-      console.log('ProgressScreen focused, reloading data...');
+      console.log('ProgressScreen focused...');
       
-      // Add a small delay to ensure any pending updates from other screens are completed
-      const timeoutId = setTimeout(() => {
-        loadUserData();
-      }, 100); // Small delay to allow Firebase sync
-      
-      return () => clearTimeout(timeoutId);
-    }, [])
+      // Check if we need to refresh (only if no user data or cache is stale)
+      if (!user) {
+        console.log('No user data, loading...');
+        initializeProgressData();
+      } else {
+        // Check cache age - only reload if data is older than 5 minutes
+        loadCachedUserData().then(cachedData => {
+          if (!cachedData) {
+            console.log('Cache expired, refreshing in background...');
+            loadUserData(); // Background refresh without loading state
+          } else {
+            console.log('Using existing user data, skipping reload');
+          }
+        });
+      }
+    }, [user])
   );
 
   const loadUserData = async () => {
@@ -131,6 +279,8 @@ const ProgressScreen: React.FC = () => {
               dailyXPKeys: Object.keys(userData.dailyXP || {}).length
             });
             setUser(userData);
+            // Cache the user data for next time
+            cacheUserData(userData);
             // updateUser(userData); // Temporarily disabled to prevent infinite loop
             setLoading(false);
             return;
@@ -158,6 +308,8 @@ const ProgressScreen: React.FC = () => {
           dailyXP: demoUser.dailyXP
         });
         setUser(demoUser);
+        // Cache demo user data too
+        cacheUserData(demoUser);
         // updateUser(demoUser); // Temporarily disabled to prevent infinite loop
         setLoading(false);
         return;
@@ -175,6 +327,8 @@ const ProgressScreen: React.FC = () => {
           totalDays: restoredUser.totalDays
         });
         setUser(restoredUser);
+        // Cache restored demo user data
+        cacheUserData(restoredUser);
         // updateUser(restoredUser); // Temporarily disabled to prevent infinite loop
         setLoading(false);
         return;
@@ -220,7 +374,7 @@ const ProgressScreen: React.FC = () => {
   const shareAchievement = async (type: 'days' | 'money' | 'cigarettes' | 'streak' | 'milestone', data?: any) => {
     if (!user) return;
 
-    const daysSinceQuit = calculateDaysSinceQuit(new Date(user.quitDate));
+    const daysSinceQuit = user.totalDays || 0;
     const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
     const cigarettesAvoided = daysSinceQuit * user.cigarettesPerDay;
 
@@ -283,17 +437,27 @@ const ProgressScreen: React.FC = () => {
   const shareProgressSummary = async () => {
     if (!user) return;
 
-    const daysSinceQuit = calculateDaysSinceQuit(new Date(user.quitDate));
+    const daysSinceQuit = user.totalDays || 0;
     const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
     const cigarettesAvoided = daysSinceQuit * user.cigarettesPerDay;
     const currentStreak = user.longestStreak || user.streak || 0;
     const missionsCompleted = user.completedMissions?.length || 0;
     const savings = formatCurrency(moneySaved).replace('Rp', '').trim();
 
-    // Get community comparison for enhanced sharing
+    // Get community comparison for enhanced sharing (cached)
     let communityRankText = '';
     try {
-      const comparison = await compareUserToCommunity(user);
+      // First try cache
+      let comparison = await loadCachedCommunityComparison(user.id);
+      
+      if (!comparison) {
+        // If not cached, fetch from Firebase and cache it
+        comparison = await compareUserToCommunity(user);
+        if (comparison) {
+          await cacheCommunityComparison(user.id, comparison);
+        }
+      }
+      
       if (comparison) {
         communityRankText = language === 'en' 
           ? `\n🏆 Ranked in the ${comparison.streakRank} of ByeSmoke users!`
@@ -352,7 +516,8 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
     );
   }
 
-  const daysSinceQuit = calculateDaysSinceQuit(new Date(user.quitDate));
+  // Use check-in based calculation to match Dashboard
+  const daysSinceQuit = user.totalDays || 0;
   const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
   const healthMilestones = getHealthMilestones(new Date(user.quitDate));
   const cigarettesAvoided = daysSinceQuit * user.cigarettesPerDay;
@@ -603,7 +768,7 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
             </View>
           </View>
           
-          <View style={styles.monthlyHeatmap}>
+          <View style={[styles.monthlyHeatmap, { backgroundColor: colors.background }]}>
             
             {/* Day labels */}
             <View style={styles.heatmapDayLabels}>
@@ -612,8 +777,16 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
               ))}
             </View>
             
-            <View style={styles.heatmapGrid}>
+            <View style={styles.heatmapGrid} key={`heatmap-${user.xp}-${JSON.stringify(user.dailyXP)}`}>
               {(() => {
+                console.log('🗓️ HEATMAP RENDER START:', {
+                  userEmail: user.email,
+                  userXP: user.xp,
+                  dailyXPData: user.dailyXP,
+                  selectedDate: selectedDate.toDateString(),
+                  renderKey: `heatmap-${user.xp}-${JSON.stringify(user.dailyXP)}`
+                });
+                
                 const today = new Date();
                 const currentMonth = selectedDate.getMonth();
                 const currentYear = selectedDate.getFullYear();
@@ -621,7 +794,9 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
                 const lastDay = new Date(currentYear, currentMonth + 1, 0);
                 const daysInMonth = lastDay.getDate();
                 const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
+                // Normalize quit date to start of day to avoid time component issues
                 const quitDate = new Date(user.quitDate);
+                const quitDateNormalized = new Date(quitDate.getFullYear(), quitDate.getMonth(), quitDate.getDate());
                 const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
                 
                 // Create array for the calendar grid
@@ -645,12 +820,36 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
                   // Calculate activity for this day based on check-in status primarily
                   let intensity = 0;
                   
-                  if (!isFuture && date >= quitDate) {
-                    // Check if user did check-in on this specific date
-                    const hasCheckedInOnDate = user.lastCheckIn && 
-                      new Date(user.lastCheckIn).toDateString() === date.toDateString();
+                  // Debug quit date comparison for new users
+                  if (isToday) {
+                    console.log('🏁 QUIT DATE COMPARISON (FIXED):', {
+                      today: date.toDateString(),
+                      quitDateOriginal: quitDate.toDateString(),
+                      quitDateNormalized: quitDateNormalized.toDateString(),
+                      quitDateFull: quitDate,
+                      dateComparison: date >= quitDateNormalized,
+                      isFuture,
+                      willShowActivity: !isFuture && date >= quitDateNormalized
+                    });
+                  }
+                  
+                  if (!isFuture && date >= quitDateNormalized) {
+                    // Check if user did check-in on this specific date (improved date comparison)
+                    let hasCheckedInOnDate = false;
+                    if (user.lastCheckIn) {
+                      const checkInDate = new Date(user.lastCheckIn);
+                      const targetDate = new Date(date);
+                      // Compare dates by creating date strings in same timezone
+                      const checkInDateStr = checkInDate.getFullYear() + '-' + 
+                        (checkInDate.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+                        checkInDate.getDate().toString().padStart(2, '0');
+                      const targetDateStr = targetDate.getFullYear() + '-' + 
+                        (targetDate.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+                        targetDate.getDate().toString().padStart(2, '0');
+                      hasCheckedInOnDate = checkInDateStr === targetDateStr;
+                    }
                     
-                    // For today, use check-in status and XP combined
+                    // For today, prioritize daily XP over check-in status
                     if (isToday) {
                       // Check actual XP earned today to determine intensity
                       const dateKey = date.getFullYear() + '-' + 
@@ -664,29 +863,33 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
                         todayXP = user.dailyXP?.[utcDateKey] || 0;
                       }
                       
-                      if (hasCheckedInOnDate) {
-                        // Set intensity based on actual XP earned today
-                        if (todayXP >= 50) {
-                          intensity = 3; // High activity: 50+ XP (check-in + multiple missions)
-                        } else if (todayXP >= 20) {
-                          intensity = 2; // Medium activity: 20-49 XP (check-in + some missions)
-                        } else if (todayXP >= 10) {
-                          intensity = 1; // Low activity: 10-19 XP (check-in only)
-                        } else {
-                          intensity = 1; // Default to light green if checked in but no XP recorded yet
-                        }
-                      } else {
-                        intensity = 0; // Haven't checked in yet today
+                      
+                      // Check if user actually checked in TODAY (not yesterday or other days)
+                      let hasActuallyCheckedInToday = false;
+                      if (user.lastCheckIn) {
+                        const checkInDate = new Date(user.lastCheckIn);
+                        const today = new Date();
+                        // Only true if check-in was today
+                        hasActuallyCheckedInToday = checkInDate.toDateString() === today.toDateString();
                       }
                       
-                      console.log('📅 Today heatmap calculation:', {
-                        date: date.toDateString(),
-                        lastCheckIn: user.lastCheckIn ? new Date(user.lastCheckIn).toDateString() : null,
-                        hasCheckedInOnDate,
-                        todayXP,
-                        intensity,
-                        intensityMeaning: intensity === 0 ? 'No activity' : intensity === 1 ? 'Light green (10-19 XP)' : intensity === 2 ? 'Medium green (20-49 XP)' : 'Dark green (50+ XP)'
-                      });
+                      // Only show today's activity if user has actually checked in today
+                      if (!hasActuallyCheckedInToday) {
+                        todayXP = 0; // Don't show activity if user hasn't checked in today
+                      }
+                      
+                      // STRICT: Only show green if there's actual activity TODAY
+                      if (todayXP >= 50) {
+                        intensity = 3; // High activity: 50+ XP (multiple missions)
+                      } else if (todayXP >= 20) {
+                        intensity = 2; // Medium activity: 20-49 XP (some missions)
+                      } else if (todayXP >= 10) {
+                        intensity = 1; // Low activity: 10-19 XP (check-in or single mission)
+                      } else {
+                        // DEFAULT: No activity today = gray
+                        intensity = 0; // No green unless there's actual XP earned today
+                      }
+                      
                     } else {
                       // For past days, use dailyXP as fallback for historical data
                       const dateKey = date.getFullYear() + '-' + 
@@ -712,18 +915,48 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
                         intensity = 0; // No activity: 0-9 XP
                       }
                     }
+                  } else {
+                    // Debug: Why isn't activity being calculated?
+                    if (isToday) {
+                      console.log('❌ NO ACTIVITY CALCULATION - Reason:', {
+                        isFuture: isFuture,
+                        dateGteQuitDate: date >= quitDateNormalized,
+                        failedCondition: isFuture ? 'Date is in future' : 'Date is before quit date'
+                      });
+                    }
+                  }
+                  
+                  // Debug the style calculation for today
+                  if (isToday) {
+                    console.log('🎨 HEATMAP STYLE CALCULATION:', {
+                      day,
+                      isToday,
+                      isFuture,
+                      intensity,
+                      expectedColor: intensity === 0 ? 'gray' : intensity === 1 ? 'light green' : intensity === 2 ? 'medium green' : 'dark green',
+                      stylesApplied: {
+                        heatmapDayCircle: true,
+                        surface: true,
+                        heatmapEmpty: !isFuture && intensity === 0,
+                        heatmapLow: !isFuture && intensity === 1,
+                        heatmapMedium: !isFuture && intensity === 2,
+                        heatmapHigh: !isFuture && intensity === 3,
+                        heatmapToday: isToday
+                      }
+                    });
                   }
                   
                   calendarDays.push(
                     <View key={`day-${day}`} style={styles.heatmapDay}>
                       <View style={[
                         styles.heatmapDayCircle,
-                        isFuture && styles.heatmapFuture,
-                        !isFuture && intensity === 0 && styles.heatmapEmpty,
+                        { backgroundColor: colors.surface },
+                        isFuture && [styles.heatmapFuture, { borderColor: colors.border }],
+                        !isFuture && intensity === 0 && [styles.heatmapEmpty, { backgroundColor: colors.border }],
                         !isFuture && intensity === 1 && styles.heatmapLow,
                         !isFuture && intensity === 2 && styles.heatmapMedium,
                         !isFuture && intensity === 3 && styles.heatmapHigh,
-                        isToday && styles.heatmapToday
+                        isToday && [styles.heatmapToday, { borderColor: colors.primary }]
                       ]}>
                         <Text style={[
                           styles.heatmapDayNumber,
@@ -743,7 +976,7 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
             <View style={styles.heatmapLegend}>
               <Text style={[styles.heatmapLegendText, { color: colors.textSecondary }]}>Kurang</Text>
               <View style={styles.heatmapLegendDots}>
-                <View style={[styles.heatmapLegendDot, styles.heatmapEmpty]} />
+                <View style={[styles.heatmapLegendDot, { backgroundColor: colors.border }]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapLow]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapMedium]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapHigh]} />
@@ -787,7 +1020,7 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
             style={styles.shareAchievementButton} 
             onPress={shareProgressSummary}
           >
-            <MaterialIcons name="share" size={14} color={colors.white} />
+            <MaterialIcons name="share" size={14} color="#333333" />
             <Text style={styles.shareAchievementText}>
               {language === 'en' ? 'Share Progress' : 'Bagikan Progres'}
             </Text>
@@ -876,8 +1109,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    paddingTop: Math.max(50, height * 0.06), // Responsive top padding for mobile
-    paddingBottom: Math.max(SIZES.xl, height * 0.08), // Responsive bottom padding for floating card
+    paddingTop: Math.max(45, height * 0.05), // Balanced top padding like Achievement page
+    paddingBottom: SIZES.xl, // Consistent bottom padding like Achievement page
     paddingHorizontal: SIZES.screenPadding,
     alignItems: 'center',
   },
@@ -897,17 +1130,22 @@ const styles = StyleSheet.create({
   shareAchievementButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: SIZES.sm,
     paddingVertical: SIZES.xs,
     borderRadius: 20,
     gap: 6,
     alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   shareAchievementText: {
     ...TYPOGRAPHY.bodySmall,
-    color: COLORS.white,
-    fontWeight: '500',
+    color: '#333333',
+    fontWeight: '600',
     fontSize: 12,
   },
   tabContainer: {
@@ -918,7 +1156,7 @@ const styles = StyleSheet.create({
     padding: Math.max(width * 0.015, 6),
     marginTop: -SIZES.lg,
     marginBottom: SIZES.md,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -974,7 +1212,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SIZES.screenPadding,
     marginBottom: SIZES.xs || 4,
     padding: SIZES.sm,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -985,7 +1223,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
     marginBottom: SIZES.xs || 4,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -1040,7 +1278,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginHorizontal: SIZES.screenPadding,
     marginBottom: 4,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -1075,7 +1313,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.buttonRadius || 12,
     padding: SIZES.sm,
     marginBottom: SIZES.xs || 4,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -1115,7 +1353,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
     marginBottom: SIZES.xs || 4,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -1190,7 +1428,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: (width - SIZES.screenPadding * 2 - SIZES.xs) / 2,
     marginBottom: 0,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -1215,7 +1453,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SIZES.screenPadding,
     marginTop: SIZES.sm,
     marginBottom: SIZES.xs || 4,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -1268,7 +1506,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   monthlyHeatmap: {
-    backgroundColor: COLORS.white + '80',
     borderRadius: SIZES.buttonRadius || 12,
     padding: SIZES.sm,
   },
@@ -1295,7 +1532,6 @@ const styles = StyleSheet.create({
   heatmapDayCircle: {
     flex: 1,
     borderRadius: 6,
-    backgroundColor: COLORS.lightGray,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1312,13 +1548,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   heatmapEmpty: {
-    backgroundColor: COLORS.lightGray,
+    // Background color applied dynamically
   },
   heatmapFuture: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
     borderStyle: 'dashed',
+    // Border color applied dynamically
   },
   heatmapLow: {
     backgroundColor: COLORS.secondary + '40',
@@ -1331,7 +1567,7 @@ const styles = StyleSheet.create({
   },
   heatmapToday: {
     borderWidth: 2,
-    borderColor: COLORS.primary,
+    // Border color applied dynamically
   },
   heatmapTodayDot: {
     width: 4,

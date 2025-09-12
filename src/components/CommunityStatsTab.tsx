@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +24,7 @@ import { User } from '../types';
 import { COLORS, SIZES } from '../utils/constants';
 import { CommunityComparison } from './CommunityComparison';
 import { getCommunityStats, getCommunityInsights, CommunityStats } from '../services/communityStats';
+import { showRewardedAd, canShowRewardedAd } from '../services/adMob';
 
 const { width } = Dimensions.get('window');
 
@@ -40,10 +42,80 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
   const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
   const [communityInsights, setCommunityInsights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUnlockedStats, setShowUnlockedStats] = useState(false);
+  const [customAlert, setCustomAlert] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'info' | 'warning' | 'error'
+  });
 
   useEffect(() => {
     loadCommunityData();
   }, []);
+
+  const showCustomAlert = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  const hideCustomAlert = () => {
+    setCustomAlert(prev => ({ ...prev, visible: false }));
+  };
+
+  const handleWatchAdForCommunityStats = async () => {
+    try {
+      // Check if rewarded ad is available
+      if (!canShowRewardedAd()) {
+        showCustomAlert(
+          language === 'en' ? 'Ad Not Available' : 'Iklan Tidak Tersedia',
+          language === 'en' 
+            ? 'Please try again in a few moments.'
+            : 'Silakan coba lagi dalam beberapa saat.',
+          'warning'
+        );
+        return;
+      }
+
+      // Show rewarded ad
+      const rewarded = await showRewardedAd('community_stats_unlock');
+      
+      if (rewarded) {
+        // User watched the ad and earned reward - unlock community stats
+        setShowUnlockedStats(true);
+        
+        showCustomAlert(
+          language === 'en' ? 'Stats Unlocked!' : 'Statistik Terbuka!',
+          language === 'en' 
+            ? 'You can now see detailed community statistics!'
+            : 'Sekarang Anda dapat melihat statistik komunitas lengkap!',
+          'success'
+        );
+      } else {
+        // User didn't complete the ad
+        showCustomAlert(
+          language === 'en' ? 'Ad Incomplete' : 'Iklan Tidak Selesai',
+          language === 'en' 
+            ? 'Please watch the full ad to unlock community stats.'
+            : 'Silakan tonton iklan lengkap untuk membuka statistik komunitas.',
+          'info'
+        );
+      }
+    } catch (error) {
+      console.error('Error showing community stats reward ad:', error);
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en' 
+          ? 'Unable to show ad. Please try again later.'
+          : 'Tidak dapat menampilkan iklan. Silakan coba lagi nanti.',
+        'error'
+      );
+    }
+  };
 
   const loadCommunityData = async () => {
     try {
@@ -64,10 +136,11 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
     }
   };
 
-  // Premium-only check
-  if (!user.isPremium) {
+  // Premium-only check - verify trial is still active or user has unlocked via ad
+  const hasActivePremium = user.isPremium && (!user.isOnTrial || (user.trialEndDate && new Date() <= new Date(user.trialEndDate)));
+  if (!hasActivePremium && !showUnlockedStats) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={[styles.premiumOnlyContainer, { backgroundColor: colors.surface }]}>
             <LinearGradient
@@ -78,23 +151,27 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
             >
               <MaterialIcons name="people" size={64} color={colors.secondary} />
               <Text style={[styles.premiumOnlyTitle, { color: colors.textPrimary }]}>
-                {t.badges.premiumRequired}
+                {language === 'en' ? 'Community Statistics' : 'Statistik Komunitas'}
               </Text>
               <Text style={[styles.premiumOnlyDescription, { color: colors.textSecondary }]}>
-                {t.badges.premiumCommunityDesc}
+                {language === 'en' 
+                  ? 'Watch an ad to see how you compare with other users'
+                  : 'Tonton iklan untuk melihat perbandingan dengan pengguna lain'
+                }
               </Text>
               
-              {onUpgradePress && (
-                <TouchableOpacity
-                  style={[styles.upgradeButton, { backgroundColor: colors.secondary }]}
-                  onPress={onUpgradePress}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.upgradeButtonText}>
-                    {language === 'en' ? 'Try Free for 7 Days' : 'Coba Gratis 7 Hari'}
+              <TouchableOpacity
+                style={[styles.upgradeButton, { backgroundColor: colors.secondary }]}
+                onPress={() => handleWatchAdForCommunityStats()}
+                activeOpacity={0.8}
+              >
+                <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
+                  <MaterialIcons name="play-circle-filled" size={16} color="#FFFFFF" />
+                  <Text style={[styles.upgradeButtonText, { marginLeft: 6 }]}>
+                    {language === 'en' ? 'Watch Ad for Stats' : 'Tonton Iklan untuk Statistik'}
                   </Text>
-                </TouchableOpacity>
-              )}
+                </View>
+              </TouchableOpacity>
             </LinearGradient>
           </View>
         </ScrollView>
@@ -104,7 +181,7 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
           {language === 'en' ? 'Loading community stats...' : 'Memuat statistik komunitas...'}
@@ -114,7 +191,7 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Community Insights */}
         {communityInsights.length > 0 && (
@@ -237,6 +314,65 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
           </View>
         )}
       </ScrollView>
+      
+      {/* Custom Alert */}
+      <Modal
+        visible={customAlert.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={hideCustomAlert}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={hideCustomAlert}
+        >
+          <View style={[styles.alertContainer, { backgroundColor: colors.surface }]}>
+            <View style={[
+              styles.alertIconContainer, 
+              { 
+                backgroundColor: customAlert.type === 'success' ? colors.success + '20' : 
+                                 customAlert.type === 'error' ? colors.error + '20' : 
+                                 customAlert.type === 'warning' ? colors.warning + '20' : 
+                                 colors.info + '20' 
+              }
+            ]}>
+              <MaterialIcons 
+                name={
+                  customAlert.type === 'success' ? 'check-circle' : 
+                  customAlert.type === 'error' ? 'error' : 
+                  customAlert.type === 'warning' ? 'warning' : 
+                  'info'
+                } 
+                size={48} 
+                color={
+                  customAlert.type === 'success' ? colors.success : 
+                  customAlert.type === 'error' ? colors.error : 
+                  customAlert.type === 'warning' ? colors.warning : 
+                  colors.info
+                } 
+              />
+            </View>
+            
+            <Text style={[styles.alertTitle, { color: colors.textPrimary }]}>
+              {customAlert.title}
+            </Text>
+            
+            <Text style={[styles.alertMessage, { color: colors.textSecondary }]}>
+              {customAlert.message}
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.alertButton, { backgroundColor: colors.primary }]}
+              onPress={hideCustomAlert}
+            >
+              <Text style={[styles.alertButtonText, { color: colors.white }]}>
+                OK
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -244,7 +380,6 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     justifyContent: 'center',
@@ -414,6 +549,58 @@ const styles = StyleSheet.create({
   distributionCount: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  
+  // Custom Alert styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SIZES.lg,
+  },
+  alertContainer: {
+    borderRadius: SIZES.buttonRadius || 12,
+    padding: SIZES.lg,
+    alignItems: 'center',
+    minWidth: width * 0.8,
+    maxWidth: width * 0.9,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  alertIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SIZES.md,
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: SIZES.sm,
+  },
+  alertMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: SIZES.lg,
+  },
+  alertButton: {
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.xl,
+    borderRadius: SIZES.buttonRadius || 12,
+    minWidth: 100,
+  },
+  alertButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

@@ -4,20 +4,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
+    Linking,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
     Share,
-    Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logout } from '../services/auth';
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
+import { CustomConfirmDialog } from '../components/CustomConfirmDialog';
 import { auth, db } from '../services/firebase';
 import { NotificationService } from '../services/notificationService';
 import { 
@@ -46,12 +50,19 @@ interface ProfileScreenProps {
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasUpdatedThemeContext, setHasUpdatedThemeContext] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', message: '' });
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
   const [legalDocument, setLegalDocument] = useState<'privacy' | 'terms'>('privacy');
+  const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
+  const [deleteAccountDialogVisible, setDeleteAccountDialogVisible] = useState(false);
+  const [reAuthDialogVisible, setReAuthDialogVisible] = useState(false);
+  const [reAuthPassword, setReAuthPassword] = useState('');
+  const [deletingAccountDialogVisible, setDeletingAccountDialogVisible] = useState(false);
+  const [accountDeletedDialogVisible, setAccountDeletedDialogVisible] = useState(false);
   const { isDarkMode, colors, toggleDarkMode, setLanguage, canUseDarkMode, updateUser } = useTheme();
   const { t, language } = useTranslation();
 
@@ -59,15 +70,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     loadUserData();
   }, []);
 
-  // Real-time listener for Firebase user data sync
+  // Optimized real-time listener with better error handling
   useEffect(() => {
     const firebaseUser = auth.currentUser;
-    if (firebaseUser) {
-      console.log('Setting up real-time listener for ProfileScreen...');
-      const userDocRef = doc(db, 'users', firebaseUser.uid);
-      
-      const unsubscribe = onSnapshot(userDocRef, (doc) => {
-        if (auth.currentUser && doc.exists()) {
+    if (!firebaseUser) return;
+
+    console.log('Setting up optimized real-time listener for ProfileScreen...');
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    
+    const unsubscribe = onSnapshot(
+      userDocRef, 
+      {
+        includeMetadataChanges: false, // Only listen for actual data changes
+        source: 'default' // Allow cached data to reduce reads
+      },
+      (doc) => {
+        // Only process if user is still authenticated and doc exists
+        if (auth.currentUser && doc.exists() && !doc.metadata.fromCache) {
           const userData = { id: firebaseUser.uid, ...doc.data() } as User;
           console.log('Profile real-time update received:', {
             email: userData.email,
@@ -84,17 +103,31 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
             return userData;
           });
         }
-      }, (error) => {
-        if (auth.currentUser) {
-          console.error('Error in Profile real-time listener:', error);
+      }, 
+      (error) => {
+        // Handle authentication errors gracefully
+        if (error.code === 'permission-denied') {
+          console.log('🔐 Profile screen: User authentication changed, stopping listener');
+          return; // Don't log error for expected auth changes
         }
-      });
-      
-      return () => {
-        console.log('Cleaning up Profile real-time listener');
-        unsubscribe();
-      };
-    }
+        
+        // Handle network errors gracefully  
+        if (error.code === 'unavailable' || error.code === 'failed-precondition') {
+          console.log('📶 Profile screen: Firebase temporarily unavailable');
+          return; // Don't log error for expected network issues
+        }
+        
+        // Only log unexpected errors if user is still authenticated
+        if (auth.currentUser) {
+          console.error('Profile real-time listener error:', error.code || error.message);
+        }
+      }
+    );
+    
+    return () => {
+      console.log('Cleaning up Profile real-time listener');
+      unsubscribe();
+    };
   }, [auth.currentUser]);
 
   // Reload data when screen comes into focus
@@ -135,7 +168,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
               totalDays: userData.totalDays
             });
             setUser(userData);
-            // updateUser(userData); // Temporarily disabled to prevent infinite loop
+            // updateUser disabled - causes infinite loop
             setLoading(false);
             return;
           } else {
@@ -162,7 +195,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
           totalDays: demoUser.totalDays
         });
         setUser(demoUser);
-        // updateUser(demoUser); // Temporarily disabled to prevent infinite loop
+        // updateUser(demoUser); // Disabled to prevent infinite loop
         setLoading(false);
         return;
       }
@@ -179,7 +212,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
           totalDays: restoredUser.totalDays
         });
         setUser(restoredUser);
-        // updateUser(restoredUser); // Temporarily disabled to prevent infinite loop
+        // updateUser(restoredUser); // Disabled to prevent infinite loop
         setLoading(false);
         return;
       }
@@ -193,26 +226,22 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      t.profile.logout,
-      t.profile.logoutMessage,
-      [
-        { text: t.common.cancel, style: 'cancel' },
-        {
-          text: t.profile.logoutConfirm,
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-              onLogout();
-            } catch (error) {
-              Alert.alert(t.common.error, t.alerts.loadError);
-            }
-          },
-        },
-      ]
-    );
+  const handleLogout = () => {
+    setLogoutDialogVisible(true);
+  };
+
+  const confirmLogout = async () => {
+    setLogoutDialogVisible(false);
+    try {
+      await logout();
+      onLogout();
+    } catch (error) {
+      Alert.alert(t.common.error, t.alerts.loadError);
+    }
+  };
+
+  const cancelLogout = () => {
+    setLogoutDialogVisible(false);
   };
 
   const handleUpgrade = () => {
@@ -266,14 +295,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     };
     
     setUser(updatedUser);
-    // updateUser(updatedUser); // Temporarily disabled to prevent infinite loop
+    // updateUser(updatedUser); // Causes infinite loop
 
     // Handle notification scheduling
     try {
       const success = await NotificationService.rescheduleIfNeeded(
         updatedSettings.notifications,
         user.settings.reminderTime,
-        language
+        language,
+        updatedUser
       );
       
       if (!success && updatedSettings.notifications) {
@@ -310,12 +340,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     };
     
     setUser(updatedUser);
-    // updateUser(updatedUser); // Temporarily disabled to prevent infinite loop
+    // updateUser(updatedUser); // Causes infinite loop
 
     // Reschedule notification if notifications are enabled
     if (user.settings.notifications) {
       try {
-        const success = await NotificationService.rescheduleIfNeeded(true, time, language);
+        const success = await NotificationService.rescheduleIfNeeded(true, time, language, user);
         
         if (!success) {
           console.warn('Failed to reschedule notification for new time');
@@ -346,7 +376,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     };
     
     setUser(updatedUser);
-    // updateUser(updatedUser); // Temporarily disabled to prevent infinite loop
+    // updateUser(updatedUser); // Causes infinite loop
 
     // Update streak notifications when setting changes
     try {
@@ -363,6 +393,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     }
   };
 
+
   const handleHelp = () => {
     showCustomAlert(
       t.settings.help,
@@ -370,9 +401,28 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     );
   };
 
+  const handleRateApp = () => {
+    const appStoreUrl = Platform.OS === 'ios' 
+      ? 'https://apps.apple.com/app/byesmoke/id123456789' // Replace with actual App Store ID
+      : 'https://play.google.com/store/apps/details?id=com.zaynstudio.byesmoke'; // Replace with actual package name
+    
+    Linking.openURL(appStoreUrl).catch(err => {
+      console.error('Failed to open app store:', err);
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Error',
+        language === 'en' 
+          ? 'Could not open app store. Please rate us manually in your app store.'
+          : 'Tidak dapat membuka app store. Silakan beri rating secara manual di app store Anda.'
+      );
+    });
+  };
+
   const handleLanguageToggle = () => {
+    console.log('🚨🚨🚨 LANGUAGE TOGGLE PRESSED - CURRENT:', language, '🚨🚨🚨');
     const newLanguage = language === 'id' ? 'en' : 'id';
+    console.log('🚨🚨🚨 SWITCHING TO:', newLanguage, '🚨🚨🚨');
     setLanguage(newLanguage as Language);
+    console.log('🚨🚨🚨 setLanguage CALLED 🚨🚨🚨');
   };
 
   const handleAbout = () => {
@@ -436,34 +486,66 @@ Mari berhenti merokok bersama! 💪`;
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      language === 'en' ? 'Delete Account' : 'Hapus Akun',
-      language === 'en' 
-        ? 'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.'
-        : 'Apakah Anda yakin ingin menghapus akun Anda? Tindakan ini tidak dapat dibatalkan dan semua data Anda akan dihapus secara permanen.',
-      [
-        {
-          text: language === 'en' ? 'Cancel' : 'Batal',
-          style: 'cancel'
-        },
-        {
-          text: language === 'en' ? 'Delete' : 'Hapus',
-          style: 'destructive',
-          onPress: confirmDeleteAccount
-        }
-      ]
-    );
+    setDeleteAccountDialogVisible(true);
+  };
+
+  const handleReAuthenticate = async () => {
+    if (!reAuthPassword.trim()) {
+      Alert.alert(
+        language === 'en' ? 'Password Required' : 'Password Diperlukan',
+        language === 'en' ? 'Please enter your password to continue.' : 'Masukkan password Anda untuk melanjutkan.'
+      );
+      return;
+    }
+
+    try {
+      if (auth.currentUser && auth.currentUser.email) {
+        // Re-authenticate with Firebase
+        const { EmailAuthProvider, reauthenticateWithCredential } = await import('firebase/auth');
+        const credential = EmailAuthProvider.credential(
+          auth.currentUser.email,
+          reAuthPassword
+        );
+        await reauthenticateWithCredential(auth.currentUser, credential);
+        
+        // Close re-auth dialog and proceed with deletion
+        setReAuthDialogVisible(false);
+        setReAuthPassword('');
+        await performAccountDeletion();
+      } else {
+        // For demo users, just proceed with deletion
+        setReAuthDialogVisible(false);
+        setReAuthPassword('');
+        await performAccountDeletion();
+      }
+    } catch (error: any) {
+      console.error('Re-authentication failed:', error);
+      Alert.alert(
+        language === 'en' ? 'Authentication Failed' : 'Autentikasi Gagal',
+        language === 'en' 
+          ? 'Invalid password. Please try again.'
+          : 'Password salah. Silakan coba lagi.'
+      );
+    }
   };
 
   const confirmDeleteAccount = async () => {
+    // First check if this is a Firebase user that needs re-authentication
+    if (auth.currentUser && auth.currentUser.email) {
+      setDeleteAccountDialogVisible(false);
+      setReAuthDialogVisible(true);
+    } else {
+      // For demo users, proceed directly
+      await performAccountDeletion();
+    }
+  };
+
+  const performAccountDeletion = async () => {
     if (!user) return;
 
     try {
       // Show loading state
-      Alert.alert(
-        language === 'en' ? 'Deleting Account...' : 'Menghapus Akun...',
-        language === 'en' ? 'Please wait while we delete your account.' : 'Mohon tunggu sementara kami menghapus akun Anda.'
-      );
+      setDeletingAccountDialogVisible(true);
 
       // For Firebase users, delete from Firestore and Authentication
       if (auth.currentUser) {
@@ -483,29 +565,23 @@ Mari berhenti merokok bersama! 💪`;
       // Clear local storage
       await AsyncStorage.clear();
 
-      Alert.alert(
-        language === 'en' ? 'Account Deleted' : 'Akun Dihapus',
-        language === 'en' 
-          ? 'Your account has been successfully deleted.'
-          : 'Akun Anda telah berhasil dihapus.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Logout and navigate to login screen
-              onLogout();
-            }
-          }
-        ]
-      );
+      // Hide loading dialog and show success dialog
+      setDeletingAccountDialogVisible(false);
+      setAccountDeletedDialogVisible(true);
 
     } catch (error: any) {
       console.error('Error deleting account:', error);
-      Alert.alert(
+      
+      // Hide loading dialog first
+      setDeletingAccountDialogVisible(false);
+      
+      // Show error using the existing showCustomAlert function
+      showCustomAlert(
         language === 'en' ? 'Error' : 'Kesalahan',
         language === 'en' 
           ? 'Failed to delete account. Please try again later.'
-          : 'Gagal menghapus akun. Silakan coba lagi nanti.'
+          : 'Gagal menghapus akun. Silakan coba lagi nanti.',
+        'error'
       );
     }
   };
@@ -952,6 +1028,18 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
                   <TouchableOpacity 
                     style={[
                       styles.timePickerButton, 
+                      { backgroundColor: user.settings.reminderTime === '08:00' ? colors.primary : colors.lightGray }
+                    ]}
+                    onPress={() => updateReminderTime('08:00')}
+                  >
+                    <Text style={[
+                      styles.timePickerText, 
+                      { color: user.settings.reminderTime === '08:00' ? colors.surface : colors.textPrimary }
+                    ]}>08:00</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[
+                      styles.timePickerButton, 
                       { backgroundColor: user.settings.reminderTime === '09:00' ? colors.primary : colors.lightGray }
                     ]}
                     onPress={() => updateReminderTime('09:00')}
@@ -960,18 +1048,6 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
                       styles.timePickerText, 
                       { color: user.settings.reminderTime === '09:00' ? colors.surface : colors.textPrimary }
                     ]}>09:00</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      styles.timePickerButton, 
-                      { backgroundColor: user.settings.reminderTime === '12:00' ? colors.primary : colors.lightGray }
-                    ]}
-                    onPress={() => updateReminderTime('12:00')}
-                  >
-                    <Text style={[
-                      styles.timePickerText, 
-                      { color: user.settings.reminderTime === '12:00' ? colors.surface : colors.textPrimary }
-                    ]}>12:00</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={[
@@ -1024,6 +1100,7 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
                 </View>
               </View>
             )}
+
           </View>
           
         </TouchableOpacity>
@@ -1035,28 +1112,6 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
     <View style={styles.tabContent}>
       <View style={styles.settingsSection}>
         <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
-          {!user.isPremium && (
-            <>
-              <TouchableOpacity style={styles.upgradeItem} onPress={handleUpgrade}>
-                <LinearGradient
-                  colors={[COLORS.accent, COLORS.accentDark]}
-                  style={styles.upgradeGradient}
-                >
-                  <MaterialIcons name="star" size={24} color={COLORS.white} />
-                  <View style={styles.upgradeInfo}>
-                    <Text style={styles.upgradeTitle}>
-                      {language === 'en' ? 'Try Free for 7 Days' : 'Coba Gratis 7 Hari'}
-                    </Text>
-                    <Text style={styles.upgradeSubtitle}>
-                      {language === 'en' ? 'No payment required • Cancel anytime' : 'Tanpa pembayaran • Bisa dibatalkan kapan saja'}
-                    </Text>
-                  </View>
-                  <MaterialIcons name="arrow-forward-ios" size={16} color={COLORS.white} />
-                </LinearGradient>
-              </TouchableOpacity>
-              <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
-            </>
-          )}
 
           <TouchableOpacity style={styles.settingItem} onPress={handleInviteFriends}>
             <MaterialIcons name="people" size={24} color={colors.primary} />
@@ -1085,42 +1140,31 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
           <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
 
           <TouchableOpacity 
-            style={[
-              styles.settingItem,
-              !user.isPremium && styles.settingItemDisabled
-            ]}
-            disabled={!user.isPremium}
-            onPress={user.isPremium ? toggleDarkMode : undefined}
+            style={styles.settingItem}
+            onPress={toggleDarkMode}
           >
             <MaterialIcons 
               name={isDarkMode ? "dark-mode" : "light-mode"} 
               size={24} 
-              color={user.isPremium ? colors.primary : colors.gray} 
+              color={colors.primary} 
             />
             <View style={styles.settingInfo}>
-              <Text style={[
-                { ...styles.settingTitle, color: colors.textPrimary },
-                !user.isPremium && { color: colors.gray }
-              ]}>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>
                 {t.profile.darkMode}
               </Text>
               <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
-                {user.isPremium ? (isDarkMode ? t.profile.darkModeActive : t.profile.darkModeInactive) : t.profile.premiumFeature}
+                {isDarkMode ? t.profile.darkModeActive : t.profile.darkModeInactive}
               </Text>
             </View>
-            {user.isPremium ? (
+            <View style={[
+              { ...styles.toggleSwitch, backgroundColor: colors.gray }, 
+              isDarkMode && { backgroundColor: colors.secondary }
+            ]}>
               <View style={[
-                { ...styles.toggleSwitch, backgroundColor: colors.gray }, 
-                isDarkMode && { backgroundColor: colors.secondary }
-              ]}>
-                <View style={[
-                  { ...styles.toggleThumb, backgroundColor: colors.surface }, 
-                  isDarkMode && styles.toggleThumbActive
-                ]} />
-              </View>
-            ) : (
-              <MaterialIcons name="lock" size={16} color={colors.gray} />
-            )}
+                { ...styles.toggleThumb, backgroundColor: colors.surface }, 
+                isDarkMode && styles.toggleThumbActive
+              ]} />
+            </View>
           </TouchableOpacity>
 
           <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
@@ -1153,6 +1197,24 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
             <View style={styles.settingInfo}>
               <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>{t.profile.help}</Text>
               <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{t.profile.helpDesc}</Text>
+            </View>
+            <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
+          </TouchableOpacity>
+
+          <View style={[styles.settingDivider, { backgroundColor: colors.lightGray }]} />
+
+          <TouchableOpacity style={styles.settingItem} onPress={handleRateApp}>
+            <MaterialIcons name="star" size={24} color={colors.secondary} />
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>
+                {language === 'en' ? 'Rate ByeSmoke' : 'Beri Rating ByeSmoke'}
+              </Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+                {language === 'en' 
+                  ? 'Help us improve by rating the app'
+                  : 'Bantu kami berkembang dengan memberi rating'
+                }
+              </Text>
             </View>
             <MaterialIcons name="arrow-forward-ios" size={16} color={colors.gray} />
           </TouchableOpacity>
@@ -1239,30 +1301,6 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
             <Text style={styles.displayName}>{user.displayName}</Text>
             <Text style={styles.email}>{user.email}</Text>
             
-            {/* Subscription Status */}
-            <View style={styles.subscriptionContainer}>
-              <View style={[styles.subscriptionStatus, user.isPremium ? styles.premiumStatus : styles.freeStatus]}>
-                <MaterialIcons 
-                  name={user.isPremium ? "star" : "star-border"} 
-                  size={16} 
-                  color={user.isPremium ? COLORS.accent : colors.textSecondary} 
-                />
-                <Text style={[styles.subscriptionText, user.isPremium ? styles.premiumText : styles.freeText]}>
-                  {formatSubscriptionStatus(user)}
-                </Text>
-              </View>
-              
-              {!user.isPremium && (
-                <TouchableOpacity 
-                  style={styles.upgradeButton}
-                  onPress={() => showSubscriptionOptions(user.id)}
-                >
-                  <Text style={styles.upgradeButtonText}>
-                    {language === 'en' ? 'Try Free for 7 Days' : 'Coba Gratis 7 Hari'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
           </View>
         </LinearGradient>
 
@@ -1274,6 +1312,163 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
       {renderLegalModal()}
       {renderNotificationModal()}
       {renderSubscriptionModal()}
+      
+      <CustomConfirmDialog
+        visible={logoutDialogVisible}
+        title={t.profile.logout}
+        message={t.profile.logoutMessage}
+        confirmText={t.profile.logoutConfirm}
+        cancelText={t.common.cancel}
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+        type="danger"
+        icon="logout"
+      />
+
+      <CustomConfirmDialog
+        visible={deleteAccountDialogVisible}
+        title={language === 'en' ? 'Delete Account' : 'Hapus Akun'}
+        message={language === 'en' 
+          ? 'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.'
+          : 'Apakah Anda yakin ingin menghapus akun Anda? Tindakan ini tidak dapat dibatalkan dan semua data Anda akan dihapus secara permanen.'
+        }
+        confirmText={language === 'en' ? 'Delete' : 'Hapus'}
+        cancelText={language === 'en' ? 'Cancel' : 'Batal'}
+        onConfirm={confirmDeleteAccount}
+        onCancel={() => setDeleteAccountDialogVisible(false)}
+        type="danger"
+        icon="delete-forever"
+      />
+
+      {/* Re-authentication Modal */}
+      <Modal
+        visible={reAuthDialogVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReAuthDialogVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setReAuthDialogVisible(false)}
+        >
+          <TouchableOpacity 
+            style={[styles.modalContainer, { backgroundColor: colors.surface }]}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <MaterialIcons 
+                name="security" 
+                size={40} 
+                color={colors.primary} 
+              />
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                {language === 'en' ? 'Verify Your Identity' : 'Verifikasi Identitas'}
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
+                {language === 'en' 
+                  ? 'Please enter your password to confirm account deletion'
+                  : 'Masukkan password Anda untuk konfirmasi penghapusan akun'
+                }
+              </Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[
+                  styles.passwordInput,
+                  { 
+                    backgroundColor: colors.lightGray,
+                    color: colors.textPrimary,
+                    borderColor: colors.border
+                  }
+                ]}
+                placeholder={language === 'en' ? 'Enter your password' : 'Masukkan password Anda'}
+                placeholderTextColor={colors.textSecondary}
+                value={reAuthPassword}
+                onChangeText={setReAuthPassword}
+                secureTextEntry
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: colors.lightGray }]}
+                onPress={() => {
+                  setReAuthDialogVisible(false);
+                  setReAuthPassword('');
+                }}
+              >
+                <Text style={[styles.modalButtonText, { color: colors.textPrimary }]}>
+                  {language === 'en' ? 'Cancel' : 'Batal'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: colors.error }]}
+                onPress={handleReAuthenticate}
+              >
+                <Text style={[styles.modalButtonText, { color: colors.white }]}>
+                  {language === 'en' ? 'Verify' : 'Verifikasi'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Deleting Account Progress Dialog */}
+      <Modal
+        visible={deletingAccountDialogVisible}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <MaterialIcons 
+                name="delete-forever" 
+                size={40} 
+                color={colors.error} 
+              />
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                {language === 'en' ? 'Deleting Account...' : 'Menghapus Akun...'}
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
+                {language === 'en' 
+                  ? 'Please wait while we delete your account.'
+                  : 'Mohon tunggu sementara kami menghapus akun Anda.'
+                }
+              </Text>
+            </View>
+            
+            <View style={styles.spinnerContainer}>
+              <ActivityIndicator size="large" color={colors.error} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Account Successfully Deleted Dialog */}
+      <CustomConfirmDialog
+        visible={accountDeletedDialogVisible}
+        title={language === 'en' ? 'Account Deleted' : 'Akun Dihapus'}
+        message={language === 'en' 
+          ? 'Your account has been successfully deleted.'
+          : 'Akun Anda telah berhasil dihapus.'
+        }
+        confirmText="OK"
+        cancelText=""
+        onConfirm={() => {
+          setAccountDeletedDialogVisible(false);
+          onLogout();
+        }}
+        onCancel={() => {}}
+        type="info"
+        icon="check-circle"
+      />
     </>
   );
 };
@@ -1288,14 +1483,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    paddingTop: Math.max(50, height * 0.06), // Responsive top padding for mobile
-    paddingBottom: Math.max(SIZES.md, height * 0.03), // Further reduced bottom padding
+    paddingTop: Math.max(45, height * 0.05), // Balanced top padding like Achievement page
+    paddingBottom: SIZES.md, // Reduced to compensate for extra content
     paddingHorizontal: SIZES.screenPadding,
     alignItems: 'center',
   },
   profileInfo: {
     alignItems: 'center',
-    marginBottom: SIZES.md,
+    marginBottom: SIZES.sm,
   },
   avatar: {
     width: 80,
@@ -1315,7 +1510,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.h1White,
     fontSize: 20,
     lineHeight: 26,
-    marginBottom: SIZES.xs || 4,
+    marginBottom: 2,
   },
   email: {
     ...TYPOGRAPHY.bodyMedium,
@@ -1338,9 +1533,9 @@ const styles = StyleSheet.create({
     marginLeft: SIZES.xs,
   },
   subscriptionContainer: {
-    marginTop: 12,
+    marginTop: 8,
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   subscriptionStatus: {
     flexDirection: 'row',
@@ -1436,11 +1631,11 @@ const styles = StyleSheet.create({
     marginTop: -Math.max(SIZES.lg, height * 0.04), // Responsive negative margin for floating effect
     marginBottom: Math.max(SIZES.md, height * 0.025), // Responsive bottom margin
     padding: Math.max(SIZES.sm, width * 0.04), // Responsive padding
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, // Slightly increased shadow for better mobile visibility
-    shadowRadius: 12, // Increased shadow radius
-    elevation: 6, // Increased elevation for Android
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   settingItem: {
     flexDirection: 'row',
@@ -1507,11 +1702,11 @@ const styles = StyleSheet.create({
     padding: SIZES.md,
     width: Math.min(width * 0.9, 380), // Max width for larger screens
     maxHeight: Math.min(height * 0.85, 600), // Increased max height to fit content
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   modalScrollView: {
     maxHeight: Math.min(height * 0.45, 300), // Reduced for small screens
@@ -1608,11 +1803,11 @@ const styles = StyleSheet.create({
     marginTop: 50,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   legalModalHeader: {
     flexDirection: 'row',
@@ -1645,11 +1840,11 @@ const styles = StyleSheet.create({
     padding: SIZES.md,
     width: Math.min(width * 0.9, 400),
     maxHeight: Math.min(height * 0.8, 600),
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   subscriptionScrollView: {
     maxHeight: Math.min(height * 0.5, 400),
@@ -1724,6 +1919,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 2,
     textAlign: 'center',
+  },
+  // Re-authentication Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: SIZES.buttonRadius || 16,
+    padding: SIZES.lg,
+    alignItems: 'center',
+    width: width * 0.85,
+    maxWidth: 340,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: SIZES.md,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: SIZES.xs,
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: SIZES.md,
+  },
+  passwordInput: {
+    width: '100%',
+    height: 48,
+    borderRadius: SIZES.buttonRadius || 12,
+    borderWidth: 1,
+    paddingHorizontal: SIZES.md,
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: SIZES.sm,
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: SIZES.buttonRadius || 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  spinnerContainer: {
+    padding: SIZES.md,
+    alignItems: 'center',
   },
 });
 

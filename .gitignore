@@ -1,5 +1,16 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+# SECURITY: Environment variables and sensitive data
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.p12
+*.key
+secrets/
+config/secrets.*
+
 # dependencies
 node_modules/
 

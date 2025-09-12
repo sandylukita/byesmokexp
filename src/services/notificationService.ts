@@ -46,6 +46,81 @@ function getRandomNotificationMessage(language: Language = 'id') {
   };
 }
 
+// Get progress-based notification message based on days since quit
+function getProgressBasedNotificationMessage(daysSinceQuit: number, language: Language = 'id') {
+  const t = translations[language];
+  
+  if (daysSinceQuit <= 3) {
+    // Days 1-3: Focus on immediate healing and encouragement
+    const messages = [
+      {
+        title: language === 'en' ? 'Your Body is Healing! 🌱' : 'Tubuhmu Sedang Sembuh! 🌱',
+        body: language === 'en' ? 'Your lungs are already starting to heal! Time to check-in and celebrate this amazing progress.' : 'Paru-parumu sudah mulai sembuh! Waktunya check-in dan rayakan kemajuan luar biasa ini.'
+      },
+      {
+        title: language === 'en' ? 'Amazing Start! 💪' : 'Awal yang Luar Biasa! 💪',
+        body: language === 'en' ? 'Every hour without smoking is a victory! Don\'t forget to track your incredible progress today.' : 'Setiap jam tanpa rokok adalah kemenangan! Jangan lupa catat kemajuan luar biasamu hari ini.'
+      },
+      {
+        title: language === 'en' ? 'You\'re Doing Great! ⭐' : 'Kamu Hebat! ⭐',
+        body: language === 'en' ? 'Your body is thanking you right now! Time for your daily check-in to keep the momentum going.' : 'Tubuhmu berterima kasih padamu sekarang! Waktunya check-in harian untuk menjaga momentum.'
+      }
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  } else if (daysSinceQuit <= 14) {
+    // Days 4-14: Physical recovery focus
+    const messages = [
+      {
+        title: language === 'en' ? 'Taste & Smell Improving! 👃' : 'Rasa & Penciuman Membaik! 👃',
+        body: language === 'en' ? 'Your senses are getting sharper every day! Check-in to track these amazing changes.' : 'Indera perasamu semakin tajam setiap hari! Check-in untuk catat perubahan luar biasa ini.'
+      },
+      {
+        title: language === 'en' ? 'Breathing Easier! 🫁' : 'Napas Lebih Lega! 🫁',
+        body: language === 'en' ? 'Feel that? Your lungs are getting stronger! Time to record today\'s progress.' : 'Rasakan itu? Paru-parumu semakin kuat! Waktunya catat progress hari ini.'
+      },
+      {
+        title: language === 'en' ? 'Circulation Improving! ❤️' : 'Sirkulasi Membaik! ❤️',
+        body: language === 'en' ? 'Your blood flow is improving daily! Don\'t miss today\'s check-in to celebrate recovery.' : 'Aliran darahmu membaik setiap hari! Jangan lewatkan check-in hari ini untuk rayakan pemulihan.'
+      }
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  } else if (daysSinceQuit <= 30) {
+    // Days 15-30: Psychological benefits and confidence building
+    const messages = [
+      {
+        title: language === 'en' ? 'Confidence Growing! 🚀' : 'Percaya Diri Tumbuh! 🚀',
+        body: language === 'en' ? 'You\'re proving to yourself that you can do anything! Time for your empowering check-in.' : 'Kamu membuktikan pada diri sendiri bahwa kamu bisa apa saja! Waktunya check-in yang memberdayakan.'
+      },
+      {
+        title: language === 'en' ? 'Mental Clarity Rising! 🧠' : 'Kejernihan Mental Meningkat! 🧠',
+        body: language === 'en' ? 'Your mind is sharper and clearer! Check-in to acknowledge this mental transformation.' : 'Pikiranmu lebih tajam dan jernih! Check-in untuk mengakui transformasi mental ini.'
+      },
+      {
+        title: language === 'en' ? 'Self-Control Mastered! 🎯' : 'Kontrol Diri Dikuasai! 🎯',
+        body: language === 'en' ? 'You\'re mastering self-discipline like a champion! Time to record this powerful progress.' : 'Kamu menguasai disiplin diri seperti juara! Waktunya catat kemajuan hebat ini.'
+      }
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  } else {
+    // 30+ days: Identity reinforcement and long-term vision
+    const messages = [
+      {
+        title: language === 'en' ? 'You\'re a Non-Smoker! 🎉' : 'Kamu Bukan Perokok! 🎉',
+        body: language === 'en' ? 'This is who you are now - a healthy, strong non-smoker! Time to celebrate with check-in.' : 'Ini dirimu sekarang - orang sehat dan kuat yang tidak merokok! Waktunya rayakan dengan check-in.'
+      },
+      {
+        title: language === 'en' ? 'Lifestyle Transformed! ✨' : 'Gaya Hidup Berubah! ✨',
+        body: language === 'en' ? 'You\'ve completely transformed your life! Check-in to honor this incredible achievement.' : 'Kamu benar-benar mengubah hidupmu! Check-in untuk menghormati pencapaian luar biasa ini.'
+      },
+      {
+        title: language === 'en' ? 'Inspiring Others! 👑' : 'Menginspirasi Orang Lain! 👑',
+        body: language === 'en' ? 'Your success story inspires others to change! Time for your daily victory check-in.' : 'Kisah suksesmu menginspirasi orang lain untuk berubah! Waktunya check-in kemenangan harian.'
+      }
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  }
+}
+
 export class NotificationService {
   private static notificationListener: Notifications.Subscription | null = null;
   private static responseListener: Notifications.Subscription | null = null;
@@ -155,7 +230,7 @@ export class NotificationService {
   /**
    * Schedule a daily reminder notification
    */
-  static async scheduleDailyReminder(time: string, language: Language = 'id', customTitle?: string, customBody?: string): Promise<string | null> {
+  static async scheduleDailyReminder(time: string, language: Language = 'id', customTitle?: string, customBody?: string, user?: User): Promise<string | null> {
     try {
       const hasPermission = await this.hasPermissions();
       if (!hasPermission) {
@@ -172,10 +247,20 @@ export class NotificationService {
         return null;
       }
 
-      // Use custom message or get random message
-      const message = customTitle && customBody 
-        ? { title: customTitle, body: customBody }
-        : getRandomNotificationMessage(language);
+      // Use custom message, progress-based message, or fallback to random message
+      let message;
+      if (customTitle && customBody) {
+        message = { title: customTitle, body: customBody };
+      } else if (user?.quitDate) {
+        // Calculate days since quit for progress-based messaging
+        const quitDate = new Date(user.quitDate);
+        const now = new Date();
+        const daysSinceQuit = Math.floor((now.getTime() - quitDate.getTime()) / (1000 * 60 * 60 * 24));
+        message = getProgressBasedNotificationMessage(Math.max(1, daysSinceQuit), language);
+        console.log(`Using progress-based message for day ${daysSinceQuit}`);
+      } else {
+        message = getRandomNotificationMessage(language);
+      }
       
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
@@ -233,7 +318,8 @@ export class NotificationService {
   static async rescheduleIfNeeded(
     notificationsEnabled: boolean, 
     reminderTime: string,
-    language: Language = 'id'
+    language: Language = 'id',
+    user?: User
   ): Promise<boolean> {
     try {
       if (!notificationsEnabled) {
@@ -263,7 +349,7 @@ export class NotificationService {
       // Cancel all and reschedule
       console.log('Rescheduling notifications for correct time');
       await this.cancelAllNotifications();
-      const result = await this.scheduleDailyReminder(reminderTime, language);
+      const result = await this.scheduleDailyReminder(reminderTime, language, undefined, undefined, user);
       return result !== null;
     } catch (error) {
       console.error('Error rescheduling notifications:', error);
@@ -358,6 +444,7 @@ export class NotificationService {
       console.error('Error getting debug info:', error);
     }
   }
+
 
   /**
    * Simple test function to verify service works (not called automatically)

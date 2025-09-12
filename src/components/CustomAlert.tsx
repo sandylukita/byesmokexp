@@ -128,19 +128,20 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   iconContainer: {
-    marginBottom: SIZES.md,
+    marginBottom: SIZES.lg,
     marginTop: SIZES.xs,
   },
   title: {
     ...TYPOGRAPHY.h3,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: SIZES.sm,
+    marginBottom: SIZES.lg,
   },
   message: {
     ...TYPOGRAPHY.bodyMedium,
     textAlign: 'center',
-    marginBottom: SIZES.sm,
-    lineHeight: 22,
+    marginBottom: SIZES.md,
+    lineHeight: 24,
+    paddingHorizontal: SIZES.sm,
   },
 });

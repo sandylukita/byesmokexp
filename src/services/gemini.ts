@@ -1,6 +1,7 @@
-import { GEMINI_API_KEY, STATIC_MISSIONS, MOTIVATIONAL_QUOTES } from '../utils/constants';
+import { STATIC_MISSIONS, MOTIVATIONAL_QUOTES } from '../utils/constants';
+import { ENV_CONFIG, log } from '../config/environment';
 import { User, Mission } from '../types';
-import { generateMissionId, getRandomMotivation } from '../utils/helpers';
+import { generateMissionId, getRandomMotivation, getContextualMotivation } from '../utils/helpers';
 
 interface GeminiResponse {
   candidates: {
@@ -12,15 +13,46 @@ interface GeminiResponse {
   }[];
 }
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+
+// Global lock to prevent multiple simultaneous API calls
+let isGeminiCallInProgress = false;
+const geminiCallQueue: Array<() => void> = [];
 
 // Enhanced AI consultation for milestones and recovery
-export const generateAIMilestoneInsight = async (user: User, triggerType: 'milestone' | 'streak_recovery' | 'daily_motivation', triggerData: any): Promise<string> => {
+export const generateAIMilestoneInsight = async (user: User, triggerType: 'milestone' | 'streak_recovery' | 'daily_motivation', triggerData: any, language: 'en' | 'id' = 'id'): Promise<string> => {
+  const callId = Math.random().toString(36).substr(2, 9);
+  console.log('🚀 GEMINI API CALL REQUESTED - ID:', callId, 'User:', user.displayName, 'Language:', language, 'Type:', triggerType);
+  
+  // Check if another call is in progress
+  if (isGeminiCallInProgress) {
+    console.log('🚫 GEMINI API CALL BLOCKED - ID:', callId, 'Another call is in progress');
+    throw new Error('Another Gemini API call is in progress');
+  }
+  
+  isGeminiCallInProgress = true;
+  console.log('🔒 GEMINI API CALL LOCK ACQUIRED - ID:', callId);
+  
   try {
-    let prompt = `
-    Kamu adalah seorang dokter tua yang bijaksana dan berpengalaman, yang telah membantu ribuan pasien berhenti merokok selama 40 tahun praktik. Ini adalah konsultasi personal yang mendalam untuk ${user.displayName}.
+    // Create language-appropriate prompt
+    const isEnglish = language === 'en';
     
-    Data lengkap pasien:
+    let prompt = isEnglish ? `
+    You are a supportive wellness coach with extensive knowledge from research on helping people quit smoking. This is a deep personal motivation session for ${user.displayName}.
+    
+    Complete user data:
+    - Name: ${user.displayName}
+    - Current streak: ${user.streak} days
+    - Total journey: ${user.totalDays} days
+    - Longest streak: ${user.longestStreak || 0} days
+    - Achievement level: ${user.level || 1}
+    - Latest badge: ${user.badges[user.badges.length - 1]?.name || 'No achievements yet'}
+    - XP collected: ${user.xp} points
+    
+    ` : `
+    Kamu adalah seorang wellness coach yang bijaksana dengan pengetahuan mendalam dari riset tentang membantu orang berhenti merokok. Ini adalah sesi motivasi personal yang mendalam untuk ${user.displayName}.
+    
+    Data lengkap pengguna:
     - Nama: ${user.displayName}
     - Streak saat ini: ${user.streak} hari
     - Total perjalanan: ${user.totalDays} hari
@@ -35,7 +67,7 @@ export const generateAIMilestoneInsight = async (user: User, triggerType: 'miles
       prompt += `
       SITUASI: ${user.displayName} baru saja mencapai milestone besar ${triggerData.daysAchieved} hari tanpa merokok!
       
-      Sebagai dokter berpengalaman, berikan konsultasi personal yang PANJANG dan MENDALAM:
+      Sebagai wellness coach berpengalaman, berikan motivasi personal yang PANJANG dan MENDALAM:
       1. Mulai dengan "Anak muda ${user.displayName}" atau variasi hangat lainnya
       2. Akui pencapaian ini sebagai momen bersejarah dalam hidupnya dengan detail
       3. Berbagi wisdom dari 40 tahun praktik tentang milestone ini secara detail
@@ -45,22 +77,22 @@ export const generateAIMilestoneInsight = async (user: User, triggerType: 'miles
       7. Ceritakan dampak positif untuk keluarga dan orang-orang terdekat
       8. MINIMAL 6-8 kalimat yang panjang dan bermakna mendalam
       9. Setiap kalimat harus berisi makna emosional yang kuat
-      10. Nada: penuh kehangatan, bangga, dan wisdom dokter senior yang sangat peduli
+      10. Nada: penuh kehangatan, bangga, dan wisdom coach senior yang sangat supportif
       
       PENTING: Buat pesan yang PANJANG dan DETAIL, bukan singkat. Setiap kalimat harus memiliki makna mendalam dan emosional.
       
-      Contoh wisdom: "Dalam 4 dekade saya membantu pasien, saya melihat bahwa mereka yang mencapai ${triggerData.daysAchieved} hari memiliki kekuatan mental yang luar biasa. Tubuhmu sekarang telah mengalami transformasi yang menakjubkan - paru-parumu bernapas lebih lega, sirkulasi darahmu mengalir dengan sempurna, dan setiap sel dalam tubuhmu bersyukur atas keputusan bijak yang telah kamu ambil..."
+      Contoh wisdom: "Berdasarkan riset 4 dekade, terlihat bahwa mereka yang mencapai ${triggerData.daysAchieved} hari memiliki kekuatan mental yang luar biasa. Tubuhmu sekarang telah mengalami transformasi yang menakjubkan - paru-parumu bernapas lebih lega, sirkulasi darahmu mengalir dengan sempurna, dan setiap sel dalam tubuhmu bersyukur atas keputusan bijak yang telah kamu ambil..."
       `;
     } else if (triggerType === 'streak_recovery') {
       prompt += `
       SITUASI: ${user.displayName} pernah memiliki streak ${triggerData.brokenStreakLength} hari yang putus, sekarang sedang membangun kembali (${user.streak} hari). Ini momen yang sangat sensitif dan butuh dukungan mendalam.
       
-      Sebagai dokter yang telah melihat ribuan kasus serupa, berikan konsultasi yang PANJANG dan MENYENTUH HATI:
+      Sebagai coach yang telah mempelajari ribuan kasus serupa, berikan motivasi yang PANJANG dan MENYENTUH HATI:
       1. Mulai dengan empati mendalam: "Anak muda, saya mengerti perasaanmu..." dengan detail emosional
-      2. Validasi bahwa ini adalah bagian normal dari proses pemulihan dengan penjelasan medis
-      3. Berbagi cerita wisdom dari pasien lain yang berhasil bangkit dengan detail inspiratif
+      2. Validasi bahwa ini adalah bagian normal dari proses pemulihan dengan penjelasan berdasarkan riset
+      3. Berbagi cerita wisdom dari orang lain yang berhasil bangkit dengan detail inspiratif
       4. Jelaskan bahwa streak ${triggerData.brokenStreakLength} hari sebelumnya TIDAK hilang, itu adalah pembelajaran berharga
-      5. Berikan perspektif medis tentang proses recovery dan bagaimana tubuh terus membaik
+      5. Berikan perspektif berdasarkan riset tentang proses recovery dan bagaimana tubuh terus membaik
       6. Motivasi dengan penuh kasih sayang untuk tidak menyerah, jelaskan kekuatan mental yang dimiliki
       7. Ceritakan bagaimana orang-orang terdekat bangga dengan usahanya
       8. Berikan harapan konkret untuk masa depan yang lebih sehat
@@ -76,10 +108,10 @@ export const generateAIMilestoneInsight = async (user: User, triggerType: 'miles
       prompt += `
       SITUASI: Ini adalah motivasi harian personal untuk ${user.displayName} yang sedang menjalani perjalanan berhenti merokok.
       
-      Sebagai dokter senior yang penuh kasih sayang, berikan motivasi harian yang PANJANG dan BERMAKNA:
+      Sebagai wellness coach senior yang penuh kasih sayang, berikan motivasi harian yang PANJANG dan BERMAKNA:
       1. Mulai dengan sapaan hangat yang personal: "Selamat pagi/siang/sore ${user.displayName}"
       2. Akui usaha dan komitmen yang telah dilakukan sejauh ini
-      3. Berikan perspektif medis tentang manfaat kesehatan yang sedang dialami
+      3. Berikan perspektif berdasarkan riset tentang manfaat kesehatan yang sedang dialami
       4. Jelaskan perubahan positif yang terjadi pada tubuh dan mental
       5. Berikan motivasi untuk melanjutkan perjalanan dengan detail inspiratif
       6. Hubungkan dengan pencapaian XP dan level yang sudah diraih
@@ -88,7 +120,7 @@ export const generateAIMilestoneInsight = async (user: User, triggerType: 'miles
       9. Akhiri dengan kata-kata penguatan yang menyentuh hati
       10. MINIMAL 7-10 kalimat PANJANG yang penuh makna dan inspirasi
       11. Setiap kalimat harus berisi detail emosional dan motivasi yang kuat
-      12. Nada: hangat, penuh kasih sayang, seperti dokter yang sangat peduli dengan pasiennya
+      12. Nada: hangat, penuh kasih sayang, seperti coach yang sangat peduli dengan usernya
       
       PENTING: Buat pesan yang SANGAT PANJANG dan PERSONAL, bukan umum. Fokus pada perjalanan individual dan pencapaian spesifik mereka.
       
@@ -101,22 +133,35 @@ export const generateAIMilestoneInsight = async (user: User, triggerType: 'miles
       `;
     }
 
-    prompt += `
+    prompt += isEnglish ? `
+    
+    FINAL INSTRUCTIONS:
+    - Language: Warm and natural English
+    - Length: MINIMUM 6-9 LONG sentences with deep emotional meaning
+    - Each sentence should contain at least 15-20 words for detail and strong meaning
+    - Style: Personal motivation session from a caring and wise senior wellness coach
+    - Focus on emotional details, health, and positive impact
+    - Avoid short or brief sentences
+    - Create a message that truly touches the heart and provides deep motivation
+    ` : `
     
     INSTRUKSI AKHIR:
     - Bahasa: Indonesia yang hangat dan natural
     - Panjang: MINIMAL 6-9 kalimat PANJANG yang berisi makna mendalam dan emosional
     - Setiap kalimat harus berisi minimal 15-20 kata untuk memberikan detail dan makna yang kuat
-    - Gaya: Konsultasi personal dari dokter senior yang penuh kasih sayang dan wisdom
+    - Gaya: Sesi motivasi personal dari wellness coach senior yang penuh kasih sayang dan wisdom
     - Fokus pada detail emosional, kesehatan, dan dampak positif
     - Hindari kalimat pendek atau singkat
     - Buat pesan yang benar-benar menyentuh hati dan memberikan motivasi mendalam
     `;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    console.log('📡 GEMINI API CALL - Making HTTP request with ID:', callId);
+    
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': ENV_CONFIG.GEMINI.apiKey,
       },
       body: JSON.stringify({
         contents: [{
@@ -126,7 +171,7 @@ export const generateAIMilestoneInsight = async (user: User, triggerType: 'miles
         }],
         generationConfig: {
           temperature: 0.8,
-          maxOutputTokens: 500, // Increased for longer doctor-style consultation
+          maxOutputTokens: 200, // Reduced to prevent extremely long responses
         }
       }),
     });
@@ -143,20 +188,41 @@ export const generateAIMilestoneInsight = async (user: User, triggerType: 'miles
     
     throw new Error('Invalid response format from Gemini');
   } catch (error) {
-    console.error('Error generating AI milestone insight:', error);
-    // Fallback to contextual motivation based on trigger type
-    if (triggerType === 'milestone') {
-      return `Selamat ${user.displayName}! Pencapaian ${triggerData.daysAchieved} hari ini adalah bukti kekuatan mental yang luar biasa. Dalam perjalanan berhenti merokok, milestone ini menandakan bahwa tubuhmu sudah mulai pulih secara signifikan.`;
+    console.error('❌ GEMINI API CALL ERROR - ID:', callId, 'Error:', error);
+    
+    // Enhanced fallback to contextual motivation system
+    console.log('🔄 Using contextual fallback motivation for premium user');
+    
+    // Use our expanded contextual motivation system based on user's journey stage
+    // This provides much better fallback than generic messages
+    const contextualMotivation = getContextualMotivation(user, language);
+    
+    // Add personalization with proper language support
+    if (triggerType === 'milestone' && triggerData?.daysAchieved) {
+      return language === 'en' 
+        ? `🎉 Congratulations ${user.displayName}! Your ${triggerData.daysAchieved} day achievement is an outstanding milestone. ${contextualMotivation}`
+        : `🎉 Selamat ${user.displayName}! Pencapaian ${triggerData.daysAchieved} hari adalah milestone yang luar biasa. ${contextualMotivation}`;
+    } else if (triggerType === 'streak_recovery' && triggerData?.brokenStreakLength) {
+      return language === 'en'
+        ? `💪 ${user.displayName}, your previous ${triggerData.brokenStreakLength} day streak was valuable learning. ${contextualMotivation}`
+        : `💪 ${user.displayName}, streak ${triggerData.brokenStreakLength} hari sebelumnya adalah pembelajaran berharga. ${contextualMotivation}`;
     } else {
-      return `${user.displayName}, saya mengerti perasaanmu saat ini. Streak ${triggerData.brokenStreakLength} hari sebelumnya bukanlah kegagalan - itu adalah bukti bahwa kamu memiliki kekuatan untuk berhasil. Mari mulai lagi dengan lebih bijaksana.`;
+      // For daily motivation, add personal touch in correct language
+      return language === 'en'
+        ? `🌟 ${user.displayName}, ${contextualMotivation}`
+        : `🌟 ${user.displayName}, ${contextualMotivation}`;
     }
+  } finally {
+    isGeminiCallInProgress = false;
+    console.log('🔓 GEMINI API CALL LOCK RELEASED - ID:', callId);
   }
 };
 
-// Keep original function for backward compatibility but simplify
+// Keep original function for backward compatibility but enhance with contextual fallback
 export const generateAIMotivation = async (user: User): Promise<string> => {
-  // This is now just a fallback, main AI calls go through generateAIMilestoneInsight
-  return getRandomMotivation();
+  // Enhanced fallback uses contextual motivation instead of random general quotes
+  console.log('🔄 Using contextual fallback for generateAIMotivation');
+  return getContextualMotivation(user);
 };
 
 export const generateAIMissions = async (user: User): Promise<Mission[]> => {
@@ -190,10 +256,11 @@ export const generateAIMissions = async (user: User): Promise<Mission[]> => {
     Contoh misi: minum air, jalan kaki, meditasi, napas dalam, cemilan sehat, dll.
     `;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': ENV_CONFIG.GEMINI.apiKey,
       },
       body: JSON.stringify({
         contents: [{
@@ -268,10 +335,11 @@ export const generatePersonalizedTip = async (user: User): Promise<string> => {
     Contoh: "Coba ganti kebiasaan merokok dengan minum air putih hangat."
     `;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': ENV_CONFIG.GEMINI.apiKey,
       },
       body: JSON.stringify({
         contents: [{
@@ -331,12 +399,67 @@ const getRandomTip = (): string => {
   return tips[Math.floor(Math.random() * tips.length)];
 };
 
-export const testGeminiConnection = async (): Promise<boolean> => {
+// Translate English quotes to proper Indonesian using Gemini AI
+export const translateQuotesToIndonesian = async (englishQuotes: string[]): Promise<string[]> => {
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const prompt = `
+    Translate these English motivational quotes about quitting smoking to proper Indonesian. 
+    Keep the motivational tone and meaning intact. Return ONLY the Indonesian translations, one per line, in the same order.
+    
+    English quotes:
+    ${englishQuotes.join('\n')}
+    
+    Requirements:
+    - Use proper Indonesian language (no mixed English words)
+    - Keep the motivational and encouraging tone
+    - Each translation should be meaningful and natural in Indonesian
+    - Return only the translations, nothing else
+    `;
+
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': ENV_CONFIG.GEMINI.apiKey,
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 1000,
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data: GeminiResponse = await response.json();
+    
+    if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+      const translatedText = data.candidates[0].content.parts[0].text.trim();
+      return translatedText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    }
+    
+    throw new Error('Invalid response format from Gemini');
+  } catch (error) {
+    console.error('Error translating quotes:', error);
+    return englishQuotes; // Return original if translation fails
+  }
+};
+
+export const testGeminiConnection = async (): Promise<boolean> => {
+  try {
+    const response = await fetch(GEMINI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': ENV_CONFIG.GEMINI.apiKey,
       },
       body: JSON.stringify({
         contents: [{

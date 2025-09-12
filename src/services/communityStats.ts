@@ -9,8 +9,17 @@
  */
 
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from './firebase';
 import { User } from '../types';
+
+// Cost optimization settings
+const CACHE_SETTINGS = {
+  STATS_CACHE_HOURS: 12, // Extend cache from daily to 12 hours
+  LOCAL_STORAGE_KEY: 'byesmoke_community_stats',
+  MAX_FIREBASE_CALLS_PER_HOUR: 50, // Circuit breaker limit
+  FIREBASE_CALL_TRACKING_KEY: 'firebase_calls_tracking',
+};
 
 // Anonymous community stats structure
 export interface CommunityStats {
@@ -50,39 +59,178 @@ export interface UserComparison {
   communityInsight: string; // Motivational message
 }
 
+// Cost optimization helper functions
+const getLocalStorageStats = async (): Promise<CommunityStats | null> => {
+  try {
+    const cached = await AsyncStorage.getItem(CACHE_SETTINGS.LOCAL_STORAGE_KEY);
+    if (!cached) return null;
+    
+    const parsed = JSON.parse(cached);
+    const cacheAge = Date.now() - new Date(parsed.cachedAt).getTime();
+    const maxAge = CACHE_SETTINGS.STATS_CACHE_HOURS * 60 * 60 * 1000; // Convert to milliseconds
+    
+    if (cacheAge < maxAge) {
+      console.log('💾 Using AsyncStorage cached community stats');
+      return parsed.data;
+    } else {
+      console.log('💾 AsyncStorage cache expired, removing...');
+      await AsyncStorage.removeItem(CACHE_SETTINGS.LOCAL_STORAGE_KEY);
+      return null;
+    }
+  } catch (error) {
+    console.warn('Failed to read from AsyncStorage:', error);
+    return null;
+  }
+};
+
+const setLocalStorageStats = async (stats: CommunityStats): Promise<void> => {
+  try {
+    const cacheData = {
+      data: stats,
+      cachedAt: new Date().toISOString(),
+    };
+    await AsyncStorage.setItem(CACHE_SETTINGS.LOCAL_STORAGE_KEY, JSON.stringify(cacheData));
+    console.log('💾 Community stats cached locally');
+  } catch (error) {
+    console.warn('Failed to write to AsyncStorage:', error);
+  }
+};
+
+const trackFirebaseCall = async (): Promise<boolean> => {
+  try {
+    const now = Date.now();
+    const hourStart = Math.floor(now / (1000 * 60 * 60)) * (1000 * 60 * 60);
+    const trackingKey = `${CACHE_SETTINGS.FIREBASE_CALL_TRACKING_KEY}_${hourStart}`;
+    
+    const currentCallsStr = await AsyncStorage.getItem(trackingKey);
+    const currentCalls = parseInt(currentCallsStr || '0', 10);
+    
+    if (currentCalls >= CACHE_SETTINGS.MAX_FIREBASE_CALLS_PER_HOUR) {
+      console.warn('🚨 Firebase call limit reached for this hour. Using fallback data.');
+      return false; // Circuit breaker activated
+    }
+    
+    await AsyncStorage.setItem(trackingKey, (currentCalls + 1).toString());
+    console.log(`📊 Firebase calls this hour: ${currentCalls + 1}/${CACHE_SETTINGS.MAX_FIREBASE_CALLS_PER_HOUR}`);
+    return true;
+  } catch (error) {
+    console.warn('Failed to track Firebase calls:', error);
+    return true; // Allow the call if tracking fails
+  }
+};
+
 /**
- * Get community stats (cached, updated daily)
+ * Enhanced community stats with multi-level caching and cost optimization
  */
 export const getCommunityStats = async (): Promise<CommunityStats | null> => {
+  // Level 1: Check local storage cache first (fastest, no network)
+  const localStats = await getLocalStorageStats();
+  if (localStats) {
+    return localStats;
+  }
+  
+  // Level 2: Check circuit breaker before making Firebase call
+  const canMakeCall = await trackFirebaseCall();
+  if (!canMakeCall) {
+    console.warn('🚨 Circuit breaker active - using demo stats to control costs');
+    return generateDemoCommunityStats();
+  }
+  
+  // Level 3: Firebase call with enhanced caching logic
   try {
+    console.log('🔥 Making Firebase call for community stats');
     const statsDoc = await getDoc(doc(db, 'communityStats', 'global'));
     
     if (statsDoc.exists()) {
       const stats = statsDoc.data() as CommunityStats;
       
-      // Check if stats are from today
-      const today = new Date().toDateString();
-      const lastUpdated = new Date(stats.lastUpdated).toDateString();
+      // Enhanced cache validation - use 12-hour window instead of daily
+      const now = new Date();
+      const lastUpdated = new Date(stats.lastUpdated);
+      const hoursDiff = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
       
-      if (lastUpdated === today) {
-        console.log('📊 Using cached community stats');
+      if (hoursDiff <= CACHE_SETTINGS.STATS_CACHE_HOURS) {
+        console.log('📊 Using Firebase cached community stats (fresh)');
+        await setLocalStorageStats(stats); // Cache locally for future requests
         return stats;
       } else {
-        console.log('📊 Community stats are outdated, will need refresh');
-        return stats; // Return old stats, trigger background update
+        console.log('📊 Firebase stats are older than 12h, but still usable');
+        await setLocalStorageStats(stats); // Cache locally even if slightly stale
+        return stats; // Return slightly stale stats rather than expensive refresh
       }
     }
     
-    console.log('📊 No community stats found, using demo stats');
-    return generateDemoCommunityStats();
+    console.log('📊 No Firebase community stats found, using demo stats');
+    const demoStats = generateDemoCommunityStats();
+    await setLocalStorageStats(demoStats); // Cache demo stats to avoid repeated Firebase calls
+    return demoStats;
+    
   } catch (error: any) {
     if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
       console.log('🔒 Firebase permissions not set up for communityStats, using demo data');
     } else {
       console.error('Error getting community stats:', error);
     }
+    
     console.log('📊 Falling back to demo community stats');
-    return generateDemoCommunityStats();
+    const demoStats = generateDemoCommunityStats();
+    await setLocalStorageStats(demoStats); // Cache demo stats to avoid repeated failures
+    return demoStats;
+  }
+};
+
+/**
+ * Cost monitoring and reporting functions
+ */
+export const getFirebaseUsageStats = async (): Promise<{ callsThisHour: number; maxCalls: number; percentageUsed: number }> => {
+  try {
+    const now = Date.now();
+    const hourStart = Math.floor(now / (1000 * 60 * 60)) * (1000 * 60 * 60);
+    const trackingKey = `${CACHE_SETTINGS.FIREBASE_CALL_TRACKING_KEY}_${hourStart}`;
+    
+    const callsThisHourStr = await AsyncStorage.getItem(trackingKey);
+    const callsThisHour = parseInt(callsThisHourStr || '0', 10);
+    const maxCalls = CACHE_SETTINGS.MAX_FIREBASE_CALLS_PER_HOUR;
+    const percentageUsed = Math.round((callsThisHour / maxCalls) * 100);
+    
+    return {
+      callsThisHour,
+      maxCalls,
+      percentageUsed
+    };
+  } catch (error) {
+    console.warn('Failed to get Firebase usage stats:', error);
+    return { callsThisHour: 0, maxCalls: CACHE_SETTINGS.MAX_FIREBASE_CALLS_PER_HOUR, percentageUsed: 0 };
+  }
+};
+
+export const clearOldTrackingData = async (): Promise<void> => {
+  try {
+    const keysToRemove: string[] = [];
+    const currentHour = Math.floor(Date.now() / (1000 * 60 * 60)) * (1000 * 60 * 60);
+    
+    // Get all AsyncStorage keys
+    const allKeys = await AsyncStorage.getAllKeys();
+    
+    // Clean up tracking data older than 24 hours
+    for (const key of allKeys) {
+      if (key && key.startsWith(CACHE_SETTINGS.FIREBASE_CALL_TRACKING_KEY)) {
+        const hourFromKey = parseInt(key.split('_').pop() || '0', 10);
+        const hoursDiff = (currentHour - hourFromKey) / (1000 * 60 * 60);
+        
+        if (hoursDiff > 24) {
+          keysToRemove.push(key);
+        }
+      }
+    }
+    
+    // Remove old keys
+    if (keysToRemove.length > 0) {
+      await AsyncStorage.multiRemove(keysToRemove);
+      console.log(`🧹 Cleaned up ${keysToRemove.length} old Firebase tracking entries`);
+    }
+  } catch (error) {
+    console.warn('Failed to clear old tracking data:', error);
   }
 };
 

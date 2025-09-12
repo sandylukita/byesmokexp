@@ -32,7 +32,8 @@ const { width, height } = Dimensions.get('window');
 // Cache for badge statistics to avoid repeated Firebase calls
 let cachedBadgeStats: {[badgeId: string]: number} | null = null;
 let lastStatsLoadTime = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache (badge stats change slowly)
+const STORAGE_KEY = 'badge_statistics_cache';
 
 // Fallback statistics for immediate display
 const FALLBACK_STATS: {[badgeId: string]: number} = {
@@ -57,6 +58,42 @@ const FALLBACK_STATS: {[badgeId: string]: number} = {
   'money-master-premium': 45,
 };
 
+// Load badge statistics from AsyncStorage
+const loadStoredBadgeStats = async (): Promise<{[badgeId: string]: number} | null> => {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.data && parsed.timestamp) {
+        const age = Date.now() - parsed.timestamp;
+        if (age < CACHE_DURATION) {
+          console.log('✓ Loaded fresh badge statistics from AsyncStorage');
+          return parsed.data;
+        } else {
+          console.log('ℹ️ Stored badge statistics are stale');
+        }
+      }
+    }
+  } catch (error) {
+    console.log('Error loading stored badge statistics:', error);
+  }
+  return null;
+};
+
+// Save badge statistics to AsyncStorage
+const storeBadgeStats = async (stats: {[badgeId: string]: number}) => {
+  try {
+    const dataToStore = {
+      data: stats,
+      timestamp: Date.now()
+    };
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(dataToStore));
+    console.log('✓ Badge statistics saved to AsyncStorage for offline access');
+  } catch (error) {
+    console.log('Error storing badge statistics:', error);
+  }
+};
+
 const BadgeStatisticsScreen: React.FC = () => {
   const { colors } = useTheme();
   const { t, language } = useTranslation();
@@ -64,13 +101,27 @@ const BadgeStatisticsScreen: React.FC = () => {
   const [userBadges, setUserBadges] = useState<Badge[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<'badges' | 'community'>('badges');
-  const [loading, setLoading] = useState(false); // Start with false, show fallback data immediately
+  const [loading, setLoading] = useState(false); // Never show loading, always show fallback data immediately
   const [refreshing, setRefreshing] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [communityTabLoaded, setCommunityTabLoaded] = useState(false); // Lazy load community tab
 
   useEffect(() => {
-    loadBadgeData();
+    initializeBadgeStats();
   }, []);
+
+  const initializeBadgeStats = async () => {
+    // First try to load from AsyncStorage for instant display
+    const storedStats = await loadStoredBadgeStats();
+    if (storedStats) {
+      setBadgeStats(storedStats);
+      cachedBadgeStats = storedStats;
+      lastStatsLoadTime = Date.now() - 1000; // Mark as slightly old to allow refresh
+    }
+    
+    // Then load fresh data in background
+    loadBadgeData();
+  };
 
   // Only reload if cache is stale or user explicitly refreshes
   useFocusEffect(
@@ -94,22 +145,18 @@ const BadgeStatisticsScreen: React.FC = () => {
 
   const loadBadgeData = async () => {
     try {
-      if (isFirstLoad) {
-        setLoading(true);
-      }
-      
-      // Load all data in parallel for efficiency
-      await Promise.all([
+      // Load all data in background without showing loading state
+      Promise.all([
         loadBadgeStatistics(),
         loadUserBadges(),
         loadUserData()
-      ]);
+      ]).catch(error => {
+        console.error('Error loading badge data:', error);
+      });
       
+      setIsFirstLoad(false);
     } catch (error) {
       console.error('Error loading badge data:', error);
-    } finally {
-      setLoading(false);
-      setIsFirstLoad(false);
     }
   };
 
@@ -155,12 +202,16 @@ const BadgeStatisticsScreen: React.FC = () => {
         setBadgeStats(stats);
         cachedBadgeStats = stats;
         lastStatsLoadTime = now;
-        console.log('✓ Badge statistics loaded and cached');
+        // Save to AsyncStorage for offline access
+        storeBadgeStats(stats);
+        console.log('✓ Badge statistics loaded, cached, and stored for offline access');
       } catch (error: any) {
         console.log('Using fallback stats due to slow/failed fetch:', error.message);
         setBadgeStats(FALLBACK_STATS);
         cachedBadgeStats = FALLBACK_STATS;
         lastStatsLoadTime = now;
+        // Save fallback stats to AsyncStorage as backup
+        storeBadgeStats(FALLBACK_STATS);
       }
       
     } catch (error) {
@@ -250,6 +301,15 @@ const BadgeStatisticsScreen: React.FC = () => {
     setRefreshing(false);
   };
 
+  const handleTabSwitch = (tab: 'badges' | 'community') => {
+    setActiveTab(tab);
+    // Lazy load community tab only when first accessed
+    if (tab === 'community' && !communityTabLoaded) {
+      setCommunityTabLoaded(true);
+      console.log('🚀 Lazy loading Community tab for first time...');
+    }
+  };
+
   const handleNavigateToSubscription = () => {
     // Navigation will be handled by parent component or navigation context
     console.log('Navigate to subscription screen - upgrade button pressed');
@@ -318,7 +378,7 @@ const BadgeStatisticsScreen: React.FC = () => {
 
   if (loading && isFirstLoad) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t.badges.loading}</Text>
       </View>
@@ -331,7 +391,7 @@ const BadgeStatisticsScreen: React.FC = () => {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
         <Text style={styles.headerTitle}>{t.badges.title}</Text>
@@ -352,7 +412,7 @@ const BadgeStatisticsScreen: React.FC = () => {
             styles.tab, 
             { backgroundColor: activeTab === 'badges' ? colors.primary : 'transparent' }
           ]}
-          onPress={() => setActiveTab('badges')}
+          onPress={() => handleTabSwitch('badges')}
         >
           <MaterialIcons 
             name="emoji-events" 
@@ -372,7 +432,7 @@ const BadgeStatisticsScreen: React.FC = () => {
             styles.tab,
             { backgroundColor: activeTab === 'community' ? colors.primary : 'transparent' }
           ]}
-          onPress={() => setActiveTab('community')}
+          onPress={() => handleTabSwitch('community')}
         >
           <MaterialIcons 
             name="people" 
@@ -425,17 +485,27 @@ const BadgeStatisticsScreen: React.FC = () => {
           </View>
         </ScrollView>
       ) : (
-        // Community Tab - Real Component with Premium Check
-        user ? (
-          <CommunityStatsTab 
-            user={user} 
-            onUpgradePress={handleNavigateToSubscription}
-          />
+        // Community Tab - Lazy Loaded
+        communityTabLoaded ? (
+          user ? (
+            <CommunityStatsTab 
+              user={user} 
+              onUpgradePress={handleNavigateToSubscription}
+            />
+          ) : (
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'Loading community data...' : 'Memuat data komunitas...'}
+              </Text>
+            </View>
+          )
         ) : (
+          // Show placeholder while community tab hasn't been accessed yet
           <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-              {language === 'en' ? 'Loading community data...' : 'Memuat data komunitas...'}
+            <MaterialIcons name="people" size={48} color={colors.gray} />
+            <Text style={[styles.placeholderText, { color: colors.textSecondary }]}>
+              {language === 'en' ? 'Tap to load community stats' : 'Ketuk untuk memuat statistik komunitas'}
             </Text>
           </View>
         )
@@ -447,7 +517,6 @@ const BadgeStatisticsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
@@ -480,16 +549,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   userBadgeCount: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.xs,
     borderRadius: SIZES.buttonRadius || 12,
     marginTop: SIZES.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   userBadgeText: {
     ...TYPOGRAPHY.bodySmall,
     fontWeight: '600',
-    color: COLORS.white,
+    color: '#333333',
   },
   content: {
     flex: 1,
@@ -515,11 +589,11 @@ const styles = StyleSheet.create({
     padding: SIZES.sm,
     marginHorizontal: SIZES.screenPadding,
     marginBottom: SIZES.xs,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   lockedBadgeItem: {
     opacity: 0.6,
@@ -589,13 +663,12 @@ const styles = StyleSheet.create({
   // Tab navigation styles - Matching Progress Page
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
     marginHorizontal: SIZES.screenPadding,
     borderRadius: SIZES.buttonRadius || 12,
     padding: Math.max(width * 0.015, 6),
     marginTop: -SIZES.lg,
     marginBottom: SIZES.xs,
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -631,10 +704,10 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.buttonRadius || 16,
     padding: SIZES.xl,
     alignItems: 'center',
-    shadowColor: COLORS.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
     elevation: 4,
     width: '100%',
     maxWidth: 300,
@@ -650,6 +723,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  placeholderText: {
+    marginTop: SIZES.md,
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 

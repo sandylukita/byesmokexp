@@ -1,20 +1,38 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
+import { initializeAuth, getAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ENV_CONFIG, log } from '../config/environment';
 
-// Demo Firebase configuration - replace with your actual config
+// Secure Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyCzKtmjJoEqlnmTVroW2j3kX11sTMPXSB8",
-  authDomain: "byesmokexp.firebaseapp.com",
-  projectId: "byesmokexp",
-  storageBucket: "byesmokexp.firebasestorage.app",
-  messagingSenderId: "161013631866",
-  appId: "1:161013631866:web:2fdfca241dd7f0224c24c3",
-  measurementId: "G-XYDB63TDSZ"
+  apiKey: ENV_CONFIG.FIREBASE.apiKey,
+  authDomain: ENV_CONFIG.FIREBASE.authDomain,
+  projectId: ENV_CONFIG.FIREBASE.projectId,
+  storageBucket: ENV_CONFIG.FIREBASE.storageBucket,
+  messagingSenderId: ENV_CONFIG.FIREBASE.messagingSenderId,
+  appId: ENV_CONFIG.FIREBASE.appId,
+  measurementId: ENV_CONFIG.FIREBASE.measurementId
 };
+
+// Validate Firebase configuration before initializing
+const validateFirebaseConfig = () => {
+  const requiredFields = ['apiKey', 'authDomain', 'projectId', 'appId'];
+  const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig]);
+  
+  if (missingFields.length > 0) {
+    const error = `Firebase configuration incomplete. Missing: ${missingFields.join(', ')}`;
+    log.error('🚨 Firebase Config Error:', error);
+    throw new Error(error);
+  }
+  
+  log.info('✅ Firebase configuration validated successfully');
+};
+
+// Validate configuration on load
+validateFirebaseConfig();
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

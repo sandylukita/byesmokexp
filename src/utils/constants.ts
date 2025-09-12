@@ -766,5 +766,6 @@ export const XP_LEVELS = [
   { level: 10, xpRequired: 5000, title: 'Abadi' }
 ];
 
-export const GEMINI_API_KEY = 'your-gemini-api-key';
+// SECURITY: API keys moved to environment configuration
+// See ENV_CONFIG in src/config/environment.ts for secure API key management
 

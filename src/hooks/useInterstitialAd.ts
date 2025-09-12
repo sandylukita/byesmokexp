@@ -42,7 +42,8 @@ export const useInterstitialAd = (user: User | null): UseInterstitialAdReturn =>
     }
 
     try {
-      const wasShown = await showInterstitialAd(user.isPremium, context);
+      // Show ads to all users - no premium exemptions for max revenue
+      const wasShown = await showInterstitialAd(false, context);
       
       // Update status after attempting to show ad
       setAdStatus(getAdStatus());
@@ -57,7 +58,7 @@ export const useInterstitialAd = (user: User | null): UseInterstitialAdReturn =>
   /**
    * Check if we can show an ad right now
    */
-  const canShow = user ? canShowAd(user.isPremium) : false;
+  const canShow = user ? canShowAd(false) : false;
 
   return {
     showAd,
