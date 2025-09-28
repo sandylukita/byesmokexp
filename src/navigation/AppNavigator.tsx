@@ -2,12 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import BadgeStatisticsScreen from '../screens/BadgeStatisticsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import TamagotchiScreen from '../screens/TamagotchiScreen';
 import SwipeableTabNavigator from '../components/SwipeableTabNavigator';
 import CravingModal from '../components/CravingModal';
 import { COLORS, SIZES } from '../utils/constants';
@@ -20,12 +21,12 @@ interface AppNavigatorProps {
 }
 
 // Define tab routes for swipe navigation
-const TAB_ROUTES = ['Dashboard', 'Progress', 'BadgeStats', 'Profile'];
+const TAB_ROUTES = ['Dashboard', 'Progress', 'Tamagotchi', 'BadgeStats', 'Profile'];
 
 // Create wrapper components - SwipeableTabNavigator temporarily disabled
 const DashboardWrapper: React.FC<{ onLogout: () => void; navigation: any; route: any }> = ({ onLogout, navigation, route }) => {
   console.log('🎯 DashboardWrapper rendering');
-  return <DashboardScreen onLogout={onLogout} />;
+  return <DashboardScreen onLogout={onLogout} navigation={navigation} />;
 };
 
 const ProgressWrapper: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => (
@@ -40,8 +41,12 @@ const ProfileWrapper: React.FC<{ onLogout: () => void; navigation: any; route: a
   <ProfileScreen onLogout={onLogout} navigation={navigation} />
 );
 
-// SOS Screen - dummy component since SOS button just opens modal
-const SOSScreen: React.FC = () => <View style={{ flex: 1 }} />;
+const TamagotchiWrapper: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => (
+  <TamagotchiScreen
+    user={null} // Will be passed from parent
+    onUpdateUser={async () => {}} // Will be passed from parent
+  />
+);
 
 const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
   const { colors } = useTheme();
@@ -64,36 +69,27 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
     ({ navigation, route }: any) => <ProfileWrapper onLogout={onLogout} navigation={navigation} route={route} />, 
     [onLogout]
   );
+  const TamagotchiComponent = useMemo(() => 
+    ({ navigation, route }: any) => <TamagotchiWrapper navigation={navigation} route={route} />, 
+    []
+  );
   
   return (
     <>
     <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
-            // Special handling for SOS button
-            if (route.name === 'SOS') {
+            if (route.name === 'Tamagotchi') {
               return (
-                <View style={{ 
-                  width: 60, 
-                  height: 60, 
-                  borderRadius: 30, 
-                  justifyContent: 'center', 
-                  alignItems: 'center',
-                  marginBottom: 10 
-                }}>
-                  <LinearGradient
-                    colors={['#FF6B6B', '#FF5252']}
-                    style={{ 
-                      width: 60, 
-                      height: 60, 
-                      borderRadius: 30, 
-                      justifyContent: 'center', 
-                      alignItems: 'center' 
-                    }}
-                  >
-                    <MaterialIcons name="notification-important" size={24} color="white" />
-                  </LinearGradient>
-                </View>
+                <Image
+                  source={require('../../assets/images/lungcat.png')}
+                  style={{
+                    width: size,
+                    height: size,
+                    tintColor: color,
+                  }}
+                  resizeMode="contain"
+                />
               );
             }
 
@@ -152,24 +148,16 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
         />
         
         <Tab.Screen 
-          name="SOS" 
+          name="Tamagotchi" 
           options={{ 
-            tabBarLabel: 'SOS',
+            tabBarLabel: 'Lungcat',
             tabBarLabelStyle: {
-              fontSize: SIZES.xs - 1,
-              fontWeight: '700',
-              color: '#FF5252',
+              fontSize: SIZES.xs,
+              fontWeight: '600',
+              color: colors.textSecondary,
             },
           }}
-          component={SOSScreen}
-          listeners={{
-            tabPress: (e) => {
-              // Prevent default navigation
-              e.preventDefault();
-              // Open craving modal instead
-              setShowCravingModal(true);
-            },
-          }}
+          component={TamagotchiComponent}
         />
         
         <Tab.Screen 

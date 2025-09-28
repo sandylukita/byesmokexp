@@ -2,7 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -47,9 +47,44 @@ interface ProfileScreenProps {
   navigation: any;
 }
 
+// INSTAGRAM-STYLE: Create skeleton user for instant loading
+const createSkeletonProfileUser = (): User => ({
+  id: 'loading',
+  email: 'loading@app.com',
+  displayName: 'Loading User',
+  username: 'loading',
+  isPremium: false,
+  quitDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+  cigarettesPerDay: 10,
+  cigarettePrice: 25000,
+  streak: 7,
+  longestStreak: 7,
+  totalDays: 7,
+  xp: 70,
+  level: 1,
+  badges: [],
+  completedMissions: [],
+  dailyXP: {},
+  settings: {
+    notifications: true,
+    streakNotifications: true,
+    reminderTime: '09:00',
+  },
+  lastCheckIn: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
+});
+
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // FIXED: Try to load cached user first, fallback to skeleton only if no cache exists
+  const [user, setUser] = useState<User>(() => {
+    const cachedUser = demoGetCurrentUser();
+    if (cachedUser) {
+      console.log('✅ Profile: Starting with cached user data (no flickering)');
+      return cachedUser;
+    }
+    console.log('📱 Profile: Starting with skeleton user (no cached data)');
+    return createSkeletonProfileUser();
+  });
+  const [loading, setLoading] = useState(false); // OPTIMIZED: Start with false for instant UI
   const [hasUpdatedThemeContext, setHasUpdatedThemeContext] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', message: '' });
@@ -97,7 +132,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
           
           // Update user data - Profile screen accepts all updates since user settings can change
           setUser(currentUser => {
-            if (!currentUser) return userData;
+            if (!currentUser || currentUser.id === 'loading') return userData;
             
             console.log('Accepting Profile screen Firebase update');
             return userData;
@@ -393,7 +428,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     }
   };
 
-
   const handleHelp = () => {
     showCustomAlert(
       t.settings.help,
@@ -587,13 +621,7 @@ Mari berhenti merokok bersama! 💪`;
   };
 
 
-  if (loading || !user) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>{t.common.loading}</Text>
-      </View>
-    );
-  }
+  // OPTIMIZED: Always show UI with skeleton/cached data, no loading state blocking
 
   const levelInfo = calculateLevel(user.xp);
 
@@ -639,7 +667,8 @@ Mari berhenti merokok bersama! 💪`;
   );
 
 
-  const renderLegalModal = () => {
+  // OPTIMIZED: Memoize expensive legal document rendering
+  const renderLegalModal = useMemo(() => {
     const privacyPolicyContent = `Privacy Policy for ByeSmoke AI
 
 Last Updated: January 2025
@@ -834,14 +863,15 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
         </TouchableOpacity>
       </Modal>
     );
-  };
+  }, [legalModalVisible, legalDocument, language, colors]);
 
   const handleSubscriptionSelect = async (planId: string) => {
     setSubscriptionModalVisible(false);
     await handleSubscription(planId, user?.id);
   };
 
-  const renderSubscriptionModal = () => (
+  // OPTIMIZED: Memoize subscription modal rendering  
+  const renderSubscriptionModal = useMemo(() => (
     <Modal
       visible={subscriptionModalVisible}
       transparent={true}
@@ -962,9 +992,10 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
         </View>
       </View>
     </Modal>
-  );
+  ), [subscriptionModalVisible, language, colors, handleSubscriptionSelect]);
 
-  const renderNotificationModal = () => (
+  // OPTIMIZED: Memoize notification modal rendering
+  const renderNotificationModal = useMemo(() => (
     <Modal
       visible={notificationModalVisible}
       transparent={true}
@@ -1106,7 +1137,7 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
-  );
+  ), [notificationModalVisible, user?.settings.notifications, user?.settings.reminderTime, user?.settings.streakNotifications, t, language, colors, toggleNotifications, updateReminderTime, toggleStreakNotifications]);
 
   const renderSettings = () => (
     <View style={styles.tabContent}>
@@ -1309,9 +1340,9 @@ By using ByeSmoke AI, you acknowledge that you have read, understood, and agree 
         </View>
       </ScrollView>
       {renderCustomAlert()}
-      {renderLegalModal()}
-      {renderNotificationModal()}
-      {renderSubscriptionModal()}
+      {renderLegalModal}
+      {renderNotificationModal}
+      {renderSubscriptionModal}
       
       <CustomConfirmDialog
         visible={logoutDialogVisible}

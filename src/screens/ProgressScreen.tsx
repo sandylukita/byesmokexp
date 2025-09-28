@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import React, { useEffect, useState, useCallback } from 'react';
+import { doc as docRef, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -100,16 +100,330 @@ import {
     formatCurrency,
     formatNumber,
     getHealthMilestones,
+    cleanCorruptedDailyXP,
 } from '../utils/helpers';
+import { debugLog } from '../utils/performanceOptimizer';
 import { compareUserToCommunity } from '../services/communityStats';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { TYPOGRAPHY } from '../utils/typography';
 
+// OPTIMIZED: Memoized heatmap calculation to prevent expensive re-renders
+const MemoizedHeatmapGrid = React.memo(({ 
+  user, 
+  selectedDate, 
+  colors 
+}: { 
+  user: User; 
+  selectedDate: Date; 
+  colors: any 
+}) => {
+  return useMemo(() => {
+    console.log('🗓️ HEATMAP RENDER START:', {
+      userEmail: user.email,
+      userXP: user.xp,
+      dailyXPData: user.dailyXP,
+      selectedDate: selectedDate.toDateString(),
+      renderKey: `heatmap-${user.xp}-${JSON.stringify(user.dailyXP)}`
+    });
+    
+    const today = new Date();
+    const currentMonth = selectedDate.getMonth();
+    const currentYear = selectedDate.getFullYear();
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
+    // Normalize quit date to start of day to avoid time component issues
+    const quitDate = new Date(user.quitDate);
+    const quitDateNormalized = new Date(quitDate.getFullYear(), quitDate.getMonth(), quitDate.getDate());
+    const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+    
+    // Create array for the calendar grid
+    const calendarDays = [];
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startDayOfWeek; i++) {
+      calendarDays.push(
+        <View key={`empty-${i}`} style={styles.heatmapDay}>
+          <View style={styles.heatmapDayEmpty} />
+        </View>
+      );
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(currentYear, currentMonth, day);
+      const isToday = isCurrentMonth && day === today.getDate();
+      const isFuture = date > today;
+      
+      // Calculate activity for this day based on check-in status primarily
+      let intensity = 0;
+      
+      // Debug quit date comparison for new users
+      if (isToday) {
+        console.log('🏁 QUIT DATE COMPARISON (FIXED):', {
+          today: date.toDateString(),
+          quitDateOriginal: quitDate.toDateString(),
+          quitDateNormalized: quitDateNormalized.toDateString(),
+          quitDateFull: quitDate,
+          dateComparison: date >= quitDateNormalized,
+          isFuture,
+          willShowActivity: !isFuture && date >= quitDateNormalized
+        });
+      }
+      
+
+      if (!isFuture && date >= quitDateNormalized) {
+        // Check if user did check-in on this specific date (improved date comparison)
+        let hasCheckedInOnDate = false;
+        if (user.lastCheckIn) {
+          const checkInDate = new Date(user.lastCheckIn);
+          const targetDate = new Date(date);
+          // Compare dates by creating date strings in same timezone
+          const checkInDateStr = checkInDate.getFullYear() + '-' + 
+            (checkInDate.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+            checkInDate.getDate().toString().padStart(2, '0');
+          const targetDateStr = targetDate.getFullYear() + '-' + 
+            (targetDate.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+            targetDate.getDate().toString().padStart(2, '0');
+          hasCheckedInOnDate = checkInDateStr === targetDateStr;
+        }
+        
+        // For today, prioritize daily XP over check-in status
+        if (isToday) {
+          // Check actual XP earned today to determine intensity
+          const dateKey = date.getFullYear() + '-' + 
+                        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(date.getDate()).padStart(2, '0');
+          
+          // Get today's XP - NO UTC fallback for today to prevent showing yesterday's XP
+          let todayXP = user.dailyXP?.[dateKey] || 0;
+          
+          
+          // Check if user actually checked in TODAY (not yesterday or other days)
+          let hasActuallyCheckedInToday = false;
+          if (user.lastCheckIn) {
+            const checkInDate = new Date(user.lastCheckIn);
+            const today = new Date();
+
+            // STRICT: Only consider it a check-in if it happened today AND within reasonable time window
+            const timeDiff = Math.abs(today.getTime() - checkInDate.getTime());
+            const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+            hasActuallyCheckedInToday = checkInDate.toDateString() === today.toDateString() && hoursDiff < 24;
+
+            console.log('🔍 Heatmap check-in debug:', {
+              lastCheckIn: user.lastCheckIn,
+              checkInDateString: checkInDate.toDateString(),
+              todayDateString: today.toDateString(),
+              hoursDiff: hoursDiff.toFixed(2),
+              hasActuallyCheckedInToday,
+              todayXP,
+              userEmail: user.email,
+              dateKey,
+              utcDateKey: date.toISOString().split('T')[0],
+              dailyXPForToday: user.dailyXP?.[dateKey] || user.dailyXP?.[date.toISOString().split('T')[0]] || 'not found'
+            });
+          }
+
+          // FIXED: Only give check-in credit if genuinely checked in today
+          // No automatic XP assignment - user must earn XP through actual actions
+          
+          // STRICT: Only show green if there's actual activity TODAY
+          if (todayXP >= 50) {
+            intensity = 3; // High activity: 50+ XP (multiple missions)
+          } else if (todayXP >= 20) {
+            intensity = 2; // Medium activity: 20-49 XP (some missions)
+          } else if (todayXP >= 10) {
+            intensity = 1; // Low activity: 10-19 XP (check-in or single mission)
+          } else {
+            // DEFAULT: No activity today = gray
+            intensity = 0; // No green unless there's actual XP earned today
+          }
+          
+        } else {
+          // For past days, use dailyXP as fallback for historical data
+          const dateKey = date.getFullYear() + '-' +
+                        String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(date.getDate()).padStart(2, '0');
+
+          // Try current format first, then fallback to legacy UTC format
+          let dailyXP = user.dailyXP?.[dateKey] || 0;
+          if (dailyXP === 0) {
+            // Fallback: try UTC format for legacy data
+            const utcDateKey = date.toISOString().split('T')[0];
+            dailyXP = user.dailyXP?.[utcDateKey] || 0;
+          }
+
+
+          // Convert XP to intensity levels for historical days
+          if (dailyXP >= 50) {
+            intensity = 3; // High activity: 50+ XP
+          } else if (dailyXP >= 20) {
+            intensity = 2; // Medium activity: 20-49 XP
+          } else if (dailyXP >= 10) {
+            intensity = 1; // Low activity: 10-19 XP
+          } else {
+            // ENHANCED FALLBACK: Better reconstruction of historical activity
+            const daysFromToday = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+            const streak = user.streak || 0;
+            const totalDays = user.totalDays || 0;
+
+            // ENHANCED: Calculate if this day falls within user's smoking cessation journey
+            const daysSinceQuit = user.quitDate ? Math.floor((date.getTime() - new Date(user.quitDate).getTime()) / (1000 * 60 * 60 * 24)) : -1;
+            const maxDaysSinceQuit = user.quitDate ? Math.floor((today.getTime() - new Date(user.quitDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+            // FIXED: Use actual calendar days since quit, not just totalDays (which seems to be check-in days)
+            const isWithinUserJourney = daysSinceQuit >= 0 && daysSinceQuit <= maxDaysSinceQuit;
+
+            // Debug logging for historical days without XP data
+            if (daysSinceQuit >= 0 && daysSinceQuit < Math.min(10, maxDaysSinceQuit)) {
+              console.log('🔍 FALLBACK LOGIC DEBUG (FIXED):', {
+                date: date.toDateString(),
+                daysSinceQuit,
+                totalDays,
+                maxDaysSinceQuit,
+                streak,
+                daysFromToday,
+                isWithinUserJourney,
+                userEmail: user.email
+              });
+            }
+
+            if (isWithinUserJourney) {
+              // STRICT MODE: Only show green if there's actual evidence of activity
+              // No more fake green days for missing data
+
+              console.log('⚪ STRICT: No XP data found for day within journey:', {
+                date: date.toDateString(),
+                daysSinceQuit,
+                message: 'Setting intensity 0 - no fake green days'
+              });
+
+              intensity = 0; // Strict: No XP = No green
+            } else {
+              intensity = 0; // No activity before quit date or after journey
+              if (daysSinceQuit >= 0) {
+                console.log('⚪ FALLBACK: No activity (outside journey):', date.toDateString(), 'daysSinceQuit:', daysSinceQuit, 'totalDays:', totalDays);
+              }
+            }
+          }
+        }
+      } else {
+        // Debug: Why isn't activity being calculated?
+        if (isToday) {
+          console.log('❌ NO ACTIVITY CALCULATION - Reason:', {
+            isFuture: isFuture,
+            dateGteQuitDate: date >= quitDateNormalized,
+            failedCondition: isFuture ? 'Date is in future' : 'Date is before quit date'
+          });
+        }
+      }
+      
+      // Debug the style calculation for today
+      if (isToday) {
+        console.log('🎨 HEATMAP STYLE CALCULATION:', {
+          day,
+          isToday,
+          isFuture,
+          intensity,
+          expectedColor: intensity === 0 ? 'gray' : intensity === 1 ? 'light green' : intensity === 2 ? 'medium green' : 'dark green',
+          stylesApplied: {
+            heatmapDayCircle: true,
+            surface: true,
+            heatmapEmpty: !isFuture && intensity === 0,
+            heatmapLow: !isFuture && intensity === 1,
+            heatmapMedium: !isFuture && intensity === 2,
+            heatmapHigh: !isFuture && intensity === 3,
+            heatmapToday: isToday
+          }
+        });
+      }
+      
+      calendarDays.push(
+        <View key={`day-${day}`} style={styles.heatmapDay}>
+          <View style={[
+            styles.heatmapDayCircle,
+            { backgroundColor: colors.surface },
+            isFuture && [styles.heatmapFuture, { borderColor: colors.border }],
+            !isFuture && intensity === 0 && [styles.heatmapEmpty, { backgroundColor: colors.border }],
+            !isFuture && intensity === 1 && styles.heatmapLow,
+            !isFuture && intensity === 2 && styles.heatmapMedium,
+            !isFuture && intensity === 3 && styles.heatmapHigh,
+            isToday && [styles.heatmapToday, { borderColor: colors.primary }]
+          ]}>
+            <Text style={[
+              styles.heatmapDayNumber,
+              (intensity > 1 || isToday) && styles.heatmapDayNumberDark,
+              { color: (intensity > 1 || isToday) ? colors.white : colors.textSecondary }
+            ]}>
+              {day}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+    
+    return calendarDays;
+  }, [user.id, user.xp, user.dailyXP, user.lastCheckIn, user.quitDate, selectedDate, colors]);
+}, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  return (
+    prevProps.user.id === nextProps.user.id &&
+    prevProps.user.xp === nextProps.user.xp &&
+    JSON.stringify(prevProps.user.dailyXP) === JSON.stringify(nextProps.user.dailyXP) &&
+    prevProps.user.lastCheckIn === nextProps.user.lastCheckIn &&
+    prevProps.selectedDate.getTime() === nextProps.selectedDate.getTime()
+  );
+});
+
+// INSTAGRAM-STYLE: Create skeleton user for instant loading
+const createSkeletonProgressUser = (): User => ({
+  id: 'loading',
+  email: 'loading@app.com',
+  displayName: 'Loading...',
+  username: 'loading',
+  isPremium: false,
+  quitDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago for realistic skeleton
+  cigarettesPerDay: 10,
+  cigarettePrice: 25000,
+  streak: 7,
+  longestStreak: 7,
+  totalDays: 7,
+  xp: 70,
+  level: 1,
+  badges: [],
+  completedMissions: [],
+  dailyXP: {
+    // Generate skeleton daily XP for last 7 days
+    [new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]: 10,
+    [new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]: 15,
+    [new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]: 20,
+    [new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]: 10,
+    [new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]: 25,
+    [new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]: 10,
+    [new Date().toISOString().split('T')[0]]: 0, // Today starts with 0
+  },
+  settings: {
+    notifications: true,
+    streakNotifications: true,
+  },
+  lastCheckIn: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
+});
+
 const ProgressScreen: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+  // REVERTED: Back to original working approach
+  const [user, setUser] = useState<User | null>(() => {
+    const cachedUser = demoGetCurrentUser();
+    if (cachedUser) {
+      console.log('✅ Progress: Starting with cached user data');
+      return cachedUser;
+    }
+    return null; // Original approach: null until data loads
+  });
   const [selectedTab, setSelectedTab] = useState<'health' | 'savings' | 'stats'>('stats');
-  const [loading, setLoading] = useState(false); // Show cached data immediately
+  const [loading, setLoading] = useState(false); // OPTIMIZED: Start with false for instant UI
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date()); // For month navigation
   const { colors, updateUser, language } = useTheme();
@@ -120,11 +434,14 @@ const ProgressScreen: React.FC = () => {
   }, []);
 
   const initializeProgressData = async () => {
-    // First load cached data for instant display
+    // First load cached data for instant display (if available)
     const cachedData = await loadCachedUserData();
-    if (cachedData) {
+    if (cachedData && cachedData.id !== 'loading') {
       setUser(cachedData);
       console.log('✓ Progress screen showing cached data instantly');
+    } else {
+      console.log('✓ Progress screen showing skeleton user instantly (no cache)');
+      // Keep skeleton user until real data loads
     }
     
     // Then load fresh data in background
@@ -137,7 +454,7 @@ const ProgressScreen: React.FC = () => {
     if (!firebaseUser) return;
 
     console.log('Setting up optimized real-time listener for ProgressScreen...');
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const userDocRef = docRef(db, 'users', firebaseUser.uid);
     
     const unsubscribe = onSnapshot(
       userDocRef, 
@@ -148,7 +465,22 @@ const ProgressScreen: React.FC = () => {
       (doc) => {
         // Only process if user is still authenticated and doc exists
         if (auth.currentUser && doc.exists() && !doc.metadata.fromCache) {
-          const userData = { id: firebaseUser.uid, ...doc.data() } as User;
+          const rawUserData = { id: firebaseUser.uid, ...doc.data() } as User;
+          const cleanedDailyXP = cleanCorruptedDailyXP(rawUserData.dailyXP);
+          const userData = {
+            ...rawUserData,
+            dailyXP: cleanedDailyXP
+          };
+
+          // If corruption was detected and cleaned, persist the clean data back to Firestore
+          if (rawUserData.dailyXP && Object.keys(rawUserData.dailyXP).length !== Object.keys(cleanedDailyXP).length) {
+            console.log('🔧 Persisting cleaned dailyXP data to Firestore');
+            try {
+              updateDoc(docRef(db, 'users', firebaseUser.uid), { dailyXP: cleanedDailyXP });
+            } catch (error) {
+              console.error('Error persisting cleaned dailyXP:', error);
+            }
+          }
           console.log('🔄 Progress real-time update received:', {
             email: userData.email,
             xp: userData.xp,
@@ -263,9 +595,24 @@ const ProgressScreen: React.FC = () => {
         
         if (currentUser) {
           console.log('Getting user doc from Firestore...');
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          const userDoc = await getDoc(docRef(db, 'users', currentUser.uid));
           if (userDoc.exists()) {
-            const userData = { id: currentUser.uid, ...userDoc.data() } as User;
+            const rawUserData = { id: currentUser.uid, ...userDoc.data() } as User;
+            const cleanedDailyXP = cleanCorruptedDailyXP(rawUserData.dailyXP);
+            const userData = {
+              ...rawUserData,
+              dailyXP: cleanedDailyXP
+            };
+
+            // If corruption was detected and cleaned, persist the clean data back to Firestore
+            if (rawUserData.dailyXP && Object.keys(rawUserData.dailyXP).length !== Object.keys(cleanedDailyXP).length) {
+              console.log('🔧 Persisting cleaned dailyXP data to Firestore');
+              try {
+                updateDoc(docRef(db, 'users', currentUser.uid), { dailyXP: cleanedDailyXP });
+              } catch (error) {
+                console.error('Error persisting cleaned dailyXP:', error);
+              }
+            }
             console.log('✓ ProgressScreen Firebase user data loaded:', {
               email: userData.email,
               completedMissions: userData.completedMissions?.length || 0,
@@ -508,10 +855,13 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
     }
   };
 
-  if (loading || !user) {
+  // RESTORED: Show loading when no user data
+  if (!user) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Loading...
+        </Text>
       </View>
     );
   }
@@ -777,201 +1127,12 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
               ))}
             </View>
             
-            <View style={styles.heatmapGrid} key={`heatmap-${user.xp}-${JSON.stringify(user.dailyXP)}`}>
-              {(() => {
-                console.log('🗓️ HEATMAP RENDER START:', {
-                  userEmail: user.email,
-                  userXP: user.xp,
-                  dailyXPData: user.dailyXP,
-                  selectedDate: selectedDate.toDateString(),
-                  renderKey: `heatmap-${user.xp}-${JSON.stringify(user.dailyXP)}`
-                });
-                
-                const today = new Date();
-                const currentMonth = selectedDate.getMonth();
-                const currentYear = selectedDate.getFullYear();
-                const firstDay = new Date(currentYear, currentMonth, 1);
-                const lastDay = new Date(currentYear, currentMonth + 1, 0);
-                const daysInMonth = lastDay.getDate();
-                const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
-                // Normalize quit date to start of day to avoid time component issues
-                const quitDate = new Date(user.quitDate);
-                const quitDateNormalized = new Date(quitDate.getFullYear(), quitDate.getMonth(), quitDate.getDate());
-                const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
-                
-                // Create array for the calendar grid
-                const calendarDays = [];
-                
-                // Add empty cells for days before month starts
-                for (let i = 0; i < startDayOfWeek; i++) {
-                  calendarDays.push(
-                    <View key={`empty-${i}`} style={styles.heatmapDay}>
-                      <View style={styles.heatmapDayEmpty} />
-                    </View>
-                  );
-                }
-                
-                // Add days of the month
-                for (let day = 1; day <= daysInMonth; day++) {
-                  const date = new Date(currentYear, currentMonth, day);
-                  const isToday = isCurrentMonth && day === today.getDate();
-                  const isFuture = date > today;
-                  
-                  // Calculate activity for this day based on check-in status primarily
-                  let intensity = 0;
-                  
-                  // Debug quit date comparison for new users
-                  if (isToday) {
-                    console.log('🏁 QUIT DATE COMPARISON (FIXED):', {
-                      today: date.toDateString(),
-                      quitDateOriginal: quitDate.toDateString(),
-                      quitDateNormalized: quitDateNormalized.toDateString(),
-                      quitDateFull: quitDate,
-                      dateComparison: date >= quitDateNormalized,
-                      isFuture,
-                      willShowActivity: !isFuture && date >= quitDateNormalized
-                    });
-                  }
-                  
-                  if (!isFuture && date >= quitDateNormalized) {
-                    // Check if user did check-in on this specific date (improved date comparison)
-                    let hasCheckedInOnDate = false;
-                    if (user.lastCheckIn) {
-                      const checkInDate = new Date(user.lastCheckIn);
-                      const targetDate = new Date(date);
-                      // Compare dates by creating date strings in same timezone
-                      const checkInDateStr = checkInDate.getFullYear() + '-' + 
-                        (checkInDate.getMonth() + 1).toString().padStart(2, '0') + '-' + 
-                        checkInDate.getDate().toString().padStart(2, '0');
-                      const targetDateStr = targetDate.getFullYear() + '-' + 
-                        (targetDate.getMonth() + 1).toString().padStart(2, '0') + '-' + 
-                        targetDate.getDate().toString().padStart(2, '0');
-                      hasCheckedInOnDate = checkInDateStr === targetDateStr;
-                    }
-                    
-                    // For today, prioritize daily XP over check-in status
-                    if (isToday) {
-                      // Check actual XP earned today to determine intensity
-                      const dateKey = date.getFullYear() + '-' + 
-                                    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                                    String(date.getDate()).padStart(2, '0');
-                      
-                      let todayXP = user.dailyXP?.[dateKey] || 0;
-                      if (todayXP === 0) {
-                        // Fallback: try UTC format
-                        const utcDateKey = date.toISOString().split('T')[0];
-                        todayXP = user.dailyXP?.[utcDateKey] || 0;
-                      }
-                      
-                      
-                      // Check if user actually checked in TODAY (not yesterday or other days)
-                      let hasActuallyCheckedInToday = false;
-                      if (user.lastCheckIn) {
-                        const checkInDate = new Date(user.lastCheckIn);
-                        const today = new Date();
-                        // Only true if check-in was today
-                        hasActuallyCheckedInToday = checkInDate.toDateString() === today.toDateString();
-                      }
-                      
-                      // Only show today's activity if user has actually checked in today
-                      if (!hasActuallyCheckedInToday) {
-                        todayXP = 0; // Don't show activity if user hasn't checked in today
-                      }
-                      
-                      // STRICT: Only show green if there's actual activity TODAY
-                      if (todayXP >= 50) {
-                        intensity = 3; // High activity: 50+ XP (multiple missions)
-                      } else if (todayXP >= 20) {
-                        intensity = 2; // Medium activity: 20-49 XP (some missions)
-                      } else if (todayXP >= 10) {
-                        intensity = 1; // Low activity: 10-19 XP (check-in or single mission)
-                      } else {
-                        // DEFAULT: No activity today = gray
-                        intensity = 0; // No green unless there's actual XP earned today
-                      }
-                      
-                    } else {
-                      // For past days, use dailyXP as fallback for historical data
-                      const dateKey = date.getFullYear() + '-' + 
-                                    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                                    String(date.getDate()).padStart(2, '0');
-                      
-                      // Try current format first, then fallback to legacy UTC format
-                      let dailyXP = user.dailyXP?.[dateKey] || 0;
-                      if (dailyXP === 0) {
-                        // Fallback: try UTC format for legacy data
-                        const utcDateKey = date.toISOString().split('T')[0];
-                        dailyXP = user.dailyXP?.[utcDateKey] || 0;
-                      }
-                      
-                      // Convert XP to intensity levels for historical days
-                      if (dailyXP >= 50) {
-                        intensity = 3; // High activity: 50+ XP
-                      } else if (dailyXP >= 20) {
-                        intensity = 2; // Medium activity: 20-49 XP
-                      } else if (dailyXP >= 10) {
-                        intensity = 1; // Low activity: 10-19 XP
-                      } else {
-                        intensity = 0; // No activity: 0-9 XP
-                      }
-                    }
-                  } else {
-                    // Debug: Why isn't activity being calculated?
-                    if (isToday) {
-                      console.log('❌ NO ACTIVITY CALCULATION - Reason:', {
-                        isFuture: isFuture,
-                        dateGteQuitDate: date >= quitDateNormalized,
-                        failedCondition: isFuture ? 'Date is in future' : 'Date is before quit date'
-                      });
-                    }
-                  }
-                  
-                  // Debug the style calculation for today
-                  if (isToday) {
-                    console.log('🎨 HEATMAP STYLE CALCULATION:', {
-                      day,
-                      isToday,
-                      isFuture,
-                      intensity,
-                      expectedColor: intensity === 0 ? 'gray' : intensity === 1 ? 'light green' : intensity === 2 ? 'medium green' : 'dark green',
-                      stylesApplied: {
-                        heatmapDayCircle: true,
-                        surface: true,
-                        heatmapEmpty: !isFuture && intensity === 0,
-                        heatmapLow: !isFuture && intensity === 1,
-                        heatmapMedium: !isFuture && intensity === 2,
-                        heatmapHigh: !isFuture && intensity === 3,
-                        heatmapToday: isToday
-                      }
-                    });
-                  }
-                  
-                  calendarDays.push(
-                    <View key={`day-${day}`} style={styles.heatmapDay}>
-                      <View style={[
-                        styles.heatmapDayCircle,
-                        { backgroundColor: colors.surface },
-                        isFuture && [styles.heatmapFuture, { borderColor: colors.border }],
-                        !isFuture && intensity === 0 && [styles.heatmapEmpty, { backgroundColor: colors.border }],
-                        !isFuture && intensity === 1 && styles.heatmapLow,
-                        !isFuture && intensity === 2 && styles.heatmapMedium,
-                        !isFuture && intensity === 3 && styles.heatmapHigh,
-                        isToday && [styles.heatmapToday, { borderColor: colors.primary }]
-                      ]}>
-                        <Text style={[
-                          styles.heatmapDayNumber,
-                          (intensity > 1 || isToday) && styles.heatmapDayNumberDark,
-                          { color: (intensity > 1 || isToday) ? colors.white : colors.textSecondary }
-                        ]}>
-                          {day}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                }
-                
-                return calendarDays;
-              })()}
+            <View style={styles.heatmapGrid}>
+              <MemoizedHeatmapGrid 
+                user={user} 
+                selectedDate={selectedDate} 
+                colors={colors}
+              />
             </View>
             <View style={styles.heatmapLegend}>
               <Text style={[styles.heatmapLegendText, { color: colors.textSecondary }]}>Kurang</Text>
@@ -1277,7 +1438,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.buttonRadius || 12,
     overflow: 'hidden',
     marginHorizontal: SIZES.screenPadding,
-    marginBottom: 4,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -1307,12 +1468,12 @@ const styles = StyleSheet.create({
   breakdownContainer: {
     marginHorizontal: SIZES.screenPadding,
     marginBottom: 4,
-    gap: SIZES.xs || 4,
+    gap: 6,
   },
   breakdownItem: {
     borderRadius: SIZES.buttonRadius || 12,
     padding: SIZES.sm,
-    marginBottom: SIZES.xs || 4,
+    marginBottom: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,

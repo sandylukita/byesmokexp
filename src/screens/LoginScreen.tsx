@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     Image,
     KeyboardAvoidingView,
@@ -19,6 +19,7 @@ import { auth } from '../services/firebase';
 import { demoSignIn } from '../services/demoAuth';
 import { COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
+import { debugLog } from '../utils/performanceOptimizer';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -29,32 +30,32 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [customAlert, setCustomAlert] = useState<{
-    visible: boolean;
-    title: string;
-    message: string;
-    type?: 'success' | 'info' | 'warning' | 'error';
-  }>({
-    visible: false,
-    title: '',
-    message: '',
-    type: 'success'
-  });
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'info' | 'warning' | 'error'>('success');
 
-  const showCustomAlert = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'error') => {
-    setCustomAlert({
-      visible: true,
-      title,
-      message,
-      type
-    });
-  };
+  const showCustomAlert = useCallback((title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'error') => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  }, []);
 
-  const hideCustomAlert = () => {
-    setCustomAlert(prev => ({ ...prev, visible: false }));
-  };
+  const hideCustomAlert = useCallback(() => {
+    setAlertVisible(false);
+  }, []);
 
-  const handleForgotPassword = async () => {
+  // Memoize text input handlers to prevent re-creation on every render
+  const handleEmailChange = useCallback((text: string) => {
+    setEmail(text);
+  }, []);
+
+  const handlePasswordChange = useCallback((text: string) => {
+    setPassword(text);
+  }, []);
+
+  const handleForgotPassword = useCallback(async () => {
     if (!email) {
       showCustomAlert('Kesalahan', 'Silakan masukkan email Anda terlebih dahulu');
       return;
@@ -63,13 +64,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
     try {
       await sendPasswordResetEmail(auth, email);
       showCustomAlert(
-        'Berhasil', 
+        'Berhasil',
         'Email reset password telah dikirim ke ' + email + '. Silakan cek inbox atau folder spam Anda.',
         'success'
       );
     } catch (error: any) {
       let errorMessage = 'Gagal mengirim email reset password';
-      
+
       // Handle specific Firebase errors
       if (error.code === 'auth/user-not-found') {
         errorMessage = 'Email tidak ditemukan. Silakan periksa email Anda atau daftar akun baru.';
@@ -78,45 +79,45 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
       }
-      
+
       showCustomAlert('Kesalahan', errorMessage);
     }
-  };
+  }, [email, showCustomAlert]);
 
-  const handleLogin = async () => {
+  const handleLogin = useCallback(async () => {
     if (!email || !password) {
       showCustomAlert('Kesalahan', 'Silakan isi email dan password');
       return;
     }
 
-    console.log('Login attempt with:', email, password);
+    debugLog.log('Login attempt for:', email);
     setLoading(true);
     try {
       // Try demo authentication first for testing
-      console.log('Trying demo authentication...');
+      debugLog.log('Trying demo authentication...');
       await demoSignIn(email, password);
-      console.log('Demo authentication successful');
+      debugLog.log('Demo authentication successful');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      console.log('Calling onLogin callback');
+      debugLog.log('Calling onLogin callback');
       onLogin();
     } catch (error: any) {
-      console.log('Demo auth failed:', error.message);
+      debugLog.log('Demo auth failed:', error.message);
       // If demo auth fails, try Firebase auth
       try {
-        console.log('Trying Firebase authentication...');
+        debugLog.log('Trying Firebase authentication...');
         await signIn(email, password);
-        console.log('Firebase authentication successful');
+        debugLog.log('Firebase authentication successful');
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        console.log('Calling onLogin callback');
+        debugLog.log('Calling onLogin callback');
         onLogin();
       } catch (firebaseError: any) {
-        console.log('Firebase auth failed:', firebaseError.message);
+        debugLog.log('Firebase auth failed:', firebaseError.message);
         showCustomAlert('Kesalahan', firebaseError.message || 'Gagal masuk');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, password, showCustomAlert, onLogin]);
 
 
   return (
@@ -153,19 +154,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
                 placeholder="Email"
                 placeholderTextColor={COLORS.gray}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={handleEmailChange}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
+                textContentType="emailAddress"
               />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
                 placeholderTextColor={COLORS.gray}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={handlePasswordChange}
                 secureTextEntry
                 autoComplete="password"
+                textContentType="password"
                 onSubmitEditing={handleLogin}
                 returnKeyType="done"
               />
@@ -189,10 +192,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
 
               <View style={styles.footer}>
                 <Text style={styles.footerText}>Belum punya akun? </Text>
-                <TouchableOpacity onPress={() => {
-                  console.log('LoginScreen: onSignUp called');
-                  onSignUp();
-                }}>
+                <TouchableOpacity onPress={onSignUp}>
                   <Text style={styles.linkText}>Daftar sekarang</Text>
                 </TouchableOpacity>
               </View>
@@ -201,10 +201,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
         </ScrollView>
       </LinearGradient>
       <CustomAlert
-        visible={customAlert.visible}
-        title={customAlert.title}
-        message={customAlert.message}
-        type={customAlert.type}
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        type={alertType}
         onDismiss={hideCustomAlert}
       />
     </KeyboardAvoidingView>

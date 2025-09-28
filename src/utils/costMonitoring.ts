@@ -77,7 +77,7 @@ export class CostMonitor {
     const cost = count * FIREBASE_COSTS.READ;
     this.currentHourMetrics.totalCost += cost;
     
-    console.log(`📊 READ: ${count} operations, Cost: $${cost.toFixed(6)}, User: ${userId || 'anonymous'}`);
+    // Read operation tracked for cost monitoring
     
     this.checkHourlyThresholds();
     this.persistMetrics();
@@ -91,7 +91,7 @@ export class CostMonitor {
     const cost = count * FIREBASE_COSTS.WRITE;
     this.currentHourMetrics.totalCost += cost;
     
-    console.log(`✍️ WRITE: ${count} operations, Cost: $${cost.toFixed(6)}, User: ${userId || 'anonymous'}`);
+    // Write operation tracked for cost monitoring
     
     this.checkHourlyThresholds();
     this.persistMetrics();
@@ -105,7 +105,7 @@ export class CostMonitor {
     const cost = count * FIREBASE_COSTS.DELETE;
     this.currentHourMetrics.totalCost += cost;
     
-    console.log(`🗑️ DELETE: ${count} operations, Cost: $${cost.toFixed(6)}, User: ${userId || 'anonymous'}`);
+    // Delete operation tracked for cost monitoring
     
     this.persistMetrics();
   }

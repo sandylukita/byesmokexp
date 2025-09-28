@@ -1,0 +1,2941 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for utils/helpers.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">utils</a> helpers.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/351</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/619</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/38</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/313</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a>
+<a name='L224'></a><a href='#L224'>224</a>
+<a name='L225'></a><a href='#L225'>225</a>
+<a name='L226'></a><a href='#L226'>226</a>
+<a name='L227'></a><a href='#L227'>227</a>
+<a name='L228'></a><a href='#L228'>228</a>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a>
+<a name='L330'></a><a href='#L330'>330</a>
+<a name='L331'></a><a href='#L331'>331</a>
+<a name='L332'></a><a href='#L332'>332</a>
+<a name='L333'></a><a href='#L333'>333</a>
+<a name='L334'></a><a href='#L334'>334</a>
+<a name='L335'></a><a href='#L335'>335</a>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a>
+<a name='L343'></a><a href='#L343'>343</a>
+<a name='L344'></a><a href='#L344'>344</a>
+<a name='L345'></a><a href='#L345'>345</a>
+<a name='L346'></a><a href='#L346'>346</a>
+<a name='L347'></a><a href='#L347'>347</a>
+<a name='L348'></a><a href='#L348'>348</a>
+<a name='L349'></a><a href='#L349'>349</a>
+<a name='L350'></a><a href='#L350'>350</a>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a>
+<a name='L355'></a><a href='#L355'>355</a>
+<a name='L356'></a><a href='#L356'>356</a>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a>
+<a name='L370'></a><a href='#L370'>370</a>
+<a name='L371'></a><a href='#L371'>371</a>
+<a name='L372'></a><a href='#L372'>372</a>
+<a name='L373'></a><a href='#L373'>373</a>
+<a name='L374'></a><a href='#L374'>374</a>
+<a name='L375'></a><a href='#L375'>375</a>
+<a name='L376'></a><a href='#L376'>376</a>
+<a name='L377'></a><a href='#L377'>377</a>
+<a name='L378'></a><a href='#L378'>378</a>
+<a name='L379'></a><a href='#L379'>379</a>
+<a name='L380'></a><a href='#L380'>380</a>
+<a name='L381'></a><a href='#L381'>381</a>
+<a name='L382'></a><a href='#L382'>382</a>
+<a name='L383'></a><a href='#L383'>383</a>
+<a name='L384'></a><a href='#L384'>384</a>
+<a name='L385'></a><a href='#L385'>385</a>
+<a name='L386'></a><a href='#L386'>386</a>
+<a name='L387'></a><a href='#L387'>387</a>
+<a name='L388'></a><a href='#L388'>388</a>
+<a name='L389'></a><a href='#L389'>389</a>
+<a name='L390'></a><a href='#L390'>390</a>
+<a name='L391'></a><a href='#L391'>391</a>
+<a name='L392'></a><a href='#L392'>392</a>
+<a name='L393'></a><a href='#L393'>393</a>
+<a name='L394'></a><a href='#L394'>394</a>
+<a name='L395'></a><a href='#L395'>395</a>
+<a name='L396'></a><a href='#L396'>396</a>
+<a name='L397'></a><a href='#L397'>397</a>
+<a name='L398'></a><a href='#L398'>398</a>
+<a name='L399'></a><a href='#L399'>399</a>
+<a name='L400'></a><a href='#L400'>400</a>
+<a name='L401'></a><a href='#L401'>401</a>
+<a name='L402'></a><a href='#L402'>402</a>
+<a name='L403'></a><a href='#L403'>403</a>
+<a name='L404'></a><a href='#L404'>404</a>
+<a name='L405'></a><a href='#L405'>405</a>
+<a name='L406'></a><a href='#L406'>406</a>
+<a name='L407'></a><a href='#L407'>407</a>
+<a name='L408'></a><a href='#L408'>408</a>
+<a name='L409'></a><a href='#L409'>409</a>
+<a name='L410'></a><a href='#L410'>410</a>
+<a name='L411'></a><a href='#L411'>411</a>
+<a name='L412'></a><a href='#L412'>412</a>
+<a name='L413'></a><a href='#L413'>413</a>
+<a name='L414'></a><a href='#L414'>414</a>
+<a name='L415'></a><a href='#L415'>415</a>
+<a name='L416'></a><a href='#L416'>416</a>
+<a name='L417'></a><a href='#L417'>417</a>
+<a name='L418'></a><a href='#L418'>418</a>
+<a name='L419'></a><a href='#L419'>419</a>
+<a name='L420'></a><a href='#L420'>420</a>
+<a name='L421'></a><a href='#L421'>421</a>
+<a name='L422'></a><a href='#L422'>422</a>
+<a name='L423'></a><a href='#L423'>423</a>
+<a name='L424'></a><a href='#L424'>424</a>
+<a name='L425'></a><a href='#L425'>425</a>
+<a name='L426'></a><a href='#L426'>426</a>
+<a name='L427'></a><a href='#L427'>427</a>
+<a name='L428'></a><a href='#L428'>428</a>
+<a name='L429'></a><a href='#L429'>429</a>
+<a name='L430'></a><a href='#L430'>430</a>
+<a name='L431'></a><a href='#L431'>431</a>
+<a name='L432'></a><a href='#L432'>432</a>
+<a name='L433'></a><a href='#L433'>433</a>
+<a name='L434'></a><a href='#L434'>434</a>
+<a name='L435'></a><a href='#L435'>435</a>
+<a name='L436'></a><a href='#L436'>436</a>
+<a name='L437'></a><a href='#L437'>437</a>
+<a name='L438'></a><a href='#L438'>438</a>
+<a name='L439'></a><a href='#L439'>439</a>
+<a name='L440'></a><a href='#L440'>440</a>
+<a name='L441'></a><a href='#L441'>441</a>
+<a name='L442'></a><a href='#L442'>442</a>
+<a name='L443'></a><a href='#L443'>443</a>
+<a name='L444'></a><a href='#L444'>444</a>
+<a name='L445'></a><a href='#L445'>445</a>
+<a name='L446'></a><a href='#L446'>446</a>
+<a name='L447'></a><a href='#L447'>447</a>
+<a name='L448'></a><a href='#L448'>448</a>
+<a name='L449'></a><a href='#L449'>449</a>
+<a name='L450'></a><a href='#L450'>450</a>
+<a name='L451'></a><a href='#L451'>451</a>
+<a name='L452'></a><a href='#L452'>452</a>
+<a name='L453'></a><a href='#L453'>453</a>
+<a name='L454'></a><a href='#L454'>454</a>
+<a name='L455'></a><a href='#L455'>455</a>
+<a name='L456'></a><a href='#L456'>456</a>
+<a name='L457'></a><a href='#L457'>457</a>
+<a name='L458'></a><a href='#L458'>458</a>
+<a name='L459'></a><a href='#L459'>459</a>
+<a name='L460'></a><a href='#L460'>460</a>
+<a name='L461'></a><a href='#L461'>461</a>
+<a name='L462'></a><a href='#L462'>462</a>
+<a name='L463'></a><a href='#L463'>463</a>
+<a name='L464'></a><a href='#L464'>464</a>
+<a name='L465'></a><a href='#L465'>465</a>
+<a name='L466'></a><a href='#L466'>466</a>
+<a name='L467'></a><a href='#L467'>467</a>
+<a name='L468'></a><a href='#L468'>468</a>
+<a name='L469'></a><a href='#L469'>469</a>
+<a name='L470'></a><a href='#L470'>470</a>
+<a name='L471'></a><a href='#L471'>471</a>
+<a name='L472'></a><a href='#L472'>472</a>
+<a name='L473'></a><a href='#L473'>473</a>
+<a name='L474'></a><a href='#L474'>474</a>
+<a name='L475'></a><a href='#L475'>475</a>
+<a name='L476'></a><a href='#L476'>476</a>
+<a name='L477'></a><a href='#L477'>477</a>
+<a name='L478'></a><a href='#L478'>478</a>
+<a name='L479'></a><a href='#L479'>479</a>
+<a name='L480'></a><a href='#L480'>480</a>
+<a name='L481'></a><a href='#L481'>481</a>
+<a name='L482'></a><a href='#L482'>482</a>
+<a name='L483'></a><a href='#L483'>483</a>
+<a name='L484'></a><a href='#L484'>484</a>
+<a name='L485'></a><a href='#L485'>485</a>
+<a name='L486'></a><a href='#L486'>486</a>
+<a name='L487'></a><a href='#L487'>487</a>
+<a name='L488'></a><a href='#L488'>488</a>
+<a name='L489'></a><a href='#L489'>489</a>
+<a name='L490'></a><a href='#L490'>490</a>
+<a name='L491'></a><a href='#L491'>491</a>
+<a name='L492'></a><a href='#L492'>492</a>
+<a name='L493'></a><a href='#L493'>493</a>
+<a name='L494'></a><a href='#L494'>494</a>
+<a name='L495'></a><a href='#L495'>495</a>
+<a name='L496'></a><a href='#L496'>496</a>
+<a name='L497'></a><a href='#L497'>497</a>
+<a name='L498'></a><a href='#L498'>498</a>
+<a name='L499'></a><a href='#L499'>499</a>
+<a name='L500'></a><a href='#L500'>500</a>
+<a name='L501'></a><a href='#L501'>501</a>
+<a name='L502'></a><a href='#L502'>502</a>
+<a name='L503'></a><a href='#L503'>503</a>
+<a name='L504'></a><a href='#L504'>504</a>
+<a name='L505'></a><a href='#L505'>505</a>
+<a name='L506'></a><a href='#L506'>506</a>
+<a name='L507'></a><a href='#L507'>507</a>
+<a name='L508'></a><a href='#L508'>508</a>
+<a name='L509'></a><a href='#L509'>509</a>
+<a name='L510'></a><a href='#L510'>510</a>
+<a name='L511'></a><a href='#L511'>511</a>
+<a name='L512'></a><a href='#L512'>512</a>
+<a name='L513'></a><a href='#L513'>513</a>
+<a name='L514'></a><a href='#L514'>514</a>
+<a name='L515'></a><a href='#L515'>515</a>
+<a name='L516'></a><a href='#L516'>516</a>
+<a name='L517'></a><a href='#L517'>517</a>
+<a name='L518'></a><a href='#L518'>518</a>
+<a name='L519'></a><a href='#L519'>519</a>
+<a name='L520'></a><a href='#L520'>520</a>
+<a name='L521'></a><a href='#L521'>521</a>
+<a name='L522'></a><a href='#L522'>522</a>
+<a name='L523'></a><a href='#L523'>523</a>
+<a name='L524'></a><a href='#L524'>524</a>
+<a name='L525'></a><a href='#L525'>525</a>
+<a name='L526'></a><a href='#L526'>526</a>
+<a name='L527'></a><a href='#L527'>527</a>
+<a name='L528'></a><a href='#L528'>528</a>
+<a name='L529'></a><a href='#L529'>529</a>
+<a name='L530'></a><a href='#L530'>530</a>
+<a name='L531'></a><a href='#L531'>531</a>
+<a name='L532'></a><a href='#L532'>532</a>
+<a name='L533'></a><a href='#L533'>533</a>
+<a name='L534'></a><a href='#L534'>534</a>
+<a name='L535'></a><a href='#L535'>535</a>
+<a name='L536'></a><a href='#L536'>536</a>
+<a name='L537'></a><a href='#L537'>537</a>
+<a name='L538'></a><a href='#L538'>538</a>
+<a name='L539'></a><a href='#L539'>539</a>
+<a name='L540'></a><a href='#L540'>540</a>
+<a name='L541'></a><a href='#L541'>541</a>
+<a name='L542'></a><a href='#L542'>542</a>
+<a name='L543'></a><a href='#L543'>543</a>
+<a name='L544'></a><a href='#L544'>544</a>
+<a name='L545'></a><a href='#L545'>545</a>
+<a name='L546'></a><a href='#L546'>546</a>
+<a name='L547'></a><a href='#L547'>547</a>
+<a name='L548'></a><a href='#L548'>548</a>
+<a name='L549'></a><a href='#L549'>549</a>
+<a name='L550'></a><a href='#L550'>550</a>
+<a name='L551'></a><a href='#L551'>551</a>
+<a name='L552'></a><a href='#L552'>552</a>
+<a name='L553'></a><a href='#L553'>553</a>
+<a name='L554'></a><a href='#L554'>554</a>
+<a name='L555'></a><a href='#L555'>555</a>
+<a name='L556'></a><a href='#L556'>556</a>
+<a name='L557'></a><a href='#L557'>557</a>
+<a name='L558'></a><a href='#L558'>558</a>
+<a name='L559'></a><a href='#L559'>559</a>
+<a name='L560'></a><a href='#L560'>560</a>
+<a name='L561'></a><a href='#L561'>561</a>
+<a name='L562'></a><a href='#L562'>562</a>
+<a name='L563'></a><a href='#L563'>563</a>
+<a name='L564'></a><a href='#L564'>564</a>
+<a name='L565'></a><a href='#L565'>565</a>
+<a name='L566'></a><a href='#L566'>566</a>
+<a name='L567'></a><a href='#L567'>567</a>
+<a name='L568'></a><a href='#L568'>568</a>
+<a name='L569'></a><a href='#L569'>569</a>
+<a name='L570'></a><a href='#L570'>570</a>
+<a name='L571'></a><a href='#L571'>571</a>
+<a name='L572'></a><a href='#L572'>572</a>
+<a name='L573'></a><a href='#L573'>573</a>
+<a name='L574'></a><a href='#L574'>574</a>
+<a name='L575'></a><a href='#L575'>575</a>
+<a name='L576'></a><a href='#L576'>576</a>
+<a name='L577'></a><a href='#L577'>577</a>
+<a name='L578'></a><a href='#L578'>578</a>
+<a name='L579'></a><a href='#L579'>579</a>
+<a name='L580'></a><a href='#L580'>580</a>
+<a name='L581'></a><a href='#L581'>581</a>
+<a name='L582'></a><a href='#L582'>582</a>
+<a name='L583'></a><a href='#L583'>583</a>
+<a name='L584'></a><a href='#L584'>584</a>
+<a name='L585'></a><a href='#L585'>585</a>
+<a name='L586'></a><a href='#L586'>586</a>
+<a name='L587'></a><a href='#L587'>587</a>
+<a name='L588'></a><a href='#L588'>588</a>
+<a name='L589'></a><a href='#L589'>589</a>
+<a name='L590'></a><a href='#L590'>590</a>
+<a name='L591'></a><a href='#L591'>591</a>
+<a name='L592'></a><a href='#L592'>592</a>
+<a name='L593'></a><a href='#L593'>593</a>
+<a name='L594'></a><a href='#L594'>594</a>
+<a name='L595'></a><a href='#L595'>595</a>
+<a name='L596'></a><a href='#L596'>596</a>
+<a name='L597'></a><a href='#L597'>597</a>
+<a name='L598'></a><a href='#L598'>598</a>
+<a name='L599'></a><a href='#L599'>599</a>
+<a name='L600'></a><a href='#L600'>600</a>
+<a name='L601'></a><a href='#L601'>601</a>
+<a name='L602'></a><a href='#L602'>602</a>
+<a name='L603'></a><a href='#L603'>603</a>
+<a name='L604'></a><a href='#L604'>604</a>
+<a name='L605'></a><a href='#L605'>605</a>
+<a name='L606'></a><a href='#L606'>606</a>
+<a name='L607'></a><a href='#L607'>607</a>
+<a name='L608'></a><a href='#L608'>608</a>
+<a name='L609'></a><a href='#L609'>609</a>
+<a name='L610'></a><a href='#L610'>610</a>
+<a name='L611'></a><a href='#L611'>611</a>
+<a name='L612'></a><a href='#L612'>612</a>
+<a name='L613'></a><a href='#L613'>613</a>
+<a name='L614'></a><a href='#L614'>614</a>
+<a name='L615'></a><a href='#L615'>615</a>
+<a name='L616'></a><a href='#L616'>616</a>
+<a name='L617'></a><a href='#L617'>617</a>
+<a name='L618'></a><a href='#L618'>618</a>
+<a name='L619'></a><a href='#L619'>619</a>
+<a name='L620'></a><a href='#L620'>620</a>
+<a name='L621'></a><a href='#L621'>621</a>
+<a name='L622'></a><a href='#L622'>622</a>
+<a name='L623'></a><a href='#L623'>623</a>
+<a name='L624'></a><a href='#L624'>624</a>
+<a name='L625'></a><a href='#L625'>625</a>
+<a name='L626'></a><a href='#L626'>626</a>
+<a name='L627'></a><a href='#L627'>627</a>
+<a name='L628'></a><a href='#L628'>628</a>
+<a name='L629'></a><a href='#L629'>629</a>
+<a name='L630'></a><a href='#L630'>630</a>
+<a name='L631'></a><a href='#L631'>631</a>
+<a name='L632'></a><a href='#L632'>632</a>
+<a name='L633'></a><a href='#L633'>633</a>
+<a name='L634'></a><a href='#L634'>634</a>
+<a name='L635'></a><a href='#L635'>635</a>
+<a name='L636'></a><a href='#L636'>636</a>
+<a name='L637'></a><a href='#L637'>637</a>
+<a name='L638'></a><a href='#L638'>638</a>
+<a name='L639'></a><a href='#L639'>639</a>
+<a name='L640'></a><a href='#L640'>640</a>
+<a name='L641'></a><a href='#L641'>641</a>
+<a name='L642'></a><a href='#L642'>642</a>
+<a name='L643'></a><a href='#L643'>643</a>
+<a name='L644'></a><a href='#L644'>644</a>
+<a name='L645'></a><a href='#L645'>645</a>
+<a name='L646'></a><a href='#L646'>646</a>
+<a name='L647'></a><a href='#L647'>647</a>
+<a name='L648'></a><a href='#L648'>648</a>
+<a name='L649'></a><a href='#L649'>649</a>
+<a name='L650'></a><a href='#L650'>650</a>
+<a name='L651'></a><a href='#L651'>651</a>
+<a name='L652'></a><a href='#L652'>652</a>
+<a name='L653'></a><a href='#L653'>653</a>
+<a name='L654'></a><a href='#L654'>654</a>
+<a name='L655'></a><a href='#L655'>655</a>
+<a name='L656'></a><a href='#L656'>656</a>
+<a name='L657'></a><a href='#L657'>657</a>
+<a name='L658'></a><a href='#L658'>658</a>
+<a name='L659'></a><a href='#L659'>659</a>
+<a name='L660'></a><a href='#L660'>660</a>
+<a name='L661'></a><a href='#L661'>661</a>
+<a name='L662'></a><a href='#L662'>662</a>
+<a name='L663'></a><a href='#L663'>663</a>
+<a name='L664'></a><a href='#L664'>664</a>
+<a name='L665'></a><a href='#L665'>665</a>
+<a name='L666'></a><a href='#L666'>666</a>
+<a name='L667'></a><a href='#L667'>667</a>
+<a name='L668'></a><a href='#L668'>668</a>
+<a name='L669'></a><a href='#L669'>669</a>
+<a name='L670'></a><a href='#L670'>670</a>
+<a name='L671'></a><a href='#L671'>671</a>
+<a name='L672'></a><a href='#L672'>672</a>
+<a name='L673'></a><a href='#L673'>673</a>
+<a name='L674'></a><a href='#L674'>674</a>
+<a name='L675'></a><a href='#L675'>675</a>
+<a name='L676'></a><a href='#L676'>676</a>
+<a name='L677'></a><a href='#L677'>677</a>
+<a name='L678'></a><a href='#L678'>678</a>
+<a name='L679'></a><a href='#L679'>679</a>
+<a name='L680'></a><a href='#L680'>680</a>
+<a name='L681'></a><a href='#L681'>681</a>
+<a name='L682'></a><a href='#L682'>682</a>
+<a name='L683'></a><a href='#L683'>683</a>
+<a name='L684'></a><a href='#L684'>684</a>
+<a name='L685'></a><a href='#L685'>685</a>
+<a name='L686'></a><a href='#L686'>686</a>
+<a name='L687'></a><a href='#L687'>687</a>
+<a name='L688'></a><a href='#L688'>688</a>
+<a name='L689'></a><a href='#L689'>689</a>
+<a name='L690'></a><a href='#L690'>690</a>
+<a name='L691'></a><a href='#L691'>691</a>
+<a name='L692'></a><a href='#L692'>692</a>
+<a name='L693'></a><a href='#L693'>693</a>
+<a name='L694'></a><a href='#L694'>694</a>
+<a name='L695'></a><a href='#L695'>695</a>
+<a name='L696'></a><a href='#L696'>696</a>
+<a name='L697'></a><a href='#L697'>697</a>
+<a name='L698'></a><a href='#L698'>698</a>
+<a name='L699'></a><a href='#L699'>699</a>
+<a name='L700'></a><a href='#L700'>700</a>
+<a name='L701'></a><a href='#L701'>701</a>
+<a name='L702'></a><a href='#L702'>702</a>
+<a name='L703'></a><a href='#L703'>703</a>
+<a name='L704'></a><a href='#L704'>704</a>
+<a name='L705'></a><a href='#L705'>705</a>
+<a name='L706'></a><a href='#L706'>706</a>
+<a name='L707'></a><a href='#L707'>707</a>
+<a name='L708'></a><a href='#L708'>708</a>
+<a name='L709'></a><a href='#L709'>709</a>
+<a name='L710'></a><a href='#L710'>710</a>
+<a name='L711'></a><a href='#L711'>711</a>
+<a name='L712'></a><a href='#L712'>712</a>
+<a name='L713'></a><a href='#L713'>713</a>
+<a name='L714'></a><a href='#L714'>714</a>
+<a name='L715'></a><a href='#L715'>715</a>
+<a name='L716'></a><a href='#L716'>716</a>
+<a name='L717'></a><a href='#L717'>717</a>
+<a name='L718'></a><a href='#L718'>718</a>
+<a name='L719'></a><a href='#L719'>719</a>
+<a name='L720'></a><a href='#L720'>720</a>
+<a name='L721'></a><a href='#L721'>721</a>
+<a name='L722'></a><a href='#L722'>722</a>
+<a name='L723'></a><a href='#L723'>723</a>
+<a name='L724'></a><a href='#L724'>724</a>
+<a name='L725'></a><a href='#L725'>725</a>
+<a name='L726'></a><a href='#L726'>726</a>
+<a name='L727'></a><a href='#L727'>727</a>
+<a name='L728'></a><a href='#L728'>728</a>
+<a name='L729'></a><a href='#L729'>729</a>
+<a name='L730'></a><a href='#L730'>730</a>
+<a name='L731'></a><a href='#L731'>731</a>
+<a name='L732'></a><a href='#L732'>732</a>
+<a name='L733'></a><a href='#L733'>733</a>
+<a name='L734'></a><a href='#L734'>734</a>
+<a name='L735'></a><a href='#L735'>735</a>
+<a name='L736'></a><a href='#L736'>736</a>
+<a name='L737'></a><a href='#L737'>737</a>
+<a name='L738'></a><a href='#L738'>738</a>
+<a name='L739'></a><a href='#L739'>739</a>
+<a name='L740'></a><a href='#L740'>740</a>
+<a name='L741'></a><a href='#L741'>741</a>
+<a name='L742'></a><a href='#L742'>742</a>
+<a name='L743'></a><a href='#L743'>743</a>
+<a name='L744'></a><a href='#L744'>744</a>
+<a name='L745'></a><a href='#L745'>745</a>
+<a name='L746'></a><a href='#L746'>746</a>
+<a name='L747'></a><a href='#L747'>747</a>
+<a name='L748'></a><a href='#L748'>748</a>
+<a name='L749'></a><a href='#L749'>749</a>
+<a name='L750'></a><a href='#L750'>750</a>
+<a name='L751'></a><a href='#L751'>751</a>
+<a name='L752'></a><a href='#L752'>752</a>
+<a name='L753'></a><a href='#L753'>753</a>
+<a name='L754'></a><a href='#L754'>754</a>
+<a name='L755'></a><a href='#L755'>755</a>
+<a name='L756'></a><a href='#L756'>756</a>
+<a name='L757'></a><a href='#L757'>757</a>
+<a name='L758'></a><a href='#L758'>758</a>
+<a name='L759'></a><a href='#L759'>759</a>
+<a name='L760'></a><a href='#L760'>760</a>
+<a name='L761'></a><a href='#L761'>761</a>
+<a name='L762'></a><a href='#L762'>762</a>
+<a name='L763'></a><a href='#L763'>763</a>
+<a name='L764'></a><a href='#L764'>764</a>
+<a name='L765'></a><a href='#L765'>765</a>
+<a name='L766'></a><a href='#L766'>766</a>
+<a name='L767'></a><a href='#L767'>767</a>
+<a name='L768'></a><a href='#L768'>768</a>
+<a name='L769'></a><a href='#L769'>769</a>
+<a name='L770'></a><a href='#L770'>770</a>
+<a name='L771'></a><a href='#L771'>771</a>
+<a name='L772'></a><a href='#L772'>772</a>
+<a name='L773'></a><a href='#L773'>773</a>
+<a name='L774'></a><a href='#L774'>774</a>
+<a name='L775'></a><a href='#L775'>775</a>
+<a name='L776'></a><a href='#L776'>776</a>
+<a name='L777'></a><a href='#L777'>777</a>
+<a name='L778'></a><a href='#L778'>778</a>
+<a name='L779'></a><a href='#L779'>779</a>
+<a name='L780'></a><a href='#L780'>780</a>
+<a name='L781'></a><a href='#L781'>781</a>
+<a name='L782'></a><a href='#L782'>782</a>
+<a name='L783'></a><a href='#L783'>783</a>
+<a name='L784'></a><a href='#L784'>784</a>
+<a name='L785'></a><a href='#L785'>785</a>
+<a name='L786'></a><a href='#L786'>786</a>
+<a name='L787'></a><a href='#L787'>787</a>
+<a name='L788'></a><a href='#L788'>788</a>
+<a name='L789'></a><a href='#L789'>789</a>
+<a name='L790'></a><a href='#L790'>790</a>
+<a name='L791'></a><a href='#L791'>791</a>
+<a name='L792'></a><a href='#L792'>792</a>
+<a name='L793'></a><a href='#L793'>793</a>
+<a name='L794'></a><a href='#L794'>794</a>
+<a name='L795'></a><a href='#L795'>795</a>
+<a name='L796'></a><a href='#L796'>796</a>
+<a name='L797'></a><a href='#L797'>797</a>
+<a name='L798'></a><a href='#L798'>798</a>
+<a name='L799'></a><a href='#L799'>799</a>
+<a name='L800'></a><a href='#L800'>800</a>
+<a name='L801'></a><a href='#L801'>801</a>
+<a name='L802'></a><a href='#L802'>802</a>
+<a name='L803'></a><a href='#L803'>803</a>
+<a name='L804'></a><a href='#L804'>804</a>
+<a name='L805'></a><a href='#L805'>805</a>
+<a name='L806'></a><a href='#L806'>806</a>
+<a name='L807'></a><a href='#L807'>807</a>
+<a name='L808'></a><a href='#L808'>808</a>
+<a name='L809'></a><a href='#L809'>809</a>
+<a name='L810'></a><a href='#L810'>810</a>
+<a name='L811'></a><a href='#L811'>811</a>
+<a name='L812'></a><a href='#L812'>812</a>
+<a name='L813'></a><a href='#L813'>813</a>
+<a name='L814'></a><a href='#L814'>814</a>
+<a name='L815'></a><a href='#L815'>815</a>
+<a name='L816'></a><a href='#L816'>816</a>
+<a name='L817'></a><a href='#L817'>817</a>
+<a name='L818'></a><a href='#L818'>818</a>
+<a name='L819'></a><a href='#L819'>819</a>
+<a name='L820'></a><a href='#L820'>820</a>
+<a name='L821'></a><a href='#L821'>821</a>
+<a name='L822'></a><a href='#L822'>822</a>
+<a name='L823'></a><a href='#L823'>823</a>
+<a name='L824'></a><a href='#L824'>824</a>
+<a name='L825'></a><a href='#L825'>825</a>
+<a name='L826'></a><a href='#L826'>826</a>
+<a name='L827'></a><a href='#L827'>827</a>
+<a name='L828'></a><a href='#L828'>828</a>
+<a name='L829'></a><a href='#L829'>829</a>
+<a name='L830'></a><a href='#L830'>830</a>
+<a name='L831'></a><a href='#L831'>831</a>
+<a name='L832'></a><a href='#L832'>832</a>
+<a name='L833'></a><a href='#L833'>833</a>
+<a name='L834'></a><a href='#L834'>834</a>
+<a name='L835'></a><a href='#L835'>835</a>
+<a name='L836'></a><a href='#L836'>836</a>
+<a name='L837'></a><a href='#L837'>837</a>
+<a name='L838'></a><a href='#L838'>838</a>
+<a name='L839'></a><a href='#L839'>839</a>
+<a name='L840'></a><a href='#L840'>840</a>
+<a name='L841'></a><a href='#L841'>841</a>
+<a name='L842'></a><a href='#L842'>842</a>
+<a name='L843'></a><a href='#L843'>843</a>
+<a name='L844'></a><a href='#L844'>844</a>
+<a name='L845'></a><a href='#L845'>845</a>
+<a name='L846'></a><a href='#L846'>846</a>
+<a name='L847'></a><a href='#L847'>847</a>
+<a name='L848'></a><a href='#L848'>848</a>
+<a name='L849'></a><a href='#L849'>849</a>
+<a name='L850'></a><a href='#L850'>850</a>
+<a name='L851'></a><a href='#L851'>851</a>
+<a name='L852'></a><a href='#L852'>852</a>
+<a name='L853'></a><a href='#L853'>853</a>
+<a name='L854'></a><a href='#L854'>854</a>
+<a name='L855'></a><a href='#L855'>855</a>
+<a name='L856'></a><a href='#L856'>856</a>
+<a name='L857'></a><a href='#L857'>857</a>
+<a name='L858'></a><a href='#L858'>858</a>
+<a name='L859'></a><a href='#L859'>859</a>
+<a name='L860'></a><a href='#L860'>860</a>
+<a name='L861'></a><a href='#L861'>861</a>
+<a name='L862'></a><a href='#L862'>862</a>
+<a name='L863'></a><a href='#L863'>863</a>
+<a name='L864'></a><a href='#L864'>864</a>
+<a name='L865'></a><a href='#L865'>865</a>
+<a name='L866'></a><a href='#L866'>866</a>
+<a name='L867'></a><a href='#L867'>867</a>
+<a name='L868'></a><a href='#L868'>868</a>
+<a name='L869'></a><a href='#L869'>869</a>
+<a name='L870'></a><a href='#L870'>870</a>
+<a name='L871'></a><a href='#L871'>871</a>
+<a name='L872'></a><a href='#L872'>872</a>
+<a name='L873'></a><a href='#L873'>873</a>
+<a name='L874'></a><a href='#L874'>874</a>
+<a name='L875'></a><a href='#L875'>875</a>
+<a name='L876'></a><a href='#L876'>876</a>
+<a name='L877'></a><a href='#L877'>877</a>
+<a name='L878'></a><a href='#L878'>878</a>
+<a name='L879'></a><a href='#L879'>879</a>
+<a name='L880'></a><a href='#L880'>880</a>
+<a name='L881'></a><a href='#L881'>881</a>
+<a name='L882'></a><a href='#L882'>882</a>
+<a name='L883'></a><a href='#L883'>883</a>
+<a name='L884'></a><a href='#L884'>884</a>
+<a name='L885'></a><a href='#L885'>885</a>
+<a name='L886'></a><a href='#L886'>886</a>
+<a name='L887'></a><a href='#L887'>887</a>
+<a name='L888'></a><a href='#L888'>888</a>
+<a name='L889'></a><a href='#L889'>889</a>
+<a name='L890'></a><a href='#L890'>890</a>
+<a name='L891'></a><a href='#L891'>891</a>
+<a name='L892'></a><a href='#L892'>892</a>
+<a name='L893'></a><a href='#L893'>893</a>
+<a name='L894'></a><a href='#L894'>894</a>
+<a name='L895'></a><a href='#L895'>895</a>
+<a name='L896'></a><a href='#L896'>896</a>
+<a name='L897'></a><a href='#L897'>897</a>
+<a name='L898'></a><a href='#L898'>898</a>
+<a name='L899'></a><a href='#L899'>899</a>
+<a name='L900'></a><a href='#L900'>900</a>
+<a name='L901'></a><a href='#L901'>901</a>
+<a name='L902'></a><a href='#L902'>902</a>
+<a name='L903'></a><a href='#L903'>903</a>
+<a name='L904'></a><a href='#L904'>904</a>
+<a name='L905'></a><a href='#L905'>905</a>
+<a name='L906'></a><a href='#L906'>906</a>
+<a name='L907'></a><a href='#L907'>907</a>
+<a name='L908'></a><a href='#L908'>908</a>
+<a name='L909'></a><a href='#L909'>909</a>
+<a name='L910'></a><a href='#L910'>910</a>
+<a name='L911'></a><a href='#L911'>911</a>
+<a name='L912'></a><a href='#L912'>912</a>
+<a name='L913'></a><a href='#L913'>913</a>
+<a name='L914'></a><a href='#L914'>914</a>
+<a name='L915'></a><a href='#L915'>915</a>
+<a name='L916'></a><a href='#L916'>916</a>
+<a name='L917'></a><a href='#L917'>917</a>
+<a name='L918'></a><a href='#L918'>918</a>
+<a name='L919'></a><a href='#L919'>919</a>
+<a name='L920'></a><a href='#L920'>920</a>
+<a name='L921'></a><a href='#L921'>921</a>
+<a name='L922'></a><a href='#L922'>922</a>
+<a name='L923'></a><a href='#L923'>923</a>
+<a name='L924'></a><a href='#L924'>924</a>
+<a name='L925'></a><a href='#L925'>925</a>
+<a name='L926'></a><a href='#L926'>926</a>
+<a name='L927'></a><a href='#L927'>927</a>
+<a name='L928'></a><a href='#L928'>928</a>
+<a name='L929'></a><a href='#L929'>929</a>
+<a name='L930'></a><a href='#L930'>930</a>
+<a name='L931'></a><a href='#L931'>931</a>
+<a name='L932'></a><a href='#L932'>932</a>
+<a name='L933'></a><a href='#L933'>933</a>
+<a name='L934'></a><a href='#L934'>934</a>
+<a name='L935'></a><a href='#L935'>935</a>
+<a name='L936'></a><a href='#L936'>936</a>
+<a name='L937'></a><a href='#L937'>937</a>
+<a name='L938'></a><a href='#L938'>938</a>
+<a name='L939'></a><a href='#L939'>939</a>
+<a name='L940'></a><a href='#L940'>940</a>
+<a name='L941'></a><a href='#L941'>941</a>
+<a name='L942'></a><a href='#L942'>942</a>
+<a name='L943'></a><a href='#L943'>943</a>
+<a name='L944'></a><a href='#L944'>944</a>
+<a name='L945'></a><a href='#L945'>945</a>
+<a name='L946'></a><a href='#L946'>946</a>
+<a name='L947'></a><a href='#L947'>947</a>
+<a name='L948'></a><a href='#L948'>948</a>
+<a name='L949'></a><a href='#L949'>949</a>
+<a name='L950'></a><a href='#L950'>950</a>
+<a name='L951'></a><a href='#L951'>951</a>
+<a name='L952'></a><a href='#L952'>952</a>
+<a name='L953'></a><a href='#L953'>953</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { HealthMilestone, User } from '../types';
+<span class="cstat-no" title="statement not covered" >import { HEALTH_MILESTONES, XP_LEVELS, CONTEXTUAL_QUOTES } from './constants';</span>
+<span class="cstat-no" title="statement not covered" >import { getTranslation, Language } from './translations';</span>
+<span class="cstat-no" title="statement not covered" >import { memoize } from './performanceOptimizer';</span>
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >calculateLevel = memoize(<span class="fstat-no" title="function not covered" >(x</span>p: number): { level: number; title: string; progress: number; nextLevelXP: number } =&gt; {</span>
+  let currentLevel = <span class="cstat-no" title="statement not covered" >XP_LEVELS[0];</span>
+  let nextLevel = <span class="cstat-no" title="statement not covered" >XP_LEVELS[1];</span>
+  
+<span class="cstat-no" title="statement not covered" >  for (let i = <span class="cstat-no" title="statement not covered" >0;</span> i &lt; XP_LEVELS.length - 1; i++) {</span>
+<span class="cstat-no" title="statement not covered" >    if (xp &gt;= XP_LEVELS[i].xpRequired &amp;&amp; xp &lt; XP_LEVELS[i + 1].xpRequired) {</span>
+<span class="cstat-no" title="statement not covered" >      currentLevel = XP_LEVELS[i];</span>
+<span class="cstat-no" title="statement not covered" >      nextLevel = XP_LEVELS[i + 1];</span>
+<span class="cstat-no" title="statement not covered" >      break;</span>
+    }
+  }
+  
+<span class="cstat-no" title="statement not covered" >  if (xp &gt;= XP_LEVELS[XP_LEVELS.length - 1].xpRequired) {</span>
+<span class="cstat-no" title="statement not covered" >    currentLevel = XP_LEVELS[XP_LEVELS.length - 1];</span>
+<span class="cstat-no" title="statement not covered" >    nextLevel = XP_LEVELS[XP_LEVELS.length - 1];</span>
+  }
+  
+  const progress = <span class="cstat-no" title="statement not covered" >nextLevel.xpRequired &gt; currentLevel.xpRequired </span>
+    ? (xp - currentLevel.xpRequired) / (nextLevel.xpRequired - currentLevel.xpRequired) 
+    : 1;
+  
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    level: currentLevel.level,
+    title: currentLevel.title,
+    progress: Math.min(progress, 1),
+    nextLevelXP: nextLevel.xpRequired
+  };
+});
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >calculateDaysSinceQuit = memoize(<span class="fstat-no" title="function not covered" >(q</span>uitDate: Date | null | undefined): number =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (!quitDate || isNaN(new Date(quitDate).getTime())) {</span>
+<span class="cstat-no" title="statement not covered" >    return 0;</span>
+  }
+  const now = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const quitDateObj = <span class="cstat-no" title="statement not covered" >new Date(quitDate);</span>
+  
+  // Set both dates to start of day for accurate day counting
+  const nowDate = <span class="cstat-no" title="statement not covered" >new Date(now.getFullYear(), now.getMonth(), now.getDate());</span>
+  const quitDateStart = <span class="cstat-no" title="statement not covered" >new Date(quitDateObj.getFullYear(), quitDateObj.getMonth(), quitDateObj.getDate());</span>
+  
+  const diffTime = <span class="cstat-no" title="statement not covered" >nowDate.getTime() - quitDateStart.getTime();</span>
+  const diffDays = <span class="cstat-no" title="statement not covered" >Math.floor(diffTime / (1000 * 60 * 60 * 24));</span>
+  
+  // Return the number of complete days since quitting
+<span class="cstat-no" title="statement not covered" >  return Math.max(0, diffDays);</span>
+});
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >calculateMoneySaved = memoize(<span class="fstat-no" title="function not covered" >(t</span>otalDays: number, cigarettesPerDay: number, cigarettePrice: number): number =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (totalDays === 0 || cigarettesPerDay === 0 || cigarettePrice === 0) <span class="cstat-no" title="statement not covered" >return 0;</span></span>
+  
+  const cigarettesPerPack = <span class="cstat-no" title="statement not covered" >20;</span> // Assuming 20 cigarettes per pack
+  const packsPerDay = <span class="cstat-no" title="statement not covered" >cigarettesPerDay / cigarettesPerPack;</span>
+  const dailySavings = <span class="cstat-no" title="statement not covered" >packsPerDay * cigarettePrice;</span>
+  
+<span class="cstat-no" title="statement not covered" >  return Math.floor(dailySavings * totalDays);</span>
+});
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >isOnboardingComplete = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: any): boolean =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  return user.onboardingCompleted === true &amp;&amp; </span>
+         user.cigarettesPerDay &gt; 0 &amp;&amp; 
+         user.cigarettePrice &gt; 0;
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >formatCurrency = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>a</span>mount: number): string =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  return new Intl.NumberFormat('id-ID', {</span>
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >formatNumber = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>n</span>umber: number): string =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  return new Intl.NumberFormat('id-ID').format(number);</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >getHealthMilestones = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>q</span>uitDate: Date): HealthMilestone[] =&gt; {</span>
+  const now = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const hoursSinceQuit = <span class="cstat-no" title="statement not covered" >Math.abs(now.getTime() - quitDate.getTime()) / (1000 * 60 * 60);</span>
+  
+<span class="cstat-no" title="statement not covered" >  return HEALTH_MILESTONES.map(<span class="fstat-no" title="function not covered" >milestone </span>=&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+    ...milestone,
+    isReached: hoursSinceQuit &gt;= milestone.hours
+  }));
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >getGreeting = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>n</span>ame: string): string =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  return `Hi, ${name}!`;</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >canCheckInToday = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>l</span>astCheckIn: Date | null): boolean =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (!lastCheckIn) <span class="cstat-no" title="statement not covered" >return true;</span></span>
+  
+  const today = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const lastCheckInDate = <span class="cstat-no" title="statement not covered" >new Date(lastCheckIn);</span>
+  
+<span class="cstat-no" title="statement not covered" >  return today.toDateString() !== lastCheckInDate.toDateString();</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >hasCheckedInToday = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>l</span>astCheckIn: Date | null): boolean =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (!lastCheckIn) <span class="cstat-no" title="statement not covered" >return false;</span></span>
+  
+  const today = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const lastCheckInDate = <span class="cstat-no" title="statement not covered" >new Date(lastCheckIn);</span>
+  
+<span class="cstat-no" title="statement not covered" >  return today.toDateString() === lastCheckInDate.toDateString();</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >calculateStreak = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>l</span>astCheckIn: Date | null): { canContinue: boolean; streakReset: boolean } =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (!lastCheckIn) <span class="cstat-no" title="statement not covered" >return { canContinue: true, streakReset: false };</span></span>
+  
+  const today = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const yesterday = <span class="cstat-no" title="statement not covered" >new Date(today);</span>
+<span class="cstat-no" title="statement not covered" >  yesterday.setDate(yesterday.getDate() - 1);</span>
+  
+  const lastCheckInDate = <span class="cstat-no" title="statement not covered" >new Date(lastCheckIn);</span>
+  const isToday = <span class="cstat-no" title="statement not covered" >today.toDateString() === lastCheckInDate.toDateString();</span>
+  const isYesterday = <span class="cstat-no" title="statement not covered" >yesterday.toDateString() === lastCheckInDate.toDateString();</span>
+  
+<span class="cstat-no" title="statement not covered" >  if (isToday) {</span>
+<span class="cstat-no" title="statement not covered" >    return { canContinue: false, streakReset: false }; </span>// Already checked in today
+  }
+  
+<span class="cstat-no" title="statement not covered" >  if (isYesterday) {</span>
+<span class="cstat-no" title="statement not covered" >    return { canContinue: true, streakReset: false }; </span>// Can continue streak
+  }
+  
+<span class="cstat-no" title="statement not covered" >  return { canContinue: true, streakReset: true }; </span>// Streak should reset
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >getRandomMotivation = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>l</span>anguage: Language = <span class="branch-0 cbranch-no" title="branch not covered" >'id')</span>: string =&gt; {</span>
+  const t = <span class="cstat-no" title="statement not covered" >getTranslation(language);</span>
+  const motivations = <span class="cstat-no" title="statement not covered" >t.quotes.generalDaily;</span>
+  
+<span class="cstat-no" title="statement not covered" >  return motivations[Math.floor(Math.random() * motivations.length)];</span>
+};
+&nbsp;
+// Enhanced language consistency helper - cleans mixed quotes for chosen language
+const cleanQuoteLanguage = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(q</span>uote: string, targetLanguage: Language): string =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (targetLanguage === 'id') {</span>
+    // Convert English words to Indonesian
+    const toIndonesian: { [key: string]: string } = <span class="cstat-no" title="statement not covered" >{</span>
+      // Basic words
+      ' support ': ' dukungan ',
+      ' recovery ': ' pemulihan ',
+      ' withdrawal ': ' sakau ',
+      ' coping ': ' mengatasi ',
+      ' challenge ': ' tantangan ',
+      ' progress ': ' kemajuan ',
+      ' lifestyle ': ' gaya hidup ',
+      ' motivation ': ' motivasi ',
+      ' mental clarity ': ' kejernihan mental ',
+      ' physical ': ' fisik ',
+      ' emotional ': ' emosional ',
+      ' confidence ': ' percaya diri ',
+      ' achievement ': ' pencapaian ',
+      ' exercise ': ' olahraga ',
+      ' experience ': ' pengalaman ',
+      ' energy ': ' energi ',
+      ' health ': ' kesehatan ',
+      
+      // Common phrases that appear mixed
+      'You are ': 'Kamu adalah ',
+      'Your ': 'Kamu ',
+      ' you ': ' kamu ',
+      ' You ': ' Kamu ',
+      'Every day': 'Setiap hari',
+      'every day': 'setiap hari',
+      ' strength ': ' kekuatan ',
+      ' journey ': ' perjalanan ',
+      ' decision ': ' keputusan ',
+      ' choice ': ' pilihan ',
+      ' future ': ' masa depan ',
+      ' commitment ': ' komitmen ',
+    };
+    
+    let cleaned = <span class="cstat-no" title="statement not covered" >quote;</span>
+<span class="cstat-no" title="statement not covered" >    Object.entries(toIndonesian).forEach(<span class="fstat-no" title="function not covered" >([</span>english, indonesian]) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >      cleaned = cleaned.replace(new RegExp(english, 'gi'), indonesian);</span>
+    });
+<span class="cstat-no" title="statement not covered" >    return cleaned;</span>
+  } else {
+    // Convert Indonesian words to English (for English users)
+    const toEnglish: { [key: string]: string } = <span class="cstat-no" title="statement not covered" >{</span>
+      // Common words
+      ' dukungan ': ' support ',
+      ' pemulihan ': ' recovery ',
+      ' sakau ': ' withdrawal ',
+      ' mengatasi ': ' coping with ',
+      ' tantangan ': ' challenge ',
+      ' kemajuan ': ' progress ',
+      ' gaya hidup ': ' lifestyle ',
+      ' motivasi ': ' motivation ',
+      ' kejernihan mental ': ' mental clarity ',
+      ' fisik ': ' physical ',
+      ' emosional ': ' emotional ',
+      ' percaya diri ': ' confidence ',
+      ' pencapaian ': ' achievement ',
+      ' olahraga ': ' exercise ',
+      ' pengalaman ': ' experience ',
+      ' energi ': ' energy ',
+      ' kesehatan ': ' health ',
+      
+      // Pronouns and personal terms
+      ' Anda ': ' you ',
+      ' kamu ': ' you ',
+      'Kamu ': 'You ',
+      'Kamu adalah ': 'You are ',
+      ' tubuhmu ': ' your body ',
+      ' hidupmu ': ' your life ',
+      ' dirimu ': ' yourself ',
+      ' diri sendiri ': ' yourself ',
+      
+      // Common mixed phrases
+      'Setiap hari': 'Every day',
+      'setiap hari': 'every day',
+      ' untuk ': ' to ',
+      ' dengan ': ' with ',
+      ' dalam ': ' in ',
+      ' dari ': ' from ',
+      ' yang ': ' that ',
+      ' akan ': ' will ',
+      ' sudah ': ' already ',
+      ' telah ': ' have ',
+      ' bisa ': ' can ',
+      ' dapat ': ' can ',
+      ' memiliki ': ' have ',
+      ' menjadi ': ' become ',
+      ' lebih ': ' more ',
+      ' setiap ': ' every ',
+      ' hari ': ' day ',
+      ' minggu ': ' week ',
+      ' bulan ': ' month ',
+      ' tahun ': ' year ',
+      ' kekuatan ': ' strength ',
+      ' perjalanan ': ' journey ',
+      ' keputusan ': ' decision ',
+      ' pilihan ': ' choice ',
+      ' masa depan ': ' future ',
+      ' komitmen ': ' commitment ',
+      
+      // Medical terms
+      ' dokter ': ' doctor ',
+      ' pasien ': ' patient ',
+      ' medis ': ' medical ',
+      ' tubuh ': ' body ',
+      ' otak ': ' brain ',
+      ' jantung ': ' heart ',
+      ' paru-paru ': ' lungs ',
+      ' darah ': ' blood ',
+      ' rokok ': ' cigarettes ',
+      ' merokok ': ' smoking ',
+      ' nikotin ': ' nicotine ',
+    };
+    
+    let cleaned = <span class="cstat-no" title="statement not covered" >quote;</span>
+<span class="cstat-no" title="statement not covered" >    Object.entries(toEnglish).forEach(<span class="fstat-no" title="function not covered" >([</span>indonesian, english]) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >      cleaned = cleaned.replace(new RegExp(indonesian, 'gi'), english);</span>
+    });
+<span class="cstat-no" title="statement not covered" >    return cleaned;</span>
+  }
+};
+&nbsp;
+// Smart quote selection with rotation logic to minimize repetition
+const getSmartQuoteSelection = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(q</span>uotes: string[], language: Language, userId?: string, category?: string): string =&gt; {</span>
+  // Simple rotation logic: try to avoid the same quote twice in a row
+  // For production, this could be enhanced with localStorage or user tracking
+  
+<span class="cstat-no" title="statement not covered" >  if (quotes.length &lt;= 1) {</span>
+<span class="cstat-no" title="statement not covered" >    return quotes[0] || '';</span>
+  }
+  
+  // Use time-based selection to ensure some randomness but reduce immediate repetition
+  const timeBasedIndex = <span class="cstat-no" title="statement not covered" >Math.floor(Date.now() / (1000 * 60 * 60 * 6)) % quotes.length;</span> // 6-hour rotation
+  const randomOffset = <span class="cstat-no" title="statement not covered" >Math.floor(Math.random() * 3);</span> // Add some randomness
+  const selectedIndex = <span class="cstat-no" title="statement not covered" >(timeBasedIndex + randomOffset) % quotes.length;</span>
+  
+<span class="cstat-no" title="statement not covered" >  return quotes[selectedIndex];</span>
+};
+&nbsp;
+// Enhanced contextual motivation with smart rotation for premium users
+export const <span class="cstat-no" title="statement not covered" >getContextualMotivation = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User, language: Language = <span class="branch-0 cbranch-no" title="branch not covered" >'id')</span>: string =&gt; {</span>
+  // TEMPORARY FIX: Use clean Indonesian quotes for Indonesian language to avoid mixed content
+<span class="cstat-no" title="statement not covered" >  if (language === 'id') {</span>
+    const cleanIndonesianQuotes = <span class="cstat-no" title="statement not covered" >[</span>
+      `Luar biasa sekali ${user.displayName || 'Sobat'}! Pencapaian ${user.streak || 0} hari berturut-turut tanpa rokok ini adalah bukti nyata kekuatan mental dan tekad baja yang Anda miliki. Sistem peredaran darah sudah mengalami perbaikan signifikan, fungsi paru-paru meningkat drastis dengan kapasitas oksigen yang optimal, dan setiap detik adalah kemenangan besar untuk kesehatan jangka panjang Anda. Terus pertahankan momentum luar biasa ini karena tubuh Anda sedang mengalami transformasi menakjubkan dari dalam.`,
+      `Hebat sekali ${user.displayName || 'Sobat'}! Perjalanan panjang ${user.totalDays || 0} hari tanpa menyentuh rokok menunjukkan tekad yang benar-benar mengagumkan dan menginspirasi orang-orang di sekitar Anda. Tubuh Anda sedang dalam proses penyembuhan dan regenerasi yang benar-benar menakjubkan, dimana setiap sel bekerja keras memulihkan kerusakan bertahun-tahun dan membangun fondasi kesehatan yang lebih kuat. Anda telah membuktikan bahwa komitmen terhadap kesehatan adalah investasi terbaik dalam hidup.`,
+      `Bangga sekali melihat pencapaian luar biasa Anda ${user.displayName || 'Sobat'}! Setiap hari dari ${user.streak || 0} hari ini tanpa rokok adalah investasi kesehatan yang sangat berharga dan akan memberikan dampak positif untuk puluhan tahun ke depan. Nafas semakin lega dan dalam, energi bertambah pesat setiap harinya, semangat hidup semakin menguat dengan vitalitas yang mengalir bebas, dan yang terpenting adalah kepercayaan diri yang meningkat karena Anda telah membuktikan mampu mengalahkan kecanduan.`,
+      `Perjalanan konsisten ${user.streak || 0} hari ini adalah bukti nyata kekuatan mental yang luar biasa dan karakter tangguh yang dimiliki ${user.displayName || 'Sobat'}. Terus pertahankan semangat dan momentum positif ini dengan penuh keyakinan karena masa depan yang jauh lebih sehat, energik, dan penuh vitalitas sudah benar-benar di depan mata menanti Anda. Setiap hari yang berlalu membawa Anda semakin dekat dengan versi terbaik dari diri Anda sendiri.`,
+      `Luar biasa dan membanggakan ${user.displayName || 'Sobat'}! Anda telah membuktikan dengan tindakan nyata bahwa komitmen yang kuat, tekad yang bulat, dan disiplin tinggi dapat benar-benar mengalahkan kebiasaan buruk yang sudah mengakar bertahun-tahun. Setiap hari dari ${user.totalDays || 0} hari ini adalah kemenangan personal yang patut dirayakan dan dijadikan motivasi untuk terus melangkah maju. Anda adalah inspirasi hidup untuk semua orang yang berjuang melawan kecanduan.`,
+      `Fantastis dan menginspirasi ${user.displayName || 'Sobat'}! Streak cemerlang ${user.streak || 0} hari berturut-turut menunjukkan tingkat disiplin dan komitmen yang benar-benar luar biasa dalam perjalanan transformasi hidup ini. Paru-paru Anda semakin sehat dengan kapasitas yang terus meningkat, stamina fisik bertambah secara konsisten, sirkulasi oksigen optimal ke seluruh tubuh, dan hidup terasa jauh lebih berenergi dengan semangat yang menggebu-gebu setiap harinya.`,
+      `Membanggakan sekali ${user.displayName || 'Sobat'}! Anda sudah ${user.totalDays || 0} hari membuktikan dengan tindakan konkret bahwa Anda jauh lebih kuat dari kecanduan dan mampu mengendalikan hidup sepenuhnya. Setiap napas terasa semakin segar dan dalam, setiap hari membawa energi baru yang berlimpah, dan setiap momen adalah bukti nyata transformasi positif yang sedang terjadi dalam diri Anda. Tubuh berterima kasih atas keputusan bijak yang telah Anda ambil.`,
+      `Inspiratif dan mengagumkan ${user.displayName || 'Sobat'}! Pencapaian konsisten ${user.streak || 0} hari ini adalah cerminan sejati dari karakter yang kuat, mental yang tangguh, dan komitmen yang tidak tergoyahkan terhadap kesehatan optimal. Tubuh Anda mengucapkan terima kasih setiap detik, keluarga merasa bangga dengan transformasi positif yang Anda jalani, dan masa depan terlihat semakin cerah dengan segala kemungkinan indah yang menanti di depan.`,
+      `Mengagumkan dan memukau ${user.displayName || 'Sobat'}! Perjalanan panjang ${user.totalDays || 0} hari tanpa rokok membuktikan secara nyata bahwa Anda memiliki tekad baja yang tidak dapat digoyahkan oleh apapun. Kesehatan terus membaik dengan pesat setiap harinya, semangat hidup semakin membara dengan energi positif yang mengalir deras, dan vitalitas alami kembali mengalir bebas dalam setiap aktivitas yang Anda lakukan.`,
+      `Spektakuler dan luar biasa ${user.displayName || 'Sobat'}! Setiap hari dari ${user.streak || 0} hari berturut-turut ini adalah bukti kemenangan monumental atas kecanduan dan langkah besar menuju kehidupan yang optimal. Sirkulasi darah bekerja dengan efisiensi maksimal, energi mengalir bebas ke seluruh tubuh, vitalitas kembali seperti masa muda dulu, dan setiap aktivitas terasa lebih ringan dan menyenangkan.`,
+      `Menakjubkan dan cemerlang ${user.displayName || 'Sobat'}! Konsistensi yang terjaga selama ${user.streak || 0} hari menunjukkan mental juara sejati yang tidak pernah menyerah dalam menghadapi tantangan. Indra penciuman dan perasa kembali tajam seperti sebelumnya, kualitas tidur meningkat drastis dengan fase istirahat yang lebih dalam, mood menjadi jauh lebih stabil dan positif, dan setiap hari dimulai dengan semangat yang menggebu-gebu.`,
+      `Cemerlang dan membanggakan ${user.displayName || 'Sobat'}! Dedikasi konsisten selama ${user.totalDays || 0} hari ini benar-benar patut diacungi jempol dan dijadikan contoh inspiratif untuk orang lain. Sistem kekebalan tubuh menguat secara signifikan melawan berbagai penyakit, tingkat stres berkurang drastis dengan kemampuan manajemen emosi yang lebih baik, dan kepercayaan diri meningkat pesat karena pencapaian luar biasa yang telah diraih.`,
+      `Fenomenal dan inspiratif ${user.displayName || 'Sobat'}! Milestone emas ${user.streak || 0} hari adalah prestasi yang benar-benar membanggakan dan membuktikan kekuatan karakter yang luar biasa. Kapasitas paru-paru meningkat dengan signifikan untuk aktivitas fisik yang lebih intens, daya tahan tubuh bertambah secara konsisten setiap harinya, dan hidup terasa jauh lebih bermakna dengan tujuan yang jelas dan semangat yang tidak pernah padam.`,
+      `Istimewa dan mengagumkan ${user.displayName || 'Sobat'}! Komitmen yang terjaga selama ${user.totalDays || 0} hari menunjukkan karakter yang benar-benar tangguh dan tidak mudah menyerah dalam menghadapi rintangan. Napas menjadi lebih panjang dan dalam dengan oksigen yang mengalir optimal, kulit tampak lebih sehat dan bercahaya alami, dan aura positif terpancar kuat dari dalam diri Anda yang menginspirasi orang-orang di sekitar.`,
+      `Brilian dan spektakuler ${user.displayName || 'Sobat'}! Pencapaian konsisten ${user.streak || 0} hari adalah bukti nyata evolusi diri yang luar biasa dan transformasi menuju versi terbaik dari diri Anda. Metabolisme tubuh bekerja dengan efisiensi yang optimal, kemampuan fokus dan konsentrasi meningkat drastis dalam setiap aktivitas, dan tingkat produktivitas mencapai level baru yang sebelumnya tidak pernah Anda bayangkan.`,
+      `Luar biasa dan menginspirasi ${user.displayName || 'Sobat'}! Perjalanan transformatif ${user.totalDays || 0} hari ini benar-benar menginspirasi banyak orang di sekitar Anda untuk memulai perubahan positif dalam hidup mereka. Fungsi jantung bekerja dengan optimal tanpa beban tambahan, tekanan darah stabil dalam rentang normal yang sehat, dan vitalitas alami kembali mengalir bebas dalam setiap gerakan dan aktivitas yang Anda lakukan sehari-hari.`,
+      `Menggembirakan dan memukau ${user.displayName || 'Sobat'}! Konsistensi yang terjaga selama ${user.streak || 0} hari membuktikan secara nyata kekuatan dari dalam yang tidak terbatas dan kemampuan luar biasa untuk berubah. Oksigen mengalir dengan sempurna ke seluruh sistem tubuh, stamina fisik meningkat secara konsisten setiap harinya, dan semangat hidup membara dengan energi positif yang tidak pernah habis.`,
+      `Memukau dan fenomenal ${user.displayName || 'Sobat'}! Dedikasi yang konsisten selama ${user.totalDays || 0} hari adalah investasi kesehatan terbaik untuk masa depan yang gemilang dan penuh dengan kemungkinan indah. Sistem pencernaan bekerja dengan efisiensi yang optimal, mood tetap stabil sepanjang hari dengan emosi yang terkendali, dan energi berlimpah mengalir konsisten dari pagi hingga malam hari.`,
+      `Menawan dan inspiratif ${user.displayName || 'Sobat'}! Tekad yang tidak tergoyahkan selama ${user.streak || 0} hari menunjukkan jiwa pemenang sejati yang tidak pernah menyerah dalam mencapai tujuan. Kualitas tidur meningkat dengan fase istirahat yang lebih dalam dan pemulihan optimal, kemampuan konsentrasi menjadi sangat tajam dalam setiap tugas, dan kreativitas mencapai puncaknya dengan ide-ide segar yang mengalir bebas.`,
+      `Memesona dan luar biasa ${user.displayName || 'Sobat'}! Perjalanan transformatif ${user.totalDays || 0} hari adalah cerminan sempurna dari kedewasaan mental dan kematangan emosional yang luar biasa. Daya ingat membaik secara signifikan dengan kemampuan mengingat yang lebih tajam, refleks tubuh menjadi lebih cepat dan responsif, dan kemampuan berpikir jernih mencapai level optimal yang sebelumnya tidak pernah dirasakan.`,
+      `Mengagumkan dan heroik ${user.displayName || 'Sobat'}! Milestone emas ${user.streak || 0} hari membuktikan bahwa Anda memiliki kekuatan super dalam mengendalikan hidup dan mencapai tujuan yang ditetapkan. Sistem detoksifikasi natural bekerja dengan efisiensi optimal membersihkan racun bertahun-tahun, regenerasi sel berlangsung dengan sempurna membangun fondasi kesehatan baru, dan harapan hidup meningkat signifikan dengan kualitas yang jauh lebih baik.`,
+      `Fenomenal dan cemerlang ${user.displayName || 'Sobat'}! Konsistensi yang terjaga selama ${user.totalDays || 0} hari menunjukkan level disiplin yang sangat tinggi dan komitmen yang tidak tergoyahkan terhadap kesehatan optimal. Keseimbangan hormon alami kembali normal dengan fungsi yang optimal, tingkat stres terkendali dengan baik melalui mekanisme coping yang sehat, dan kebahagiaan alami mengalir bebas dalam diri tanpa ketergantungan pada zat kimia apapun.`,
+      `Spektakuler dan membanggakan ${user.displayName || 'Sobat'}! Pencapaian monumental ${user.streak || 0} hari adalah bukti nyata transformasi total yang luar biasa dari dalam maupun luar. Fleksibilitas tubuh meningkat dengan rentang gerak yang lebih luas, daya tahan fisik mencapai level maksimal untuk berbagai aktivitas, dan aura kesehatan terpancar kuat dari setiap gerakan yang Anda lakukan sehari-hari.`,
+      `Brilian dan inspiratif ${user.displayName || 'Sobat'}! Perjalanan evolusi ${user.totalDays || 0} hari menunjukkan perkembangan yang benar-benar sempurna menuju versi terbaik dari diri Anda sendiri. Sistem imunitas menguat secara dramatis melawan berbagai ancaman penyakit, proses regenerasi berlangsung dengan optimal membangun sel-sel sehat baru, dan setiap hari adalah perayaan kesehatan baru yang patut disyukuri.`,
+      `Membanggakan dan heroik ${user.displayName || 'Sobat'}! Dedikasi yang tidak tergoyahkan selama ${user.streak || 0} hari adalah inspirasi hidup bagi semua orang yang berjuang melawan berbagai tantangan dalam hidup. Vitalitas mengalir bebas tanpa hambatan ke seluruh tubuh, energi berlimpah tersedia sepanjang hari untuk berbagai aktivitas, dan kehidupan terasa jauh lebih berwarna, bermakna, dan penuh dengan kemungkinan indah yang menanti di masa depan.`,
+      `Mengagumkan dan revolusioner ${user.displayName || 'Sobat'}! Transformasi ${user.totalDays || 0} hari ini adalah revolusi personal yang benar-benar mengubah arah hidup menuju yang lebih baik dan bermakna. Sistem kardiovaskular bekerja dengan efisiensi maksimal tanpa beban tambahan, aliran darah optimal ke seluruh organ vital, dan setiap detak jantung adalah simbol kehidupan yang sehat dan penuh semangat.`,
+      `Fantastis dan monumental ${user.displayName || 'Sobat'}! Pencapaian ${user.streak || 0} hari berturut-turut adalah bukti kekuatan willpower yang luar biasa dan kemampuan untuk mengubah hidup secara total. Kapasitas mental meningkat dengan kemampuan problem solving yang lebih baik, resiliensi emosional menguat dalam menghadapi tantangan, dan kepercayaan diri mencapai level baru yang memungkinkan pencapaian impian-impian besar.`,
+      `Menginspirasi dan luar biasa ${user.displayName || 'Sobat'}! Konsistensi ${user.totalDays || 0} hari menunjukkan bahwa Anda telah berhasil membangun habit positif yang akan bertahan seumur hidup. Kualitas hidup meningkat drastis dalam segala aspek, hubungan sosial menjadi lebih harmonis dan bermakna, dan setiap interaksi dipenuhi dengan energi positif yang menular kepada orang-orang di sekitar Anda.`,
+      `Cemerlang dan transformatif ${user.displayName || 'Sobat'}! Milestone ${user.streak || 0} hari adalah pencapaian yang membuktikan bahwa tidak ada yang tidak mungkin ketika ada komitmen dan tekad yang kuat. Fungsi kognitif optimal dengan kemampuan belajar yang meningkat, memori jangka panjang menguat dengan recall yang lebih cepat, dan kreativitas mengalir bebas menghasilkan ide-ide brillian yang sebelumnya tersembunyi.`,
+      `Spektakuler dan revolusioner ${user.displayName || 'Sobat'}! Perjalanan ${user.totalDays || 0} hari adalah bukti nyata bahwa manusia memiliki kemampuan luar biasa untuk berubah dan berkembang. Sistem endokrin bekerja dengan keseimbangan sempurna, produksi hormon kebahagiaan alami meningkat, dan setiap hari dimulai dengan optimisme tinggi dan semangat yang tidak pernah padam.`,
+      `Mengagumkan dan heroik ${user.displayName || 'Sobat'}! Dedikasi ${user.streak || 0} hari menunjukkan karakter pahlawan sejati yang berjuang untuk kehidupan yang lebih baik. Sistem respiratori bekerja dengan efisiensi maksimal, pertukaran oksigen optimal di tingkat sel, dan setiap napas adalah anugerah kehidupan yang disyukuri dengan penuh kesadaran.`,
+      `Fenomenal dan inspiratif ${user.displayName || 'Sobat'}! Transformasi ${user.totalDays || 0} hari adalah masterpiece kehidupan yang akan dikenang selamanya sebagai titik balik menuju masa depan gemilang. Regenerasi kulit berlangsung optimal dengan penampilan yang lebih segar dan bercahaya, elastisitas jaringan meningkat, dan aura juventude terpancar dari dalam diri Anda.`,
+      `Memukau dan monumental ${user.displayName || 'Sobat'}! Pencapaian ${user.streak || 0} hari adalah bukti nyata evolusi consciousness dan peningkatan kualitas hidup yang luar biasa. Kemampuan adaptasi meningkat dalam menghadapi berbagai situasi, emotional intelligence berkembang pesat, dan setiap keputusan diambil dengan wisdom yang lebih dalam.`,
+      `Brilian dan transformatif ${user.displayName || 'Sobat'}! Konsistensi ${user.totalDays || 0} hari menunjukkan masterpiece self-discipline yang akan menjadi fondasi untuk pencapaian-pencapaian besar di masa depan. Sistem limfatik bekerja optimal membersihkan toksin, detoksifikasi natural berlangsung sempurna, dan tubuh kembali ke state optimal yang seharusnya.`,
+      `Luar biasa dan revolusioner ${user.displayName || 'Sobat'}! Milestone ${user.streak || 0} hari adalah testament kekuatan human spirit yang tidak terbatas dan kemampuan untuk mentransformasi hidup secara total. Neuroplastisitas brain bekerja optimal menciptakan neural pathways baru, kemampuan adaptasi meningkat, dan setiap hari membawa growth dan development yang signifikan.`,
+      `Menawan dan spektakuler ${user.displayName || 'Sobat'}! Perjalanan ${user.totalDays || 0} hari adalah epic journey yang akan diingat sebagai salah satu achievement terbesar dalam hidup. Sistem pencernaan optimal dengan nutrient absorption yang maksimal, metabolisme energy efficient, dan setiap meal dinikmati dengan appreciation yang lebih dalam.`,
+      `Menggembirakan dan monumental ${user.displayName || 'Sobat'}! Dedikasi ${user.streak || 0} hari membuktikan bahwa Anda memiliki inner strength yang luar biasa dan unlimited potential untuk pencapaian yang lebih besar. Kualitas sleep meningkat drastis dengan REM cycle yang optimal, recovery muscular lebih cepat, dan setiap morning dimulai dengan energy yang abundant.`,
+      `Inspiratif dan cemerlang ${user.displayName || 'Sobat'}! Transformasi ${user.totalDays || 0} hari adalah living proof bahwa commitment dan perseverance dapat menghasilkan miracle dalam kehidupan nyata. Social confidence meningkat dalam setiap interaksi, communication skills berkembang pesat, dan setiap relationship menjadi lebih meaningful dan authentic.`,
+      `Fantastis dan heroik ${user.displayName || 'Sobat'}! Pencapaian ${user.streak || 0} hari adalah heroic journey yang membuktikan kekuatan karakter dan integrity yang luar biasa. Sistem immune boost significantly dengan resistance terhadap penyakit, healing capacity meningkat, dan setiap cell dalam tubuh bekerja dengan harmony yang sempurna.`,
+      `Membanggakan dan transformatif ${user.displayName || 'Sobat'}! Konsistensi ${user.totalDays || 0} hari menunjukkan evolution consciousness yang profound dan life transformation yang permanent. Financial impact positif dengan saving yang significant, resource allocation lebih optimal, dan setiap rupiah diinvestasikan untuk hal-hal yang truly meaningful.`,
+      `Spektakuler dan menginspirasi ${user.displayName || 'Sobat'}! Milestone ${user.streak || 0} hari adalah testament willpower yang extraordinary dan demonstration self-mastery yang complete. Physical appearance improvement dengan skin tone yang lebih sehat, muscle definition yang lebih baik, dan overall presence yang lebih confident dan attractive.`,
+      `Mengagumkan dan revolusioner ${user.displayName || 'Sobat'}! Perjalanan ${user.totalDays || 0} hari adalah revolutionary transformation yang mengubah entire life trajectory menuju destination yang lebih bright dan promising. Spiritual growth acceleration dengan deeper connection ke purpose, meaning, dan values yang truly matter dalam kehidupan.`,
+      `Fenomenal dan luar biasa ${user.displayName || 'Sobat'}! Dedikasi ${user.streak || 0} hari membuktikan bahwa Anda adalah architect dari destiny sendiri dan capable untuk menciptakan life yang extraordinary. Environmental awareness meningkat dengan appreciation yang lebih dalam terhadap nature, fresh air, dan beauty yang ada di sekitar kita setiap hari.`,
+      `Cemerlang dan monumental ${user.displayName || 'Sobat'}! Transformasi ${user.totalDays || 0} hari adalah magnum opus kehidupan yang akan remembered forever sebagai turning point menuju greatness. Legacy impact yang positif untuk keluarga dan community, inspiring others untuk membuat positive changes, dan creating ripple effect yang beneficial untuk many people.`,
+      `Brilian dan inspiratif ${user.displayName || 'Sobat'}! Pencapaian ${user.streak || 0} hari adalah brilliant demonstration bahwa human potential adalah unlimited dan setiap goal dapat dicapai dengan persistence. Future outlook yang optimistic dengan confidence untuk tackle any challenges, achieve bigger dreams, dan create impact yang meaningful dalam dunia ini.`,
+      `Memukau dan heroik ${user.displayName || 'Sobat'}! Konsistensi ${user.totalDays || 0} hari menunjukkan heroic character yang worthy of admiration dan respect dari semua orang. Celebration moment ini dengan gratitude yang deep, appreciation untuk journey yang telah dilalui, dan excitement untuk adventures yang menanti di future yang bright dan promising.`,
+      `Luar biasa dan transformatif ${user.displayName || 'Sobat'}! Milestone ${user.streak || 0} hari adalah culmination dari effort, sacrifice, dan commitment yang luar biasa menuju life yang optimal. Integration semua positive changes dalam daily routine, consolidation new habits yang sustainable, dan preparation untuk next level achievements yang even more spectacular dan meaningful.`,
+      `Menginspirasi dan spektakuler ${user.displayName || 'Sobat'}! Perjalanan ${user.totalDays || 0} hari adalah inspiring story yang will motivate countless others untuk pursue their own transformation journey. Mastery over addiction, control atas life choices, dan freedom untuk create future yang sesuai dengan highest aspirations dan deepest values yang dimiliki dalam heart.`,
+      `Mengagumkan dan monumentalm ${user.displayName || 'Sobat'}! Dedikasi ${user.streak || 0} hari membuktikan bahwa Anda telah achieved something truly remarkable yang akan remembered sebagai one of life's greatest victories. Complete lifestyle transformation dengan new identity sebagai healthy, strong, dan inspiring individual yang capable untuk anything dan ready untuk embrace semua opportunities yang akan datang di masa depan yang gemilang.`
+    ];
+    
+    // Simple rotation based on user ID and current day to ensure variety
+    const today = <span class="cstat-no" title="statement not covered" >new Date().getDate();</span>
+    const userHash = <span class="cstat-no" title="statement not covered" >user.id ? user.id.length : 0;</span>
+    const index = <span class="cstat-no" title="statement not covered" >(today + userHash) % cleanIndonesianQuotes.length;</span>
+<span class="cstat-no" title="statement not covered" >    return cleanIndonesianQuotes[index];</span>
+  }
+  
+  // Create comprehensive English quotes to match Indonesian quality
+<span class="cstat-no" title="statement not covered" >  if (language === 'en') {</span>
+    const cleanEnglishQuotes = <span class="cstat-no" title="statement not covered" >[</span>
+      `Outstanding work ${user.displayName || 'Champion'}! Your incredible achievement of ${user.streak || 0} consecutive smoke-free days is solid proof of the extraordinary mental strength and unwavering determination you possess deep within. Your cardiovascular system has already undergone significant improvements with enhanced blood circulation, your lung function has increased dramatically with optimal oxygen capacity throughout your body, and every single moment represents a major victory for your long-term health and wellbeing. Keep maintaining this amazing momentum because your body is currently experiencing the most remarkable internal transformation and healing process.`,
+      `Absolutely fantastic ${user.displayName || 'Champion'}! Your incredible journey of ${user.totalDays || 0} days without touching a single cigarette demonstrates truly amazing determination that inspires everyone around you to pursue their own positive life changes. Your body is currently undergoing the most remarkable healing and regeneration process imaginable, where every single cell is working tirelessly to repair years of accumulated damage and build a much stronger foundation for optimal health. You have definitively proven that commitment to health is the absolute best investment anyone can make in their entire lifetime.`,
+      `Incredibly proud to witness your outstanding achievement ${user.displayName || 'Champion'}! Every single day of these ${user.streak || 0} smoke-free days represents an invaluable health investment that will provide tremendous positive benefits for many decades to come in your future. Your breathing has become progressively deeper and more effortless, your energy levels are increasing rapidly with each passing day, your life spirit is growing stronger with unlimited vitality flowing freely throughout your entire being, and most importantly your self-confidence has skyrocketed because you have definitively proven your ability to overcome any addiction completely.`,
+      `Your consistent journey of ${user.streak || 0} days represents undeniable proof of extraordinary mental strength and the incredibly resilient character that defines who you truly are ${user.displayName || 'Champion'}. Continue maintaining this positive spirit and amazing momentum with complete confidence because a much healthier, more energetic, and vitality-filled future is absolutely waiting for you just ahead. Every single day that passes brings you significantly closer to becoming the absolute best version of yourself that you were always meant to be in this lifetime.`,
+      `Absolutely remarkable and truly inspiring ${user.displayName || 'Champion'}! You have proven through concrete actions that powerful commitment, unwavering determination, and exceptional discipline can completely overcome deeply rooted bad habits that may have persisted for many years. Every single day of these ${user.totalDays || 0} days represents a personal victory that deserves to be celebrated enthusiastically and used as powerful motivation to continue moving forward with confidence. You are a living inspiration for everyone who is struggling against various forms of addiction in their lives.`,
+      `Fantastic and truly motivating ${user.displayName || 'Champion'}! Your brilliant streak of ${user.streak || 0} consecutive days demonstrates an absolutely extraordinary level of discipline and unwavering commitment throughout this life-transforming journey you have undertaken. Your lungs are becoming increasingly healthier with continuously expanding capacity, your physical stamina is growing more consistent every single day, optimal oxygen circulation flows perfectly throughout your entire body, and life feels infinitely more energetic with an unstoppable enthusiasm that burns brightly within you every single day.`,
+      `Absolutely commendable ${user.displayName || 'Champion'}! You have spent ${user.totalDays || 0} days proving through concrete actions that you are infinitely stronger than any addiction and completely capable of controlling your entire life journey. Every single breath feels increasingly fresh and deeper than before, every day brings abundant new energy that flows freely, and every moment serves as living proof of the positive transformation currently taking place within your entire being. Your body expresses profound gratitude for the wise decision you have courageously made.`,
+      `Inspirational and truly amazing ${user.displayName || 'Champion'}! Your consistent achievement of ${user.streak || 0} days represents a genuine reflection of your strong character, resilient mentality, and unshakeable commitment toward achieving optimal health in every aspect of life. Your body expresses heartfelt gratitude every single moment, your family feels tremendous pride in the positive transformation you are experiencing, and your future appears increasingly bright with countless beautiful possibilities waiting to unfold before you.`,
+      `Amazing and absolutely captivating ${user.displayName || 'Champion'}! Your extended journey of ${user.totalDays || 0} days without smoking provides concrete evidence that you possess steel-like determination that cannot be shaken by anything whatsoever. Your health continues improving rapidly with each passing day, your life spirit burns increasingly bright with positive energy flowing like a powerful river, and natural vitality flows freely once again through every single activity you choose to pursue throughout your daily routine.`,
+      `Spectacular and absolutely extraordinary ${user.displayName || 'Champion'}! Every single day of these ${user.streak || 0} consecutive days represents monumental victory over addiction and giant steps toward achieving the most optimal life possible. Your blood circulation operates with maximum efficiency, energy flows freely throughout your entire body, vitality returns like the golden days of youth, and every activity feels significantly lighter and infinitely more enjoyable than ever before.`,
+      `Amazing and absolutely brilliant ${user.displayName || 'Champion'}! The consistency you have maintained throughout ${user.streak || 0} days demonstrates the true champion mentality that never surrenders when facing any challenge life presents. Your senses of smell and taste have returned to sharp clarity like before, sleep quality has improved drastically with much deeper restorative phases, your mood has become significantly more stable and positive, and every day begins with an unstoppable enthusiasm that burns brightly within your spirit.`,
+      `Brilliant and absolutely commendable ${user.displayName || 'Champion'}! Your consistent dedication throughout ${user.totalDays || 0} days truly deserves enthusiastic applause and serves as an inspirational example for others to follow in their own journeys. Your immune system has strengthened significantly against various diseases, stress levels have decreased drastically with much better emotional management capabilities, and self-confidence has increased rapidly due to the extraordinary achievements you have successfully accomplished.`,
+      `Phenomenal and absolutely inspirational ${user.displayName || 'Champion'}! Your golden milestone of ${user.streak || 0} days represents a truly commendable achievement that proves the extraordinary strength of character you possess within. Your lung capacity has increased significantly for much more intense physical activities, your body's endurance grows consistently with each passing day, and life feels infinitely more meaningful with crystal clear purpose and an unextinguishable spirit that burns eternally bright.`,
+      `Special and absolutely amazing ${user.displayName || 'Champion'}! Your unwavering commitment maintained throughout ${user.totalDays || 0} days demonstrates truly resilient character that never easily surrenders when facing various obstacles in life. Your breathing becomes longer and deeper with optimal oxygen flow, your skin appears significantly healthier with a natural radiant glow, and positive aura radiates powerfully from within your being, inspiring everyone around you to pursue their own positive transformations.`,
+      `Brilliant and absolutely spectacular ${user.displayName || 'Champion'}! Your consistent achievement of ${user.streak || 0} days represents concrete evidence of extraordinary self-evolution and transformation toward becoming the absolute best version of yourself possible. Your body's metabolism operates with optimal efficiency, your ability to focus and concentrate has increased drastically in every activity, and productivity levels have reached completely new heights that you never previously imagined were possible to achieve.`,
+      `Extraordinary and absolutely inspiring ${user.displayName || 'Champion'}! Your transformative journey of ${user.totalDays || 0} days genuinely inspires countless people around you to begin positive changes in their own lives and pursue their personal growth goals. Your heart function operates optimally without any additional burden, blood pressure remains stable within healthy normal ranges, and natural vitality flows freely once again through every movement and activity you perform throughout your daily routine.`,
+      `Delightful and absolutely captivating ${user.displayName || 'Champion'}! The consistency you have maintained throughout ${user.streak || 0} days provides concrete evidence of unlimited inner strength and extraordinary ability to create positive change in your life. Oxygen flows perfectly throughout your entire body system, physical stamina increases consistently every single day, and life spirit burns bright with positive energy that never diminishes or fades away.`,
+      `Captivating and absolutely phenomenal ${user.displayName || 'Champion'}! Your consistent dedication throughout ${user.totalDays || 0} days represents the absolute best health investment for a brilliant future filled with beautiful possibilities and unlimited potential. Your digestive system operates with optimal efficiency, mood remains stable throughout the day with well-controlled emotions, and abundant energy flows consistently from early morning until late evening.`,
+      `Charming and absolutely inspirational ${user.displayName || 'Champion'}! Your unwavering determination throughout ${user.streak || 0} days demonstrates the spirit of a true winner who never surrenders in pursuing their most important goals. Sleep quality has improved with much deeper restorative phases and optimal recovery, concentration ability has become incredibly sharp in every task, and creativity has reached its peak with fresh ideas flowing freely and abundantly.`,
+      `Enchanting and absolutely extraordinary ${user.displayName || 'Champion'}! Your transformative journey of ${user.totalDays || 0} days represents a perfect reflection of mental maturity and extraordinary emotional intelligence that defines your character. Memory capacity has improved significantly with much sharper recall abilities, body reflexes have become faster and more responsive, and clear thinking ability has reached optimal levels never before experienced in your lifetime.`,
+      `Amazing and absolutely heroic ${user.displayName || 'Champion'}! Your golden milestone of ${user.streak || 0} days proves that you possess supernatural strength in controlling your life and achieving every goal you set for yourself. Your natural detoxification system operates with optimal efficiency to cleanse years of accumulated toxins, cellular regeneration proceeds perfectly to build completely new health foundations, and life expectancy has increased significantly with infinitely better quality of living.`,
+      `Phenomenal and absolutely brilliant ${user.displayName || 'Champion'}! The consistency you have maintained throughout ${user.totalDays || 0} days demonstrates an exceptionally high level of discipline and unwavering commitment toward achieving optimal health in every aspect. Natural hormonal balance has returned to normal with optimal function, stress levels are well-controlled through healthy coping mechanisms, and natural happiness flows freely within your being without dependence on any chemical substances whatsoever.`,
+      `Spectacular and absolutely commendable ${user.displayName || 'Champion'}! Your monumental achievement of ${user.streak || 0} days represents concrete evidence of total transformation that is absolutely extraordinary from both internal and external perspectives. Body flexibility has increased with much wider range of motion, physical endurance has reached maximum levels for various activities, and healthy aura radiates powerfully from every movement you make throughout your daily routine.`,
+      `Brilliant and absolutely inspirational ${user.displayName || 'Champion'}! Your evolutionary journey of ${user.totalDays || 0} days demonstrates absolutely perfect development toward becoming the best version of yourself that you were always meant to be. Your immune system has strengthened dramatically against various disease threats, regeneration processes proceed optimally to build completely new healthy cells, and every day represents a celebration of new health that deserves grateful appreciation.`,
+      `Commendable and absolutely heroic ${user.displayName || 'Champion'}! Your unwavering dedication throughout ${user.streak || 0} days serves as living inspiration for everyone who struggles against various challenges in their lives and seeks positive transformation. Vitality flows freely without any hindrance throughout your entire body, abundant energy remains available throughout the day for various activities, and life feels infinitely more colorful, meaningful, and filled with beautiful possibilities waiting in the future.`,
+      `Amazing and absolutely revolutionary ${user.displayName || 'Champion'}! Your transformation of ${user.totalDays || 0} days represents a personal revolution that completely changes your life direction toward something much better and more meaningful than ever before. Your cardiovascular system operates with maximum efficiency without any additional burden, optimal blood flow reaches all vital organs, and every heartbeat symbolizes healthy life filled with unstoppable enthusiasm and unlimited potential.`,
+      `Fantastic and absolutely monumental ${user.displayName || 'Champion'}! Your achievement of ${user.streak || 0} consecutive days represents concrete evidence of extraordinary willpower and complete ability to transform your entire life from the ground up. Mental capacity has increased with much better problem-solving abilities, emotional resilience has strengthened when facing various challenges, and self-confidence has reached completely new levels that enable the achievement of your biggest dreams and aspirations.`,
+      `Inspiring and absolutely extraordinary ${user.displayName || 'Champion'}! Your consistency of ${user.totalDays || 0} days demonstrates that you have successfully built positive habits that will last for your entire lifetime and beyond. Quality of life has improved drastically in every single aspect, social relationships have become more harmonious and meaningful, and every interaction is filled with positive energy that spreads contagiously to everyone around you.`,
+      `Brilliant and absolutely transformative ${user.displayName || 'Champion'}! Your milestone of ${user.streak || 0} days represents an achievement that proves nothing is impossible when there is strong commitment and unwavering determination to succeed. Cognitive function operates optimally with enhanced learning ability, long-term memory has strengthened with much faster recall, and creativity flows freely producing brilliant ideas that were previously hidden and waiting to be discovered.`,
+      `Spectacular and absolutely revolutionary ${user.displayName || 'Champion'}! Your journey of ${user.totalDays || 0} days provides concrete evidence that humans possess extraordinary ability to change and develop beyond their previously perceived limitations. Your endocrine system operates with perfect balance, natural happiness hormone production has increased significantly, and every day begins with high optimism and spirit that never dims or fades away.`,
+      `Amazing and absolutely heroic ${user.displayName || 'Champion'}! Your dedication of ${user.streak || 0} days demonstrates the character of a true hero who fights for a much better life and inspires others to pursue their own transformation journeys. Your respiratory system operates with maximum efficiency, optimal oxygen exchange occurs at the cellular level, and every breath represents a precious gift of life that is appreciated with complete awareness and gratitude.`,
+      `Phenomenal and absolutely inspirational ${user.displayName || 'Champion'}! Your transformation of ${user.totalDays || 0} days represents a masterpiece of life that will be remembered forever as the turning point toward a brilliant future filled with unlimited possibilities. Skin regeneration proceeds optimally with fresher and more radiant appearance, tissue elasticity has improved significantly, and youthful aura radiates powerfully from within your entire being.`,
+      `Captivating and absolutely monumental ${user.displayName || 'Champion'}! Your achievement of ${user.streak || 0} days represents concrete evidence of consciousness evolution and extraordinary improvement in quality of life that transcends all expectations. Adaptation ability has increased when facing various situations, emotional intelligence has developed rapidly, and every decision is made with much deeper wisdom and understanding.`,
+      `Brilliant and absolutely transformative ${user.displayName || 'Champion'}! Your consistency of ${user.totalDays || 0} days demonstrates a masterpiece of self-discipline that will become the foundation for achieving great accomplishments in the future. Your lymphatic system operates optimally to cleanse toxins, natural detoxification proceeds perfectly, and your body returns to the optimal state it was always meant to maintain.`,
+      `Extraordinary and absolutely revolutionary ${user.displayName || 'Champion'}! Your milestone of ${user.streak || 0} days represents a testament to unlimited human spirit strength and complete ability to transform life in the most comprehensive way possible. Brain neuroplasticity operates optimally to create completely new neural pathways, adaptation ability has increased significantly, and every day brings substantial growth and development that compounds over time.`,
+      `Charming and absolutely spectacular ${user.displayName || 'Champion'}! Your journey of ${user.totalDays || 0} days represents an epic adventure that will be remembered as one of life's greatest achievements and most meaningful accomplishments. Your digestive system operates optimally with maximum nutrient absorption, energy metabolism functions efficiently, and every meal is enjoyed with much deeper appreciation and mindful awareness.`,
+      `Delightful and absolutely monumental ${user.displayName || 'Champion'}! Your dedication of ${user.streak || 0} days proves that you possess extraordinary inner strength and unlimited potential for achieving even greater accomplishments in the future. Sleep quality has improved drastically with optimal REM cycles, muscular recovery proceeds much faster, and every morning begins with abundant energy and unlimited enthusiasm for the day ahead.`,
+      `Inspirational and absolutely brilliant ${user.displayName || 'Champion'}! Your transformation of ${user.totalDays || 0} days represents living proof that commitment and perseverance can produce genuine miracles in real life circumstances. Social confidence has increased in every interaction, communication skills have developed rapidly, and every relationship becomes more meaningful and authentically connected than ever before.`,
+      `Fantastic and absolutely heroic ${user.displayName || 'Champion'}! Your achievement of ${user.streak || 0} days represents a heroic journey that proves extraordinary character strength and complete integrity in pursuing your most important life goals. Your immune system has received a significant boost with enhanced resistance against diseases, healing capacity has improved dramatically, and every cell in your body operates with perfect harmony and synchronization.`,
+      `Commendable and absolutely transformative ${user.displayName || 'Champion'}! Your consistency of ${user.totalDays || 0} days demonstrates profound consciousness evolution and permanent life transformation that will benefit you for decades to come. Financial impact has been positive with significant savings accumulation, resource allocation has become more optimal, and every dollar is invested in things that are truly meaningful and valuable.`,
+      `Spectacular and absolutely inspiring ${user.displayName || 'Champion'}! Your milestone of ${user.streak || 0} days represents a testament to extraordinary willpower and complete demonstration of self-mastery in every aspect of life. Physical appearance has improved with healthier skin tone, better muscle definition, and overall presence that is more confident and naturally attractive to others.`,
+      `Amazing and absolutely revolutionary ${user.displayName || 'Champion'}! Your journey of ${user.totalDays || 0} days represents a revolutionary transformation that changes your entire life trajectory toward a destination that is much brighter and more promising than ever imagined. Spiritual growth has accelerated with deeper connection to purpose, meaning, and values that truly matter in life and contribute to lasting fulfillment.`,
+      `Phenomenal and absolutely extraordinary ${user.displayName || 'Champion'}! Your dedication of ${user.streak || 0} days proves that you are the architect of your own destiny and completely capable of creating an extraordinary life filled with unlimited possibilities. Environmental awareness has increased with much deeper appreciation for nature, fresh air, and the beauty that surrounds us every single day of our lives.`,
+      `Brilliant and absolutely monumental ${user.displayName || 'Champion'}! Your transformation of ${user.totalDays || 0} days represents the magnum opus of your lifetime that will be remembered forever as the turning point toward achieving true greatness. Legacy impact remains positive for family and community, inspiring others to make positive changes, and creating beneficial ripple effects that touch many people's lives.`,
+      `Brilliant and absolutely inspirational ${user.displayName || 'Champion'}! Your achievement of ${user.streak || 0} days represents a brilliant demonstration that human potential is truly unlimited and every goal can be achieved through persistent effort and unwavering determination. Future outlook remains optimistic with confidence to tackle any challenges, achieve bigger dreams, and create meaningful impact in this world.`,
+      `Captivating and absolutely heroic ${user.displayName || 'Champion'}! Your consistency of ${user.totalDays || 0} days demonstrates heroic character that is worthy of admiration and respect from everyone who witnesses your incredible transformation journey. Celebrate this moment with deep gratitude, appreciation for the journey you have traveled, and excitement for the adventures that await in a bright and promising future.`,
+      `Extraordinary and absolutely transformative ${user.displayName || 'Champion'}! Your milestone of ${user.streak || 0} days represents the culmination of extraordinary effort, sacrifice, and unwavering commitment toward achieving the most optimal life possible. Integration of all positive changes into daily routine, consolidation of new sustainable habits, and preparation for next-level achievements that will be even more spectacular and meaningful.`,
+      `Inspiring and absolutely spectacular ${user.displayName || 'Champion'}! Your journey of ${user.totalDays || 0} days represents an inspiring story that will motivate countless others to pursue their own transformation journeys with confidence and determination. Mastery over addiction, complete control over life choices, and freedom to create a future that aligns with your highest aspirations and deepest values held within your heart.`,
+      `Amazing and absolutely monumental ${user.displayName || 'Champion'}! Your dedication of ${user.streak || 0} days proves that you have achieved something truly remarkable that will be remembered as one of life's greatest victories and most meaningful accomplishments. Complete lifestyle transformation with new identity as a healthy, strong, and inspiring individual who is capable of anything and ready to embrace all opportunities that will come in the brilliant future ahead.`,
+      `Outstanding and absolutely transformative ${user.displayName || 'Champion'}! Your incredible journey of ${user.totalDays || 0} days represents the ultimate triumph of human willpower and the absolute proof that anyone can completely redesign their entire life when they commit to positive change with unwavering determination and persistent action every single day.`
+    ];
+    
+    // Simple rotation based on user ID and current day to ensure variety
+    const today = <span class="cstat-no" title="statement not covered" >new Date().getDate();</span>
+    const userHash = <span class="cstat-no" title="statement not covered" >user.id ? user.id.length : 0;</span>
+    const index = <span class="cstat-no" title="statement not covered" >(today + userHash) % cleanEnglishQuotes.length;</span>
+<span class="cstat-no" title="statement not covered" >    return cleanEnglishQuotes[index];</span>
+  }
+  
+  // Use the correct language quotes from translations for other languages
+  const t = <span class="cstat-no" title="statement not covered" >getTranslation(language);</span>
+  
+  // Determine user's journey context
+  const totalDays = <span class="cstat-no" title="statement not covered" >user.totalDays || 0;</span>
+  const streak = <span class="cstat-no" title="statement not covered" >user.streak || 0;</span>
+  const streakInfo = <span class="cstat-no" title="statement not covered" >calculateStreak(user.lastCheckIn);</span>
+  const userId = <span class="cstat-no" title="statement not covered" >user.id;</span>
+  
+  // Check if streak was broken (user needs encouragement to restart)
+<span class="cstat-no" title="statement not covered" >  if (streakInfo.streakReset &amp;&amp; totalDays &gt; 0) {</span>
+    const quotes = <span class="cstat-no" title="statement not covered" >t.quotes.streakBroken;</span>
+<span class="cstat-no" title="statement not covered" >    return getSmartQuoteSelection(quotes, language, userId, 'streakBroken');</span>
+  }
+  
+  // Categorize user by their journey stage with smart selection
+<span class="cstat-no" title="statement not covered" >  if (totalDays &lt;= 7) {</span>
+    const quotes = <span class="cstat-no" title="statement not covered" >t.quotes.newUser;</span>
+<span class="cstat-no" title="statement not covered" >    return getSmartQuoteSelection(quotes, language, userId, 'newUser');</span>
+  } else <span class="cstat-no" title="statement not covered" >if (totalDays &lt;= 28) {</span>
+    const quotes = <span class="cstat-no" title="statement not covered" >t.quotes.earlyJourney;</span>
+<span class="cstat-no" title="statement not covered" >    return getSmartQuoteSelection(quotes, language, userId, 'earlyJourney');</span>
+  } else <span class="cstat-no" title="statement not covered" >if (totalDays &lt;= 90) {</span>
+    const quotes = <span class="cstat-no" title="statement not covered" >t.quotes.milestoneAchiever;</span>
+<span class="cstat-no" title="statement not covered" >    return getSmartQuoteSelection(quotes, language, userId, 'milestoneAchiever');</span>
+  } else <span class="cstat-no" title="statement not covered" >if (totalDays &gt; 90) {</span>
+    const quotes = <span class="cstat-no" title="statement not covered" >t.quotes.veteran;</span>
+<span class="cstat-no" title="statement not covered" >    return getSmartQuoteSelection(quotes, language, userId, 'veteran');</span>
+  }
+  
+  // Fallback to general daily motivation with smart selection
+  const quotes = <span class="cstat-no" title="statement not covered" >t.quotes.generalDaily;</span>
+<span class="cstat-no" title="statement not covered" >  return getSmartQuoteSelection(quotes, language, userId, 'generalDaily');</span>
+};
+&nbsp;
+// Check if user needs new daily motivation (premium feature with caching)
+export const <span class="cstat-no" title="statement not covered" >needsNewDailyMotivation = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): boolean =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (!user.isPremium) <span class="cstat-no" title="statement not covered" >return false;</span></span>
+  
+  const today = <span class="cstat-no" title="statement not covered" >new Date().toISOString().split('T')[0];</span> // YYYY-MM-DD format
+  
+  // If no motivation date recorded, or it's a new day, user needs new motivation
+<span class="cstat-no" title="statement not covered" >  return !user.lastMotivationDate || user.lastMotivationDate !== today;</span>
+};
+&nbsp;
+// Get or generate daily motivation for premium users
+export const <span class="cstat-no" title="statement not covered" >getDailyMotivation = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User, language: Language = <span class="branch-0 cbranch-no" title="branch not covered" >'id')</span>: string =&gt; {</span>
+  // Personal motivator is premium-only feature
+<span class="cstat-no" title="statement not covered" >  if (!user.isPremium) {</span>
+<span class="cstat-no" title="statement not covered" >    return language === 'en' </span>
+      ? 'Upgrade to Premium for personalized AI motivation'
+      : 'Upgrade ke Premium untuk motivasi AI yang personal';
+  }
+  
+  const today = <span class="cstat-no" title="statement not covered" >new Date().toISOString().split('T')[0];</span> // YYYY-MM-DD format
+  
+  // TEMPORARILY DISABLED: Skip cached motivation to use new expanded system
+  // TODO: Re-enable caching after users get fresh contextual quotes
+  // if (user.lastMotivationDate === today &amp;&amp; user.dailyMotivation) {
+  //   return user.dailyMotivation;
+  // }
+  
+  // Generate new contextual motivation for today using enhanced system
+<span class="cstat-no" title="statement not covered" >  return getContextualMotivation(user, language);</span>
+};
+&nbsp;
+// Detect if user has reached a major milestone worthy of AI insight
+export const <span class="cstat-no" title="statement not covered" >detectMajorMilestone = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): { isMilestone: boolean; milestoneType: string; daysAchieved: number } =&gt; {</span>
+  const totalDays = <span class="cstat-no" title="statement not covered" >user.totalDays || 0;</span>
+  const majorMilestones = <span class="cstat-no" title="statement not covered" >[30, 60, 90, 180, 365, 500, 730, 1000];</span> // Major milestones
+  
+  // Check if user just hit a major milestone (within the last day)
+  const previousDay = <span class="cstat-no" title="statement not covered" >totalDays - 1;</span>
+  
+<span class="cstat-no" title="statement not covered" >  for (const milestone of majorMilestones) {</span>
+<span class="cstat-no" title="statement not covered" >    if (totalDays &gt;= milestone &amp;&amp; previousDay &lt; milestone) {</span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+        isMilestone: true,
+        milestoneType: `${milestone}_days`,
+        daysAchieved: milestone
+      };
+    }
+  }
+  
+<span class="cstat-no" title="statement not covered" >  return { isMilestone: false, milestoneType: '', daysAchieved: 0 };</span>
+};
+&nbsp;
+// Detect if user needs streak recovery support (after breaking significant streak)
+export const <span class="cstat-no" title="statement not covered" >detectStreakRecovery = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): { needsRecovery: boolean; brokenStreakLength: number; daysSinceBroken: number } =&gt; {</span>
+  const currentStreak = <span class="cstat-no" title="statement not covered" >user.streak || 0;</span>
+  const longestStreak = <span class="cstat-no" title="statement not covered" >user.longestStreak || 0;</span>
+  const totalDays = <span class="cstat-no" title="statement not covered" >user.totalDays || 0;</span>
+  
+  // If current streak is 0-3 days and they had a streak ≥7 days before
+<span class="cstat-no" title="statement not covered" >  if (currentStreak &lt;= 3 &amp;&amp; longestStreak &gt;= 7) {</span>
+    // Estimate days since streak was broken
+    // This is approximate since we don't track exact break dates
+    const estimatedDaysSinceBroken = <span class="cstat-no" title="statement not covered" >Math.min(currentStreak, 3);</span>
+    
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      needsRecovery: true,
+      brokenStreakLength: longestStreak,
+      daysSinceBroken: estimatedDaysSinceBroken
+    };
+  }
+  
+<span class="cstat-no" title="statement not covered" >  return { needsRecovery: false, brokenStreakLength: 0, daysSinceBroken: 0 };</span>
+};
+&nbsp;
+// Check if user is eligible for AI insight based on monthly budget
+export const <span class="cstat-no" title="statement not covered" >canUseAIThisMonth = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): { canUse: boolean; callsUsed: number; callsRemaining: number } =&gt; {</span>
+  const currentMonth = <span class="cstat-no" title="statement not covered" >new Date().toISOString().substring(0, 7);</span> // YYYY-MM format
+  const maxMonthlyAICalls = <span class="cstat-no" title="statement not covered" >2;</span>
+  
+  // Reset counter if it's a new month
+  const resetMonth = <span class="cstat-no" title="statement not covered" >user.aiCallsResetMonth || '';</span>
+  const callsUsed = <span class="cstat-no" title="statement not covered" >(resetMonth === currentMonth) ? (user.monthlyAICallsUsed || 0) : 0;</span>
+  
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    canUse: callsUsed &lt; maxMonthlyAICalls,
+    callsUsed: callsUsed,
+    callsRemaining: maxMonthlyAICalls - callsUsed
+  };
+};
+&nbsp;
+// Determine if AI insight should be triggered and what type
+// NEW: All users can try AI (when quota available), no premium requirement
+export const <span class="cstat-no" title="statement not covered" >shouldTriggerAIInsight = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): { </span>
+  shouldTrigger: boolean; 
+  triggerType: 'milestone' | 'streak_recovery' | 'daily_motivation' | 'none';
+  triggerData: any;
+  priority: number; // 1 = highest, 2 = medium, 3 = daily
+} =&gt; {
+  // Check AI availability (2 calls per month limit)
+  const aiAvailability = <span class="cstat-no" title="statement not covered" >canUseAIThisMonth(user);</span>
+<span class="cstat-no" title="statement not covered" >  if (!aiAvailability.canUse) {</span>
+<span class="cstat-no" title="statement not covered" >    return { shouldTrigger: false, triggerType: 'none', triggerData: null, priority: 0 };</span>
+  }
+  
+  // Priority 1: Streak recovery (more emotionally critical)
+  const streakRecovery = <span class="cstat-no" title="statement not covered" >detectStreakRecovery(user);</span>
+<span class="cstat-no" title="statement not covered" >  if (streakRecovery.needsRecovery) {</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      shouldTrigger: true,
+      triggerType: 'streak_recovery',
+      triggerData: streakRecovery,
+      priority: 1
+    };
+  }
+  
+  // Priority 2: Major milestones
+  const milestone = <span class="cstat-no" title="statement not covered" >detectMajorMilestone(user);</span>
+<span class="cstat-no" title="statement not covered" >  if (milestone.isMilestone) {</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      shouldTrigger: true,
+      triggerType: 'milestone',
+      triggerData: milestone,
+      priority: 2
+    };
+  }
+  
+  // Priority 3: Daily AI motivation for all premium users (if no AI insight today)
+  const today = <span class="cstat-no" title="statement not covered" >new Date().toISOString().split('T')[0];</span>
+<span class="cstat-no" title="statement not covered" >  if (!user.lastAICallDate || user.lastAICallDate !== today) {</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      shouldTrigger: true,
+      triggerType: 'daily_motivation',
+      triggerData: {
+        streak: user.streak || 0,
+        totalDays: user.totalDays || 0,
+        level: user.level || 1,
+        badges: user.badges || [],
+        xp: user.xp || 0
+      },
+      priority: 3
+    };
+  }
+  
+<span class="cstat-no" title="statement not covered" >  return { shouldTrigger: false, triggerType: 'none', triggerData: null, priority: 0 };</span>
+};
+&nbsp;
+// Update user's monthly AI call counter
+export const <span class="cstat-no" title="statement not covered" >updateAICallCounter = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): Partial&lt;User&gt; =&gt; {</span>
+  const currentMonth = <span class="cstat-no" title="statement not covered" >new Date().toISOString().substring(0, 7);</span> // YYYY-MM format
+  const today = <span class="cstat-no" title="statement not covered" >new Date().toISOString().split('T')[0];</span> // YYYY-MM-DD format
+  
+  // Reset counter if it's a new month
+  const resetMonth = <span class="cstat-no" title="statement not covered" >user.aiCallsResetMonth || '';</span>
+  const isNewMonth = <span class="cstat-no" title="statement not covered" >resetMonth !== currentMonth;</span>
+  
+  const newCallsUsed = <span class="cstat-no" title="statement not covered" >isNewMonth ? 1 : (user.monthlyAICallsUsed || 0) + 1;</span>
+  
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    monthlyAICallsUsed: newCallsUsed,
+    lastAICallDate: today,
+    aiCallsResetMonth: currentMonth
+  };
+};
+&nbsp;
+// Check if we should show AI insight vs contextual quote
+// NEW: All users can try AI first (when quota available), then fallback to local content
+export const <span class="cstat-no" title="statement not covered" >getMotivationContent = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User, language: Language = <span class="branch-0 cbranch-no" title="branch not covered" >'id')</span>: { </span>
+  content: string; 
+  isAIGenerated: boolean; 
+  shouldUseAI: boolean;
+  triggerType?: string;
+} =&gt; {
+  // Check if user has recent AI insight from today
+  const today = <span class="cstat-no" title="statement not covered" >new Date().toISOString().split('T')[0];</span>
+<span class="cstat-no" title="statement not covered" >  if (user.lastAICallDate === today &amp;&amp; user.lastAIInsight) {</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      content: user.lastAIInsight,
+      isAIGenerated: true,
+      shouldUseAI: false // Don't call AI again, use cached
+    };
+  }
+  
+  // Check if AI should be triggered (this includes quota check)
+  const aiTrigger = <span class="cstat-no" title="statement not covered" >shouldTriggerAIInsight(user);</span>
+  
+<span class="cstat-no" title="statement not covered" >  if (aiTrigger.shouldTrigger) {</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      content: '', // Will be populated by AI call
+      isAIGenerated: true,
+      shouldUseAI: true,
+      triggerType: aiTrigger.triggerType
+    };
+  }
+  
+  // Fall back to rich local contextual quotes (both Indonesian and English have extensive libraries)
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    content: getDailyMotivation(user, language),
+    isAIGenerated: false,
+    shouldUseAI: false
+  };
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >generatePersonalizedGreeting = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>serData: {</span>
+  smokingYears: number;
+  cigarettesPerDay: number;
+  cigarettePrice: number;
+  quitReasons: string[];
+  previousAttempts: number;
+}): {
+  headline: string;
+  message: string;
+  financialHighlight: string;
+  healthHighlight: string;
+  motivationalNote: string;
+} =&gt; {
+  const { smokingYears, cigarettesPerDay, cigarettePrice, quitReasons, previousAttempts } = <span class="cstat-no" title="statement not covered" >userData;</span>
+  
+  // Calculate daily and yearly savings
+  const cigarettesPerPack = <span class="cstat-no" title="statement not covered" >20;</span>
+  const packsPerDay = <span class="cstat-no" title="statement not covered" >cigarettesPerDay / cigarettesPerPack;</span>
+  const dailySavings = <span class="cstat-no" title="statement not covered" >Math.floor(packsPerDay * cigarettePrice);</span>
+  const yearlySavings = <span class="cstat-no" title="statement not covered" >Math.floor(dailySavings * 365);</span>
+  
+  // Determine user profile
+  const isHeavySmoker = <span class="cstat-no" title="statement not covered" >cigarettesPerDay &gt;= 20;</span>
+  const isLongTermSmoker = <span class="cstat-no" title="statement not covered" >smokingYears &gt;= 10;</span>
+  const hasMultipleAttempts = <span class="cstat-no" title="statement not covered" >previousAttempts &gt; 0;</span>
+  const primaryReason = <span class="cstat-no" title="statement not covered" >quitReasons[0] || 'health';</span>
+  
+  // Generate personalized content
+  let headline = <span class="cstat-no" title="statement not covered" >"";</span>
+  let message = <span class="cstat-no" title="statement not covered" >"";</span>
+  let financialHighlight = <span class="cstat-no" title="statement not covered" >"";</span>
+  let healthHighlight = <span class="cstat-no" title="statement not covered" >"";</span>
+  let motivationalNote = <span class="cstat-no" title="statement not covered" >"";</span>
+  
+  // Create headline based on profile
+<span class="cstat-no" title="statement not covered" >  if (isHeavySmoker &amp;&amp; isLongTermSmoker) {</span>
+<span class="cstat-no" title="statement not covered" >    headline = `${cigarettesPerDay} batang/hari selama ${smokingYears} tahun? Tubuh Anda siap untuk pemulihan yang menakjubkan!`;</span>
+  } else <span class="cstat-no" title="statement not covered" >if (isHeavySmoker) {</span>
+<span class="cstat-no" title="statement not covered" >    headline = `${cigarettesPerDay} batang per hari adalah masa lalu! Saatnya hidup lebih sehat.`;</span>
+  } else <span class="cstat-no" title="statement not covered" >if (isLongTermSmoker) {</span>
+<span class="cstat-no" title="statement not covered" >    headline = `Setelah ${smokingYears} tahun, Anda akhirnya memilih jalan yang tepat!`;</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    headline = `Keputusan terbaik telah Anda buat! Mari mulai perjalanan sehat.`;</span>
+  }
+  
+  // Create main message based on primary reason
+<span class="cstat-no" title="statement not covered" >  switch (primaryReason) {</span>
+    case 'health':
+<span class="cstat-no" title="statement not covered" >      if (isLongTermSmoker) {</span>
+<span class="cstat-no" title="statement not covered" >        message = `Setelah ${smokingYears} tahun merokok, tubuh Anda akan mulai penyembuhan yang luar biasa. Dalam 20 menit pertama, detak jantung dan tekanan darah akan mulai normal!`;</span>
+      } else {
+<span class="cstat-no" title="statement not covered" >        message = `Pilihan untuk kesehatan adalah investasi terbaik! Tubuh Anda akan segera merasakan perubahan positif yang mengagumkan.`;</span>
+      }
+<span class="cstat-no" title="statement not covered" >      break;</span>
+    case 'family':
+<span class="cstat-no" title="statement not covered" >      message = `Keputusan berhenti merokok untuk keluarga menunjukkan kasih sayang yang besar. Anda sedang memberikan hadiah kesehatan untuk orang-orang tercinta.`;</span>
+<span class="cstat-no" title="statement not covered" >      break;</span>
+    case 'money':
+<span class="cstat-no" title="statement not covered" >      message = `Keputusan finansial yang cerdas! Uang yang biasa dihabiskan untuk rokok kini bisa digunakan untuk hal-hal yang lebih bermakna.`;</span>
+<span class="cstat-no" title="statement not covered" >      break;</span>
+    case 'pregnancy':
+<span class="cstat-no" title="statement not covered" >      message = `Pilihan terbaik untuk calon buah hati! Anda sedang memberikan awal kehidupan yang sehat untuk si kecil.`;</span>
+<span class="cstat-no" title="statement not covered" >      break;</span>
+    default:
+<span class="cstat-no" title="statement not covered" >      message = `Perjalanan menuju hidup sehat dimulai dari keputusan berani seperti yang Anda buat hari ini.`;</span>
+  }
+  
+  // Financial highlight
+<span class="cstat-no" title="statement not covered" >  if (dailySavings &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    if (yearlySavings &gt;= 5000000) {</span>
+<span class="cstat-no" title="statement not covered" >      financialHighlight = `Menghemat Rp ${formatCurrency(dailySavings)}/hari = Rp ${formatCurrency(yearlySavings)}/tahun - cukup untuk liburan keluarga!`;</span>
+    } else <span class="cstat-no" title="statement not covered" >if (yearlySavings &gt;= 2000000) {</span>
+<span class="cstat-no" title="statement not covered" >      financialHighlight = `Rp ${formatCurrency(yearlySavings)}/tahun yang Anda hemat bisa untuk dana pendidikan atau investasi!`;</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      financialHighlight = `Rp ${formatCurrency(dailySavings)}/hari x 365 hari = Rp ${formatCurrency(yearlySavings)} per tahun!`;</span>
+    }
+  } else {
+<span class="cstat-no" title="statement not covered" >    financialHighlight = "Penghematan finansial akan terasa dalam jangka panjang!";</span>
+  }
+  
+  // Health highlight based on smoking intensity
+<span class="cstat-no" title="statement not covered" >  if (isHeavySmoker) {</span>
+<span class="cstat-no" title="statement not covered" >    healthHighlight = "20 menit: Detak jantung normal • 12 jam: Karbon monoksida hilang • 2 minggu: Sirkulasi membaik";</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    healthHighlight = "20 menit: Tekanan darah turun • 8 jam: Oksigen naik • 24 jam: Risiko serangan jantung turun";</span>
+  }
+  
+  // Motivational note based on previous attempts
+<span class="cstat-no" title="statement not covered" >  if (previousAttempts &gt;= 3) {</span>
+<span class="cstat-no" title="statement not covered" >    motivationalNote = `Percobaan ke-${previousAttempts + 1} ini berbeda! Pengalaman sebelumnya adalah pembelajaran berharga. Kali ini Anda punya ByeSmoke AI!`;</span>
+  } else <span class="cstat-no" title="statement not covered" >if (previousAttempts &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    motivationalNote = `Percobaan kedua sering kali lebih berhasil! Anda sudah tahu apa yang harus dihindari. Mari buat kali ini berbeda!`;</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    motivationalNote = `Langkah pertama adalah yang tersulit, dan Anda sudah melakukannya! Percayalah pada kekuatan diri Anda.`;</span>
+  }
+  
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    headline,
+    message,
+    financialHighlight,
+    healthHighlight,
+    motivationalNote
+  };
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >generateMissionId = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>): string =</span>&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  return Date.now().toString() + Math.random().toString(36).substr(2, 9);</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >isToday = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>d</span>ate: Date): boolean =&gt; {</span>
+  const today = <span class="cstat-no" title="statement not covered" >new Date();</span>
+<span class="cstat-no" title="statement not covered" >  return date.toDateString() === today.toDateString();</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >getWeekNumber = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>d</span>ate: Date): number =&gt; {</span>
+  const firstDayOfYear = <span class="cstat-no" title="statement not covered" >new Date(date.getFullYear(), 0, 1);</span>
+  const pastDaysOfYear = <span class="cstat-no" title="statement not covered" >(date.getTime() - firstDayOfYear.getTime()) / 86400000;</span>
+<span class="cstat-no" title="statement not covered" >  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >addDailyXP = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>d</span>ailyXP: { [date: string]: number } | undefined, xpAmount: number): { [date: string]: number } =&gt; {</span>
+  // Use local timezone to match heatmap calculation
+  const today = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const dateKey = <span class="cstat-no" title="statement not covered" >today.getFullYear() + '-' + </span>
+                  String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                  String(today.getDate()).padStart(2, '0');
+  const currentDailyXP = <span class="cstat-no" title="statement not covered" >dailyXP || {};</span>
+  
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    ...currentDailyXP,
+    [dateKey]: (currentDailyXP[dateKey] || 0) + xpAmount
+  };
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >getDailyXP = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>d</span>ailyXP: { [date: string]: number } | undefined, date: Date): number =&gt; {</span>
+  // Use local timezone to match addDailyXP format
+  const dateKey = <span class="cstat-no" title="statement not covered" >date.getFullYear() + '-' +</span>
+                  String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                  String(date.getDate()).padStart(2, '0');
+<span class="cstat-no" title="statement not covered" >  return dailyXP?.[dateKey] || 0;</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >cleanCorruptedDailyXP = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>d</span>ailyXP: { [date: string]: number } | undefined): { [date: string]: number } =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (!dailyXP) <span class="cstat-no" title="statement not covered" >return {};</span></span>
+&nbsp;
+  const cleanedData: { [date: string]: number } = <span class="cstat-no" title="statement not covered" >{};</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  for (const [key, value] of Object.entries(dailyXP)) {</span>
+    // Valid date format should be YYYY-MM-DD
+    const isValidDateFormat = <span class="cstat-no" title="statement not covered" >/^\d{4}-\d{2}-\d{2}$/.test(key);</span>
+    const isValidNumber = <span class="cstat-no" title="statement not covered" >typeof value === 'number' &amp;&amp; !isNaN(value) &amp;&amp; isFinite(value);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (isValidDateFormat &amp;&amp; isValidNumber) {</span>
+<span class="cstat-no" title="statement not covered" >      cleanedData[key] = value;</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      console.warn('🧹 Removing corrupted dailyXP entry:', { key, value, type: typeof value });</span>
+    }
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  console.log('🧹 Daily XP cleanup completed:', {</span>
+    originalEntries: Object.keys(dailyXP).length,
+    cleanedEntries: Object.keys(cleanedData).length,
+    removedEntries: Object.keys(dailyXP).length - Object.keys(cleanedData).length
+  });
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return cleanedData;</span>
+};
+&nbsp;
+// Smart Streak Notifications - Streak Risk Detection
+export interface StreakRiskInfo {
+  isAtRisk: boolean;
+  hoursUntilExpiry: number;
+  currentStreak: number;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  shouldNotify: boolean;
+  nextNotificationTime?: Date;
+}
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >detectStreakRisk = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): StreakRiskInfo =&gt; {</span>
+  const now = <span class="cstat-no" title="statement not covered" >new Date();</span>
+  const currentHour = <span class="cstat-no" title="statement not covered" >now.getHours();</span>
+  const currentStreak = <span class="cstat-no" title="statement not covered" >user.streak || 0;</span>
+  
+  // If user hasn't checked in today and it's past 8 PM
+  const hasCheckedInToday = <span class="cstat-no" title="statement not covered" >!canCheckInToday(user.lastCheckIn);</span>
+  const hoursUntilMidnight = <span class="cstat-no" title="statement not covered" >24 - currentHour;</span>
+  
+<span class="cstat-no" title="statement not covered" >  if (hasCheckedInToday || currentStreak === 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      isAtRisk: false,
+      hoursUntilExpiry: hoursUntilMidnight,
+      currentStreak,
+      riskLevel: 'low',
+      shouldNotify: false
+    };
+  }
+  
+  // Determine risk level based on time
+  let riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  let shouldNotify = <span class="cstat-no" title="statement not covered" >false;</span>
+  let nextNotificationTime: Date | undefined;
+  
+<span class="cstat-no" title="statement not covered" >  if (currentHour &gt;= 20 &amp;&amp; currentHour &lt; 21) { // 8 PM - 9 PM</span>
+<span class="cstat-no" title="statement not covered" >    riskLevel = 'medium';</span>
+<span class="cstat-no" title="statement not covered" >    shouldNotify = true;</span>
+<span class="cstat-no" title="statement not covered" >    nextNotificationTime = new Date(now.getTime() + (60 * 60 * 1000)); </span>// 1 hour later
+  } else <span class="cstat-no" title="statement not covered" >if (currentHour &gt;= 21 &amp;&amp; currentHour &lt; 22) { // 9 PM - 10 PM</span>
+<span class="cstat-no" title="statement not covered" >    riskLevel = 'high';</span>
+<span class="cstat-no" title="statement not covered" >    shouldNotify = true;</span>
+<span class="cstat-no" title="statement not covered" >    nextNotificationTime = new Date(now.getTime() + (60 * 60 * 1000)); </span>// 1 hour later
+  } else <span class="cstat-no" title="statement not covered" >if (currentHour &gt;= 22) { // 10 PM and later</span>
+<span class="cstat-no" title="statement not covered" >    riskLevel = 'critical';</span>
+<span class="cstat-no" title="statement not covered" >    shouldNotify = true;</span>
+<span class="cstat-no" title="statement not covered" >    nextNotificationTime = new Date(now.getTime() + (30 * 60 * 1000)); </span>// 30 minutes later
+  } else {
+<span class="cstat-no" title="statement not covered" >    riskLevel = 'low';</span>
+  }
+  
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    isAtRisk: true,
+    hoursUntilExpiry: hoursUntilMidnight,
+    currentStreak,
+    riskLevel,
+    shouldNotify,
+    nextNotificationTime
+  };
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >getStreakNotificationContent = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>s</span>treakRisk: StreakRiskInfo, language: 'en' | 'id' = <span class="branch-0 cbranch-no" title="branch not covered" >'id')</span>: { title: string; body: string } =&gt; {</span>
+  const streak = <span class="cstat-no" title="statement not covered" >streakRisk.currentStreak;</span>
+  const hours = <span class="cstat-no" title="statement not covered" >streakRisk.hoursUntilExpiry;</span>
+  
+  const isEnglish = <span class="cstat-no" title="statement not covered" >language === 'en';</span>
+  
+<span class="cstat-no" title="statement not covered" >  switch (streakRisk.riskLevel) {</span>
+    case 'medium':
+<span class="cstat-no" title="statement not covered" >      return {</span>
+        title: isEnglish ? "🔥 Don't Lose Your Streak!" : "🔥 Jangan Sampai Streak Hilang!",
+        body: isEnglish 
+          ? `Your ${streak}-day streak is waiting for you! Quick check-in keeps the momentum going 💪`
+          : `Streak ${streak} hari Anda sedang menunggu! Check-in cepat untuk menjaga momentum 💪`
+      };
+    
+    case 'high':
+<span class="cstat-no" title="statement not covered" >      return {</span>
+        title: isEnglish ? "🚨 Streak Alert!" : "🚨 Peringatan Streak!",
+        body: isEnglish
+          ? `Only ${hours} hours left to maintain your ${streak}-day streak! Don't let progress slip away 🏃‍♂️`
+          : `Hanya ${hours} jam tersisa untuk mempertahankan streak ${streak} hari! Jangan biarkan progress hilang 🏃‍♂️`
+      };
+    
+    case 'critical':
+<span class="cstat-no" title="statement not covered" >      return {</span>
+        title: isEnglish ? "⏰ URGENT: Save Your Streak!" : "⏰ MENDESAK: Selamatkan Streak Anda!",
+        body: isEnglish
+          ? `Your ${streak}-day streak expires in ${hours} hours! Quick tap to save your amazing progress 🆘`
+          : `Streak ${streak} hari berakhir dalam ${hours} jam! Tap cepat untuk menyelamatkan progress luar biasa Anda 🆘`
+      };
+    
+    default:
+<span class="cstat-no" title="statement not covered" >      return {</span>
+        title: isEnglish ? "🔥 Keep Your Streak Alive" : "🔥 Jaga Streak Tetap Hidup",
+        body: isEnglish
+          ? `Your ${streak}-day journey continues! Check in to maintain your progress 🌟`
+          : `Perjalanan ${streak} hari berlanjut! Check-in untuk mempertahankan progress Anda 🌟`
+      };
+  }
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >shouldScheduleStreakReminder = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): boolean =&gt; {</span>
+  const streakRisk = <span class="cstat-no" title="statement not covered" >detectStreakRisk(user);</span>
+  const hasNotificationsEnabled = <span class="cstat-no" title="statement not covered" >user.settings?.notifications ?? true;</span>
+  const hasStreakNotificationsEnabled = <span class="cstat-no" title="statement not covered" >user.settings?.streakNotifications ?? true;</span> // Default to true
+  
+<span class="cstat-no" title="statement not covered" >  return hasNotificationsEnabled &amp;&amp; hasStreakNotificationsEnabled &amp;&amp; streakRisk.shouldNotify &amp;&amp; streakRisk.currentStreak &gt; 0;</span>
+};
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >getOptimalReminderTimes = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): string[] =&gt; {</span>
+  // Analyze user's typical check-in pattern
+  const lastCheckIn = <span class="cstat-no" title="statement not covered" >user.lastCheckIn ? new Date(user.lastCheckIn) : null;</span>
+  const typicalHour = <span class="cstat-no" title="statement not covered" >lastCheckIn ? lastCheckIn.getHours() : 9;</span>
+  
+  // Schedule reminders 2 hours before typical check-in time, then escalating
+  const reminderTimes: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+  
+  // First reminder: 2 hours before typical time or 8 PM, whichever is earlier
+  const firstReminderHour = <span class="cstat-no" title="statement not covered" >Math.min(Math.max(typicalHour - 2, 20), 22);</span>
+<span class="cstat-no" title="statement not covered" >  reminderTimes.push(`${firstReminderHour.toString().padStart(2, '0')}:00`);</span>
+  
+  // Additional escalating reminders
+<span class="cstat-no" title="statement not covered" >  if (firstReminderHour &lt; 21) {</span>
+<span class="cstat-no" title="statement not covered" >    reminderTimes.push('21:00'); </span>// 9 PM
+  }
+<span class="cstat-no" title="statement not covered" >  if (firstReminderHour &lt; 22) {</span>
+<span class="cstat-no" title="statement not covered" >    reminderTimes.push('22:00'); </span>// 10 PM
+  }
+  
+<span class="cstat-no" title="statement not covered" >  return reminderTimes;</span>
+};
+&nbsp;
+// Migration system: Keep existing progress (Option 1 approach)
+export const <span class="cstat-no" title="statement not covered" >migrateToCheckInSystem = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>u</span>ser: User): { user: User; migrationApplied: boolean } =&gt; {</span>
+  // Option 1: Keep current system stable - no migration needed
+  // Users maintain their existing progress and build from there
+<span class="cstat-no" title="statement not covered" >  return { user, migrationApplied: false };</span>
+};</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2025-09-28T08:32:16.781Z
+            </div>
+        <script src="../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../sorter.js"></script>
+        <script src="../block-navigation.js"></script>
+    </body>
+</html>
+    

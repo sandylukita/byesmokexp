@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc } from 'firebase/firestore';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -34,6 +34,36 @@ let cachedBadgeStats: {[badgeId: string]: number} | null = null;
 let lastStatsLoadTime = 0;
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache (badge stats change slowly)
 const STORAGE_KEY = 'badge_statistics_cache';
+
+// INSTAGRAM-STYLE: Create skeleton user for instant loading
+const createSkeletonAchievementUser = (): User => ({
+  id: 'loading',
+  email: 'loading@app.com',
+  displayName: 'Loading User',
+  username: 'loading',
+  isPremium: false,
+  quitDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago for realistic badges
+  cigarettesPerDay: 10,
+  cigarettePrice: 25000,
+  streak: 14,
+  longestStreak: 14,
+  totalDays: 14,
+  xp: 140,
+  level: 2,
+  badges: [
+    { id: 'new-member', unlockedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+    { id: 'first-day', unlockedAt: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000) },
+    { id: 'week-warrior', unlockedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+  ],
+  completedMissions: [],
+  dailyXP: {},
+  settings: {
+    notifications: true,
+    streakNotifications: true,
+    reminderTime: '09:00',
+  },
+  lastCheckIn: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
+});
 
 // Fallback statistics for immediate display
 const FALLBACK_STATS: {[badgeId: string]: number} = {
@@ -98,8 +128,20 @@ const BadgeStatisticsScreen: React.FC = () => {
   const { colors } = useTheme();
   const { t, language } = useTranslation();
   const [badgeStats, setBadgeStats] = useState<{[badgeId: string]: number}>(FALLBACK_STATS);
-  const [userBadges, setUserBadges] = useState<Badge[]>([]);
-  const [user, setUser] = useState<User | null>(null);
+  const [userBadges, setUserBadges] = useState<Badge[]>(() => {
+    const cachedUser = demoGetCurrentUser();
+    return cachedUser?.badges || [];
+  });
+  // FIXED: Try to load cached user first, fallback to skeleton only if no cache exists
+  const [user, setUser] = useState<User>(() => {
+    const cachedUser = demoGetCurrentUser();
+    if (cachedUser) {
+      console.log('✅ Achievement: Starting with cached user data (no flickering)');
+      return cachedUser;
+    }
+    console.log('📱 Achievement: Starting with skeleton user (no cached data)');
+    return createSkeletonAchievementUser();
+  });
   const [activeTab, setActiveTab] = useState<'badges' | 'community'>('badges');
   const [loading, setLoading] = useState(false); // Never show loading, always show fallback data immediately
   const [refreshing, setRefreshing] = useState(false);
@@ -319,75 +361,83 @@ const BadgeStatisticsScreen: React.FC = () => {
     return userBadges.some(badge => badge.id === badgeId);
   };
 
-  const renderBadgeItem = (badge: any, index: number) => {
-    const isUnlocked = isUserBadgeUnlocked(badge.id);
-    const unlockCount = badgeStats[badge.id] || FALLBACK_STATS[badge.id] || 50;
-    const translatedBadge = getTranslatedBadge(badge.id, language as any);
-    
-    return (
-      <View key={badge.id} style={[
-        { ...styles.badgeItem, backgroundColor: colors.surface },
-        !isUnlocked && styles.lockedBadgeItem
-      ]}>
-        <View style={styles.badgeContent}>
-          <View style={[
-            styles.badgeIcon,
-            { backgroundColor: isUnlocked ? badge.color + '20' : colors.lightGray },
-            !isUnlocked && { backgroundColor: colors.lightGray }
-          ]}>
-            <MaterialIcons 
-              name={badge.icon as any} 
-              size={28} 
-              color={isUnlocked ? badge.color : colors.gray} 
-            />
-          </View>
-          
-          <View style={styles.badgeInfo}>
-            <Text style={[
-              { ...styles.badgeName, color: colors.textPrimary },
-              !isUnlocked && { color: colors.gray }
+  // OPTIMIZED: Memoize badge item rendering to prevent expensive re-renders
+  const renderBadgeItem = useMemo(() => {
+    return (badge: any, index: number) => {
+      const isUnlocked = isUserBadgeUnlocked(badge.id);
+      const unlockCount = badgeStats[badge.id] || FALLBACK_STATS[badge.id] || 50;
+      const translatedBadge = getTranslatedBadge(badge.id, language as any);
+      
+      return (
+        <View key={badge.id} style={[
+          { ...styles.badgeItem, backgroundColor: colors.surface },
+          !isUnlocked && styles.lockedBadgeItem
+        ]}>
+          <View style={styles.badgeContent}>
+            <View style={[
+              styles.badgeIcon,
+              { backgroundColor: isUnlocked ? badge.color + '20' : colors.lightGray },
+              !isUnlocked && { backgroundColor: colors.lightGray }
             ]}>
-              {translatedBadge.name}
-              {badge.isPremium && ' ⭐'}
-            </Text>
-            <Text style={[
-              { ...styles.badgeDescription, color: colors.textSecondary },
-              !isUnlocked && { color: colors.gray }
-            ]}>
-              {translatedBadge.description}
-            </Text>
-          </View>
-          
-          <View style={styles.statsContainer}>
-            <Text style={[styles.statsCount, { color: colors.primary }]}>
-              {unlockCount.toLocaleString()}
-            </Text>
-            <Text style={[styles.statsLabel, { color: colors.textSecondary }]}>
-              {language === 'en' ? 'users' : 'pengguna'}
-            </Text>
-            {isUnlocked && (
-              <View style={styles.unlockedBadge}>
-                <MaterialIcons name="check-circle" size={16} color={COLORS.success} />
-              </View>
-            )}
+              <MaterialIcons 
+                name={badge.icon as any} 
+                size={28} 
+                color={isUnlocked ? badge.color : colors.gray} 
+              />
+            </View>
+            
+            <View style={styles.badgeInfo}>
+              <Text style={[
+                { ...styles.badgeName, color: colors.textPrimary },
+                !isUnlocked && { color: colors.gray }
+              ]}>
+                {translatedBadge.name}
+                {badge.isPremium && ' ⭐'}
+              </Text>
+              <Text style={[
+                { ...styles.badgeDescription, color: colors.textSecondary },
+                !isUnlocked && { color: colors.gray }
+              ]}>
+                {translatedBadge.description}
+              </Text>
+            </View>
+            
+            <View style={styles.statsContainer}>
+              <Text style={[styles.statsCount, { color: colors.primary }]}>
+                {unlockCount.toLocaleString()}
+              </Text>
+              <Text style={[styles.statsLabel, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'users' : 'pengguna'}
+              </Text>
+              {isUnlocked && (
+                <View style={styles.unlockedBadge}>
+                  <MaterialIcons name="check-circle" size={16} color={COLORS.success} />
+                </View>
+              )}
+            </View>
           </View>
         </View>
-      </View>
-    );
-  };
+      );
+    };
+  }, [userBadges, badgeStats, language, colors]); // Recalculate only when dependencies change
 
-  if (loading && isFirstLoad) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t.badges.loading}</Text>
-      </View>
-    );
-  }
+  // OPTIMIZED: Always show UI with skeleton/fallback data, no loading state blocking
 
-  // Separate unlocked and locked badges
-  const unlockedBadges = BADGES.filter(badge => isUserBadgeUnlocked(badge.id));
-  const lockedBadges = BADGES.filter(badge => !isUserBadgeUnlocked(badge.id));
+  // OPTIMIZED: Memoize expensive badge filtering to prevent recalculation on every render
+  const { unlockedBadges, lockedBadges } = useMemo(() => {
+    console.log('🏆 Calculating badge categories (memoized):', {
+      userBadgesCount: userBadges.length,
+      totalBadges: BADGES.length
+    });
+    
+    const unlocked = BADGES.filter(badge => isUserBadgeUnlocked(badge.id));
+    const locked = BADGES.filter(badge => !isUserBadgeUnlocked(badge.id));
+    
+    return { 
+      unlockedBadges: unlocked, 
+      lockedBadges: locked 
+    };
+  }, [userBadges]); // Only recalculate when user badges change
 
 
   return (
@@ -485,21 +535,12 @@ const BadgeStatisticsScreen: React.FC = () => {
           </View>
         </ScrollView>
       ) : (
-        // Community Tab - Lazy Loaded
+        // Community Tab - Lazy Loaded (OPTIMIZED: Always show skeleton user)
         communityTabLoaded ? (
-          user ? (
-            <CommunityStatsTab 
-              user={user} 
-              onUpgradePress={handleNavigateToSubscription}
-            />
-          ) : (
-            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-                {language === 'en' ? 'Loading community data...' : 'Memuat data komunitas...'}
-              </Text>
-            </View>
-          )
+          <CommunityStatsTab 
+            user={user} 
+            onUpgradePress={handleNavigateToSubscription}
+          />
         ) : (
           // Show placeholder while community tab hasn't been accessed yet
           <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>

@@ -38,6 +38,21 @@ export interface User {
   lastCravingDate?: string; // Last date a craving was logged (YYYY-MM-DD)
   // System migration tracking
   migrationVersion?: string; // Track data migrations for system changes
+  // Pet stats tracking
+  petStats?: {
+    totalInteractions: number;
+    dailyInteractions: number;
+    lastInteractionDate: string;
+    lastFed: number;
+    lastPlayed: number;
+  };
+  // Pet evolution tracking
+  petStage?: 'cat' | 'tiger' | 'lion';
+  lastEvolutionCheck?: string; // Last date evolution was checked (YYYY-MM-DD)
+  evolutionDates?: {
+    becameTiger?: string; // Date when evolved to tiger
+    becameLion?: string;  // Date when evolved to lion
+  };
 }
 
 export interface Badge {

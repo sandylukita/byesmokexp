@@ -320,6 +320,22 @@ export interface Translations {
       journey: string;
       freedom: string;
     };
+
+    // Lungcat notifications
+    lungcat: {
+      enabled: string;
+      enabledDesc: string;
+      feedingTitle: string;
+      feedingBody: string;
+      playingTitle: string;
+      playingBody: string;
+      healthGoodTitle: string;
+      healthGoodBody: string;
+      healthBadTitle: string;
+      healthBadBody: string;
+      energyLowTitle: string;
+      energyLowBody: string;
+    };
   };
 
   // Onboarding
@@ -465,7 +481,7 @@ export const translations: Record<Language, Translations> = {
       dailyMissions: 'Misi Harian',
       todaysMotivation: 'Motivasi Hari Ini',
       personalMotivator: 'Personal Motivator',
-      personalMotivatorDesc: 'Dapatkan motivasi personal yang disesuaikan dengan perjalanan unikmu',
+      personalMotivatorDesc: '',
       activateMotivator: 'Aktifkan Personal Motivator',
       daysSinceQuit: 'hari bebas rokok',
       moneySaved: 'Uang Dihemat',
@@ -776,6 +792,22 @@ export const translations: Record<Language, Translations> = {
         journey: 'Kamu sudah sejauh ini, terus maju! Jangan lupa update progress hari ini.',
         freedom: 'Investasi kesehatan terbaik dimulai hari ini. Yuk check-in sekarang!',
       },
+
+      // Lungcat notifications
+      lungcat: {
+        enabled: 'Notifikasi Lungcat',
+        enabledDesc: 'Pengingat perawatan dan bermain dengan Lungcat',
+        feedingTitle: 'Lungcat Anda Lapar! 🍽️',
+        feedingBody: 'Waktunya memberi makan lungcat! Lungcat yang kenyang adalah lungcat yang bahagia.',
+        playingTitle: 'Lungcat Anda Ingin Bermain! 🎾',
+        playingBody: 'Lungcat Anda siap untuk bersenang-senang! Bermain membuat lungcat energik dan bahagia.',
+        healthGoodTitle: 'Lungcat Anda Berkembang Pesat! 🌟',
+        healthGoodBody: 'Progress luar biasa! Lungcat Anda sehat dan bahagia berkat perawatan harian Anda.',
+        healthBadTitle: 'Lungcat Anda Butuh Perawatan! 💔',
+        healthBadBody: 'Lungcat Anda kurang sehat. Check-in dan perawatan rutin akan membantu mereka pulih!',
+        energyLowTitle: 'Lungcat Anda Capek! 😴',
+        energyLowBody: 'Energi lungcat Anda menurun. Waktunya check-in untuk meningkatkan semangat mereka!',
+      },
     },
 
     onboarding: {
@@ -1065,7 +1097,7 @@ export const translations: Record<Language, Translations> = {
       dailyMissions: 'Daily Missions',
       todaysMotivation: 'Today\'s Motivation',
       personalMotivator: 'Personal Motivator',
-      personalMotivatorDesc: 'Get personal motivation tailored to your unique journey',
+      personalMotivatorDesc: '',
       activateMotivator: 'Activate Personal Motivator',
       daysSinceQuit: 'days smoke-free',
       moneySaved: 'Money Saved',
@@ -1376,6 +1408,22 @@ export const translations: Record<Language, Translations> = {
         consistency: 'Your streak is precious. Time for your daily check-in!',
         journey: 'You\'ve come this far, keep going! Don\'t forget to update today\'s progress.',
         freedom: 'The best health investment starts today. Let\'s check in now!',
+      },
+
+      // Lungcat notifications
+      lungcat: {
+        enabled: 'Lungcat Notifications',
+        enabledDesc: 'Care and play reminders for your Lungcat',
+        feedingTitle: 'Your Lungcat is Hungry! 🍽️',
+        feedingBody: 'Time to feed your lungcat! A well-fed lungcat is a happy lungcat.',
+        playingTitle: 'Your Lungcat Wants to Play! 🎾',
+        playingBody: 'Your lungcat is ready for some fun! Playing keeps your lungcat energetic and happy.',
+        healthGoodTitle: 'Your Lungcat is Thriving! 🌟',
+        healthGoodBody: 'Amazing progress! Your lungcat is healthy and happy thanks to your daily care.',
+        healthBadTitle: 'Your Lungcat Needs Care! 💔',
+        healthBadBody: 'Your lungcat is feeling unwell. Regular check-ins and care will help them recover!',
+        energyLowTitle: 'Your Lungcat is Tired! 😴',
+        energyLowBody: 'Your lungcat\'s energy is running low. Time for a check-in to boost their spirits!',
       },
     },
 

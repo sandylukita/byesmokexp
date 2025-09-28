@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   
   // Stats grid styles
   statsGrid: {
-    borderRadius: SIZES.buttonRadius || 16,
+    borderRadius: SIZES.cardRadius || 24,
     overflow: 'hidden',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },

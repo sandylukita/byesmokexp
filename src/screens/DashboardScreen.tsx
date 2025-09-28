@@ -7,7 +7,9 @@ import { OptimizedUserOperations, CostTracker } from '../utils/firebaseOptimizer
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
     ActivityIndicator,
+    Animated,
     Dimensions,
+    Image,
     ScrollView,
     StyleSheet,
     Text,
@@ -26,21 +28,27 @@ import { OptimizedAI } from '../utils/geminiOptimizer';
 
 import { BentoCard, BentoGrid } from '../components/BentoGrid';
 import ConfettiAnimation from '../components/ConfettiAnimation';
+import LungcatLottieAnimation from '../components/LungcatLottieAnimation';
+import LungcatAnimation from '../components/LungcatAnimation';
+import LottieView from 'lottie-react-native';
 import { Mission, User } from '../types';
 import { COLORS, DARK_COLORS, SIZES } from '../utils/constants';
 import { useTranslation } from '../hooks/useTranslation';
 import { Language } from '../utils/translations';
+import { getLungcatHealthPercentage, getLungcatHealthColor } from '../utils/lungcatHealth';
 import { completeMission, checkAndAwardBadges, generateDailyMissions as generateDailyMissionsFromService } from '../services/gamification';
 import { contributeAnonymousStats } from '../services/communityStats';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDelayedInterstitialAd } from '../hooks/useInterstitialAd';
 import { showRewardedAd, canShowRewardedAd, showInterstitialAd, canShowAd, getAdStatus } from '../services/adMob';
+import { debugLog } from '../utils/performanceOptimizer';
 import {
     calculateDaysSinceQuit,
     calculateLevel,
     calculateMoneySaved,
     calculateStreak,
     canCheckInToday,
+    hasCheckedInToday,
     formatCurrency,
     formatNumber,
     generateMissionId,
@@ -63,6 +71,7 @@ const { width, height } = Dimensions.get('window');
 
 interface DashboardScreenProps {
   onLogout: () => void;
+  navigation?: any;
 }
 
 // Memoized motivation content component to prevent re-renders
@@ -134,32 +143,12 @@ const MotivationContent = React.memo(({
   return shouldNotRerender;
 });
 
-// INSTAGRAM-STYLE: Create skeleton user for instant loading
-const createSkeletonUser = (): User => ({
-  id: 'loading',
-  email: 'loading@app.com',
-  displayName: 'Loading...',
-  username: 'loading',
-  isPremium: false,
-  quitDate: new Date(),
-  cigarettesPerDay: 10,
-  cigarettePrice: 25000,
-  streak: 0,
-  longestStreak: 0,
-  totalDays: 0,
-  xp: 0,
-  level: 1,
-  badges: [],
-  completedMissions: [],
-  dailyXP: {},
-  settings: {
-    notifications: true,
-    streakNotifications: true,
-  }
-});
 
-const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
-  const [user, setUser] = useState<User>(createSkeletonUser()); // OPTIMIZED: Start with skeleton user
+const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation }) => {
+  // SIMPLE: Back to original working approach - null until data loads
+  const [user, setUser] = useState<User | null>(null);
+  
+  
   const [loading, setLoading] = useState(false); // OPTIMIZED: Start with false for instant UI
   const [checkingIn, setCheckingIn] = useState(false);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
@@ -169,6 +158,88 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   // AdMob hook for showing ads after check-in
   const { showAdAfterDelay } = useDelayedInterstitialAd(user, 2000); // 2 second delay
   const [isLocallyUpdating, setIsLocallyUpdating] = useState(false);
+  const [lastCheckInSessionId, setLastCheckInSessionId] = useState<string>(''); // Prevent duplicate check-ins
+
+  // Shake animation for lungcat
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
+
+  // Shimmer animation for lungcat circle
+  const shimmerAnimation = useRef(new Animated.Value(0)).current;
+
+  // Function to trigger buzzing animation
+  const triggerBuzz = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(shakeAnimation, {
+        toValue: 2,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: -2,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 2,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: -2,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 2,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: -2,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [shakeAnimation]);
+
+  // Start buzzing animation on component mount and repeat every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      triggerBuzz();
+    }, 3000);
+
+    // Initial buzz after 1 second
+    const timeout = setTimeout(() => {
+      triggerBuzz();
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [triggerBuzz]);
+
+  // Start shimmer animation (continuous loop)
+  useEffect(() => {
+    const startShimmer = () => {
+      shimmerAnimation.setValue(0);
+      Animated.timing(shimmerAnimation, {
+        toValue: 1,
+        duration: 2000,
+        useNativeDriver: true,
+      }).start(() => {
+        setTimeout(startShimmer, 1000); // Wait 1 second before next shimmer
+      });
+    };
+
+    startShimmer();
+  }, [shimmerAnimation]);
+
   const [dailyMotivation, setDailyMotivation] = useState<string>('');
   const [isLoadingMotivation, setIsLoadingMotivation] = useState<boolean>(false);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -207,13 +278,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     color: colors.textPrimary
   }), [colors.textPrimary]);
 
-  // Performance-optimized calculations (memoized) - handles skeleton user
-  const levelInfo = useMemo(() => calculateLevel(user.xp), [user.xp]);
+  // FIXED: Null-safe calculations
+  const levelInfo = useMemo(() => user ? calculateLevel(user.xp) : { level: 1, nextLevelXP: 100, progress: 0 }, [user?.xp]);
   // NEW: Use check-in based tracking instead of quit date calculation
-  const daysSinceQuit = useMemo(() => user.totalDays || 0, [user.totalDays]);
+  const daysSinceQuit = useMemo(() => user?.totalDays || 0, [user?.totalDays]);
   const moneySaved = useMemo(() => {
+    if (!user) return { totalSaved: 0, cigarettesAvoided: 0 };
+    
     const saved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
-    console.log('💰 Money saved calculation:', {
+    debugLog.log('💰 Money saved calculation:', {
       daysSinceQuit,
       cigarettesPerDay: user.cigarettesPerDay,
       cigarettePrice: user.cigarettePrice,
@@ -222,8 +295,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       moneySaved: saved
     });
     return saved;
-  }, [user.cigarettesPerDay, user.cigarettePrice, daysSinceQuit, user.totalDays]);
-  const canCheckIn = useMemo(() => canCheckInToday(user.lastCheckIn), [user.lastCheckIn]);
+  }, [user?.cigarettesPerDay, user?.cigarettePrice, daysSinceQuit, user?.totalDays, user?.quitDate]);
+  const canCheckIn = useMemo(() => user ? canCheckInToday(user.lastCheckIn) : false, [user?.lastCheckIn]);
 
   // Debug: Component lifecycle (optimized)
   useEffect(() => {
@@ -270,49 +343,61 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           lastMotivationDate: today,
           dailyMotivation: motivation
         });
-        console.log('✅ Daily motivation cached to Firebase');
+        debugLog.log('✅ Daily motivation cached to Firebase');
       } else {
         // Update demo user
         await demoUpdateUser(user.id, {
           lastMotivationDate: today,
           dailyMotivation: motivation
         });
-        console.log('✅ Daily motivation cached for demo user');
+        debugLog.log('✅ Daily motivation cached for demo user');
       }
       
       // Update context user
       updateUser(updatedUser);
     } catch (error) {
-      console.error('Error caching daily motivation:', error);
+      debugLog.error('Error caching daily motivation:', error);
     }
   };
 
-  // OPTIMIZED: Load cached data instantly, then refresh from network
+  // SIMPLE: Check cache first, then load user data (reduces loading screen time)
   useEffect(() => {
-    console.log('🚀 DashboardScreen: Initial mount with optimistic loading...');
-    
-    // First: Try to load cached data instantly
-    loadCachedDataInstantly().then(() => {
-      // Then: Load fresh data from network in background
-      loadUserData();
-    });
-    
-    // Fallback check if still no user after 3 seconds
-    const delayedCheck = setTimeout(() => {
-      if (!user) {
-        console.log('🔄 DashboardScreen: No user after 3 seconds, force loading...');
-        loadUserData();
+    const initializeUser = async () => {
+      debugLog.log('🚀 DashboardScreen: Initializing user...');
+      
+      // Try to load cached demo user first (fastest)
+      const demoUser = demoGetCurrentUser();
+      if (demoUser) {
+        debugLog.log('✅ Found cached demo user, loading immediately');
+        setUser(demoUser);
+        return; // Skip network load since we have cached data
       }
-    }, 3000);
+      
+      // Try AsyncStorage restore (fast)
+      try {
+        const restoredUser = await demoRestoreUser();
+        if (restoredUser) {
+          debugLog.log('✅ Restored user from AsyncStorage');
+          setUser(restoredUser);
+          return; // Skip network load since we have cached data
+        }
+      } catch (error) {
+        debugLog.warn('⚠️ AsyncStorage restore failed:', error);
+      }
+      
+      // No cached data, proceed with network load
+      debugLog.log('⚠️ No cached data, loading from network...');
+      loadUserData();
+    };
     
-    return () => clearTimeout(delayedCheck);
+    initializeUser();
   }, []); // Load user data once on mount
 
   // 💰 COST-OPTIMIZED: Shared listener reduces reads by 66%
   useEffect(() => {
     const firebaseUser = auth.currentUser;
     if (firebaseUser && user && user.id === firebaseUser.uid) {
-      console.log('💰 Setting up cost-optimized shared listener - SAVES $0.50+/month');
+      debugLog.log('💰 Setting up cost-optimized shared listener - SAVES $0.50+/month');
       
       OptimizedUserOperations.setupSharedListener(firebaseUser.uid, (userData) => {
         setUser(currentUser => {
@@ -320,33 +405,51 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           
           // Smart update prevention during local changes
           if (isLocallyUpdating) {
-            console.log('💰 Ignoring update during local changes - SAVED processing');
+            debugLog.log('💰 Ignoring update during local changes - SAVED processing');
             return currentUser;
           }
           
-          // Prevent stale data updates
+          // ENHANCED: Comprehensive stale data protection
+          // 1. Check XP regression (most reliable indicator)
           if (userData.xp < currentUser.xp) {
-            console.log('💰 Ignoring stale data - SAVED unnecessary update');
+            debugLog.log('💰 Ignoring stale data (XP regression) - SAVED unnecessary update');
             return currentUser;
           }
           
-          // Check for stale check-in data
+          // 2. Check streak regression
+          if (userData.streak < currentUser.streak) {
+            debugLog.log('💰 Ignoring stale data (streak regression) - SAVED unnecessary update', {
+              incomingStreak: userData.streak,
+              currentStreak: currentUser.streak,
+              incomingXP: userData.xp,
+              currentXP: currentUser.xp
+            });
+            return currentUser;
+          }
+          
+          // 3. Check totalDays regression
+          if (userData.totalDays < currentUser.totalDays) {
+            debugLog.log('💰 Ignoring stale data (totalDays regression) - SAVED unnecessary update');
+            return currentUser;
+          }
+          
+          // 4. Check for stale check-in timestamps
           if (userData.xp === currentUser.xp && userData.lastCheckIn && currentUser.lastCheckIn) {
             const incomingCheckIn = new Date(userData.lastCheckIn);
             const currentCheckIn = new Date(currentUser.lastCheckIn);
             if (incomingCheckIn < currentCheckIn) {
-              console.log('💰 Ignoring stale check-in data - SAVED update');
+              debugLog.log('💰 Ignoring stale check-in data - SAVED update');
               return currentUser;
             }
           }
           
-          console.log('📊 Applying shared listener update');
+          debugLog.log('📊 Applying shared listener update');
           return userData;
         });
       });
       
       return () => {
-        console.log('💰 Dashboard cleanup handled by shared listener manager');
+        debugLog.log('💰 Dashboard cleanup handled by shared listener manager');
       };
     }
   }, [user, auth.currentUser, isLocallyUpdating]);
@@ -364,7 +467,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         if (needsLongestStreakMigration) {
           // Initialize longestStreak with current streak value for existing users
           updates.longestStreak = user.streak || 0;
-          console.log('Migrating longestStreak for existing user:', user.email, 'streak:', user.streak);
+          debugLog.log('Migrating longestStreak for existing user:', user.email, 'streak:', user.streak);
         }
         
         if (needsCheckInBasedMigration) {
@@ -374,7 +477,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           const estimatedCheckInDays = user.streak || 0;
           updates.totalDays = estimatedCheckInDays;
           updates.migrationVersion = 'checkin-based-v1';
-          console.log('🔄 Migrating to check-in based tracking:', {
+          debugLog.log('🔄 Migrating to check-in based tracking:', {
             email: user.email,
             oldTotalDays: user.totalDays,
             newTotalDays: estimatedCheckInDays,
@@ -408,7 +511,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         
         // Skip if already initialized for this user+date
         if (missionInitRef.current === initKey) {
-          console.log('🔄 Skipping mission init - already done for:', initKey);
+          debugLog.log('🔄 Skipping mission init - already done for:', initKey);
           return;
         }
         
@@ -420,25 +523,25 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           const lastResetDate = await AsyncStorage.getItem('lastMissionReset');
           
           // Always load today's completed missions from persistent storage
-          console.log('🔄 Mission state initialization (after login):');
-          console.log('  - User ID:', user.id);
-          console.log('  - User email:', user.email);
-          console.log('  - User isPremium:', user.isPremium);
-          console.log('  - Today:', today);
-          console.log('  - Total completed missions:', user.completedMissions?.length || 0);
-          console.log('  - Loading state:', loading);
-          console.log('  - Last reset date:', lastResetDate);
+          debugLog.log('🔄 Mission state initialization (after login):');
+          debugLog.log('  - User ID:', user.id);
+          debugLog.log('  - User email:', user.email);
+          debugLog.log('  - User isPremium:', user.isPremium);
+          debugLog.log('  - Today:', today);
+          debugLog.log('  - Total completed missions:', user.completedMissions?.length || 0);
+          debugLog.log('  - Loading state:', loading);
+          debugLog.log('  - Last reset date:', lastResetDate);
           
           // Debug each mission's date
           const allMissions = user.completedMissions || [];
-          console.log('  - All completed missions with dates:');
+          debugLog.log('  - All completed missions with dates:');
           allMissions.forEach((m, index) => {
             const missionDate = m.completedAt ? new Date(m.completedAt).toDateString() : 'null';
             const isToday = missionDate === today;
-            console.log(`    ${index}: ${m.id} - ${missionDate} - isToday: ${isToday}`);
+            debugLog.log(`    ${index}: ${m.id} - ${missionDate} - isToday: ${isToday}`);
           });
           
-          console.log('  - Raw completedMissions data:', JSON.stringify(user.completedMissions, null, 2));
+          debugLog.log('  - Raw completedMissions data:', JSON.stringify(user.completedMissions, null, 2));
           
           const todayCompletedMissions = allMissions
             .filter(m => {
@@ -458,30 +561,30 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               }
               
               const isToday = completedDate.toDateString() === today;
-              console.log(`  - Mission ${m.id}: ${completedDate.toDateString()} === ${today} ? ${isToday}`);
+              debugLog.log(`  - Mission ${m.id}: ${completedDate.toDateString()} === ${today} ? ${isToday}`);
               return isToday;
             })
             .map(m => m.id);
           
-          console.log('  - Today completed missions:', todayCompletedMissions);
+          debugLog.log('  - Today completed missions:', todayCompletedMissions);
           
           setCompletedMissions(todayCompletedMissions);
-          console.log('  - ✅ Set completed missions state to:', todayCompletedMissions);
+          debugLog.log('  - ✅ Set completed missions state to:', todayCompletedMissions);
           
           // Update the reset date if needed
           if (lastResetDate !== today) {
             await AsyncStorage.setItem('lastMissionReset', today);
-            console.log('  - Updated reset date to:', today);
+            debugLog.log('  - Updated reset date to:', today);
             // Reset unlocked missions for new day
             setAdUnlockedMissions([]);
-            console.log('  - 🔄 Reset unlocked missions for new day');
+            debugLog.log('  - 🔄 Reset unlocked missions for new day');
           }
           
           // Mark this initialization as complete
           missionInitRef.current = initKey;
-          console.log('  - ✅ Mission state initialization complete for:', initKey);
+          debugLog.log('  - ✅ Mission state initialization complete for:', initKey);
         } catch (error) {
-          console.error('Error initializing mission state:', error);
+          debugLog.error('Error initializing mission state:', error);
         }
       };
       
@@ -495,7 +598,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       missionInitRef.current = '';
       setCompletedMissions([]);
       setAdUnlockedMissions([]);
-      console.log('🔄 Reset mission state - user logged out');
+      debugLog.log('🔄 Reset mission state - user logged out');
     }
   }, [user]);
 
@@ -511,7 +614,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     currentRequestIdRef.current = requestId;
 
     const loadMotivation = async () => {
-      console.log('🤖 Starting motivation load with ID:', requestId);
+      debugLog.log('🤖 Starting motivation load with ID:', requestId);
       
       // FIXED: Clear existing motivation and set loading state
       setDailyMotivation('');
@@ -520,16 +623,16 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       try {
         // Check if this request is still current
         if (currentRequestIdRef.current !== requestId) {
-          console.log('🚫 Request', requestId, 'cancelled - newer request started');
+          debugLog.log('🚫 Request', requestId, 'cancelled - newer request started');
           return;
         }
 
-        console.log('🤖 Loading motivation for:', user.displayName, 'Language:', language);
+        debugLog.log('🤖 Loading motivation for:', user.displayName, 'Language:', language);
         
         // NEW STRATEGY: Try AI first for all users (regardless of language or premium status)
         // Then fallback to rich local content when AI quota exceeded or fails
         const motivationResult = getMotivationContent(user, language as Language);
-        console.log('🤖 MOTIVATION DEBUG:', {
+        debugLog.log('🤖 MOTIVATION DEBUG:', {
           language,
           shouldUseAI: motivationResult.shouldUseAI,
           content: motivationResult.content?.substring(0, 100) + '...'
@@ -537,7 +640,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         
         // Try AI first if quota available (for both Indonesian and English)
         if (motivationResult.shouldUseAI) {
-          console.log('🎯 Attempting AI generation for user in language:', language);
+          debugLog.log('🎯 Attempting AI generation for user in language:', language);
           try {
             // Try AI generation first with correct language
             // 💰 COST-OPTIMIZED: Use ultra-efficient AI with 95% cost reduction
@@ -550,18 +653,18 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             
             // Check again if this request is still current
             if (currentRequestIdRef.current !== requestId) {
-              console.log('🚫 Request', requestId, 'cancelled during AI call');
+              debugLog.log('🚫 Request', requestId, 'cancelled during AI call');
               return;
             }
             
             setDailyMotivation(aiMotivation);
-            console.log('✅ Request', requestId, 'completed with AI motivation');
+            debugLog.log('✅ Request', requestId, 'completed with AI motivation');
             return;
           } catch (aiError) {
-            console.log('🔄 AI failed, using local fallback for request', requestId);
+            debugLog.log('🔄 AI failed, using local fallback for request', requestId);
           }
         } else {
-          console.log('💡 AI quota exceeded or not needed, using local content for language:', language);
+          debugLog.log('💡 AI quota exceeded or not needed, using local content for language:', language);
         }
         
         // Fallback to contextual motivation - use getContextualMotivation directly to avoid calling getDailyMotivation
@@ -569,15 +672,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         
         // Final check if this request is still current
         if (currentRequestIdRef.current !== requestId) {
-          console.log('🚫 Request', requestId, 'cancelled during fallback');
+          debugLog.log('🚫 Request', requestId, 'cancelled during fallback');
           return;
         }
         
         setDailyMotivation(fallbackContent);
-        console.log('✅ Request', requestId, 'completed with fallback motivation');
+        debugLog.log('✅ Request', requestId, 'completed with fallback motivation');
         
       } catch (error) {
-        console.error('Error in request', requestId, ':', error);
+        debugLog.error('Error in request', requestId, ':', error);
         
         if (currentRequestIdRef.current === requestId) {
           // Use getContextualMotivation directly instead of getDailyMotivation to avoid multiple calls
@@ -597,7 +700,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   // Handle language changes by clearing motivation and cache
   useEffect(() => {
     if (user && user.id !== 'loading') {
-      console.log('🔄 Language changed to:', language, '- clearing motivation to force native Indonesian');
+      debugLog.log('🔄 Language changed to:', language, '- clearing motivation to force native Indonesian');
       setDailyMotivation('');
       // Clear any cached motivation for the user to force fresh native Indonesian generation
       const clearLanguageCaches = async () => {
@@ -621,57 +724,28 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             await AsyncStorage.default.removeItem(key);
           }
           
-          console.log('🗑️ Cleared ALL motivation caches for language change');
+          debugLog.log('🗑️ Cleared ALL motivation caches for language change');
         } catch (error) {
-          console.log('ℹ️ Could not clear motivation cache:', error.message);
+          debugLog.log('ℹ️ Could not clear motivation cache:', error.message);
         }
       };
       clearLanguageCaches();
     }
   }, [language]);
 
-  // OPTIMIZED: Instant cache loading for better UX
-  const loadCachedDataInstantly = async () => {
-    try {
-      // Skip if we already have real user data (not skeleton)
-      if (user.id !== 'loading') {
-        console.log('✅ Already have real user data');
-        return;
-      }
-      
-      // Try demo user from memory (fastest)
-      const demoUser = demoGetCurrentUser();
-      if (demoUser) {
-        console.log('✅ Loading demo user from memory instantly');
-        setUser(demoUser);
-        return;
-      }
-      
-      // Try to restore from AsyncStorage (slower but still faster than network)
-      const restoredUser = await demoRestoreUser();
-      if (restoredUser) {
-        console.log('✅ Loading restored user data instantly');
-        setUser(restoredUser);
-        return;
-      }
-      
-      console.log('ℹ️ No cached data available, will wait for network load');
-    } catch (error) {
-      console.log('⚠️ Cache load failed, falling back to network:', error);
-    }
-  };
 
   const loadUserData = async () => {
-    if (__DEV__) console.log('Starting loadUserData...');
+    if (__DEV__) debugLog.log('Starting loadUserData...');
+    
     try {
       // First priority: Check Firebase authentication for real users
-      console.log('Checking Firebase auth first...');
+      debugLog.log('Checking Firebase auth first...');
       try {
         const currentUser = auth.currentUser;
-        console.log('Firebase currentUser:', currentUser?.email);
+        debugLog.log('Firebase currentUser:', currentUser?.email);
         
         if (currentUser) {
-          console.log('Getting user doc from Firestore...');
+          debugLog.log('Getting user doc from Firestore...');
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
           if (userDoc.exists()) {
             let userData = { id: currentUser.uid, ...userDoc.data() } as User;
@@ -689,17 +763,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 lastCheckIn: migrationResult.user.lastCheckIn,
                 migrationVersion: migrationResult.user.migrationVersion
               });
-              console.log('✅ Applied check-in system migration to Firebase user');
+              debugLog.log('✅ Applied check-in system migration to Firebase user');
               userData = migrationResult.user;
             }
             
-            console.log('Firebase user data loaded:', userData.email);
+            debugLog.log('Firebase user data loaded:', userData.email);
             setUser(userData);
             updateUser(userData);
             setLoading(false);
             return;
           } else {
-            console.log('User doc does not exist in Firestore - creating default document');
+            debugLog.log('User doc does not exist in Firestore - creating default document');
             
             // Create a default user document for the authenticated Firebase user
             const newUserData: User = {
@@ -738,7 +812,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               // Create the document in Firestore
               const { setDoc } = await import('firebase/firestore');
               await setDoc(doc(db, 'users', currentUser.uid), newUserData);
-              console.log('Created new user document in Firestore for:', currentUser.email);
+              debugLog.log('Created new user document in Firestore for:', currentUser.email);
               
               // Set the user data
               setUser(newUserData);
@@ -746,23 +820,23 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               setLoading(false);
               
               // Now that we have a document, set up the listener
-              console.log('💰 Setting up listener for newly created user document');
+              debugLog.log('💰 Setting up listener for newly created user document');
               OptimizedUserOperations.setupSharedListener(currentUser.uid, (userData) => {
-                console.log('💰 Shared listener update for new user:', userData.email);
+                debugLog.log('💰 Shared listener update for new user:', userData.email);
                 setUser(userData);
               });
               
               return;
             } catch (createError) {
-              console.error('Failed to create user document in Firestore:', createError);
+              debugLog.error('Failed to create user document in Firestore:', createError);
               
               // If we can't create the document, this Firebase user is corrupted
               // Log them out and redirect to login
-              console.log('🚨 Firebase user exists but document creation failed - logging out');
+              debugLog.log('🚨 Firebase user exists but document creation failed - logging out');
               
               try {
                 await auth.signOut();
-                console.log('✅ Successfully logged out corrupted Firebase user');
+                debugLog.log('✅ Successfully logged out corrupted Firebase user');
                 
                 // Redirect to login screen - call onLogout prop if available
                 if (onLogout) {
@@ -771,28 +845,35 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 }
                 
                 // If no onLogout prop, navigate to login manually
-                console.log('🔄 Redirecting to login screen after logout');
+                debugLog.log('🔄 Redirecting to login screen after logout');
                 
               } catch (logoutError) {
-                console.error('❌ Failed to logout corrupted user:', logoutError);
+                debugLog.error('❌ Failed to logout corrupted user:', logoutError);
               }
               
               // Continue to demo fallback as last resort
             }
           }
         } else {
-          console.log('No current user in Firebase auth');
+          debugLog.log('No current user in Firebase auth');
         }
       } catch (firebaseError) {
-        console.error('Firebase error, falling back to demo:', firebaseError);
-        // Continue to demo fallback
+        debugLog.error('Firebase error, keeping existing user state:', firebaseError);
+        // DON'T continue to demo fallback if we already have a user from cache
+        if (user) {
+          debugLog.log('✅ Firebase failed but keeping existing cached user to prevent loading screen');
+          setLoading(false);
+          return;
+        }
+        // Only continue to demo fallback if we have no user at all
+        debugLog.log('⚠️ Firebase failed and no cached user, trying demo fallback...');
       }
 
       // Fallback to demo data for development/testing
-      console.log('No Firebase user, checking for demo user in memory...');
+      debugLog.log('No Firebase user, checking for demo user in memory...');
       const demoUser = demoGetCurrentUser();
       if (demoUser) {
-        console.log('Demo user found in memory:', demoUser.email);
+        debugLog.log('Demo user found in memory:', demoUser.email);
         setUser(demoUser);
         updateUser(demoUser);
         setLoading(false);
@@ -800,17 +881,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       }
       
       // Try to restore demo user from storage as last resort
-      console.log('Attempting to restore demo user from storage...');
+      debugLog.log('Attempting to restore demo user from storage...');
       const restoredUser = await demoRestoreUser();
       if (restoredUser) {
-        console.log('Demo user restored from storage:', restoredUser.email);
+        debugLog.log('Demo user restored from storage:', restoredUser.email);
         setUser(restoredUser);
         updateUser(restoredUser);
         setLoading(false);
         return;
       }
 
-      console.log('No user found in any data source - creating default demo user as fallback');
+      debugLog.log('No user found in any data source - creating default demo user as fallback');
       // Create a default demo user as the ultimate fallback
       const defaultUser: User = {
         id: 'fallback-user',
@@ -843,11 +924,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         referralRewards: 0
       };
       
-      console.log('Setting fallback guest user');
+      debugLog.log('Setting fallback guest user');
       setUser(defaultUser);
       updateUser(defaultUser);
     } catch (error) {
-      console.error('Error loading user data:', error);
+      debugLog.error('Error loading user data:', error);
       
       // Even in error case, provide a fallback user
       const errorFallbackUser: User = {
@@ -881,12 +962,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         referralRewards: 0
       };
       
-      console.log('Setting error recovery user');
+      debugLog.log('Setting error recovery user');
       setUser(errorFallbackUser);
       updateUser(errorFallbackUser);
       showCustomAlert('Error', 'Using offline mode. Your data will be saved locally.', 'warning');
     } finally {
-      console.log('Setting loading to false');
+      debugLog.log('Setting loading to false');
       setLoading(false);
       
       // Initialize user journey tracking and crash reporting
@@ -904,7 +985,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
       // Check if user needs tutorial (first-time user)
       if (userData && !userData.tutorialCompleted && userData.onboardingCompleted) {
-        console.log('🎯 First-time user detected, showing feature tutorial');
+        debugLog.log('🎯 First-time user detected, showing feature tutorial');
         setShowTutorial(true);
       }
     }
@@ -919,9 +1000,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         const updatedUser = { ...user, tutorialCompleted: true };
         setUser(updatedUser);
         await updateUser(updatedUser);
-        console.log('✅ Tutorial marked as completed for user');
+        debugLog.log('✅ Tutorial marked as completed for user');
       } catch (error) {
-        console.error('Error marking tutorial as completed:', error);
+        debugLog.error('Error marking tutorial as completed:', error);
       }
     }
   };
@@ -935,9 +1016,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         const updatedUser = { ...user, tutorialCompleted: true };
         setUser(updatedUser);
         await updateUser(updatedUser);
-        console.log('✅ Tutorial skipped and marked as completed');
+        debugLog.log('✅ Tutorial skipped and marked as completed');
       } catch (error) {
-        console.error('Error marking tutorial as skipped:', error);
+        debugLog.error('Error marking tutorial as skipped:', error);
       }
     }
   };
@@ -949,6 +1030,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       showCustomAlert('Info', t.dashboard.checkedIn + '!', 'info');
       return;
     }
+
+    // ATOMIC: Generate unique session ID to prevent duplicate processing
+    const sessionId = `checkin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Prevent duplicate check-ins within the same session
+    if (lastCheckInSessionId && Date.now() - parseInt(lastCheckInSessionId.split('-')[1]) < 5000) {
+      debugLog.log('⚠️ Preventing duplicate check-in within 5 seconds');
+      return;
+    }
+    
+    setLastCheckInSessionId(sessionId);
 
     // OPTIMIZED: Immediate haptic feedback and UI response
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -964,19 +1056,32 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       const newXP = user.xp + checkInXP;
       const updatedDailyXP = addDailyXP(user.dailyXP, checkInXP);
       
-      // OPTIMIZED: Update UI immediately for instant feedback
+      // ATOMIC: Create timestamp-based optimistic update to prevent duplicates
+      const checkInTimestamp = new Date().toISOString();
       const optimisticUser = {
         ...user,
-        lastCheckIn: new Date().toISOString(),
+        lastCheckIn: checkInTimestamp,
         streak: newStreak,
         longestStreak: newLongestStreak,
         totalDays: newTotalDays,
         xp: newXP,
         dailyXP: updatedDailyXP
       };
+      
+      debugLog.log('🎯 ATOMIC CHECK-IN:', {
+        sessionId,
+        oldStreak: user.streak,
+        newStreak,
+        oldTotalDays: user.totalDays,
+        newTotalDays,
+        oldXP: user.xp,
+        newXP,
+        timestamp: checkInTimestamp
+      });
+      
       setUser(optimisticUser); // Instant UI update
       
-      console.log('🔄 Check-in debug - Check-in based tracking:', {
+      debugLog.log('🔄 Check-in debug - Check-in based tracking:', {
         oldTotalCheckInDays: user.totalDays,
         newTotalCheckInDays: newTotalDays,
         streakBefore: user.streak,
@@ -1014,18 +1119,18 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             xp: newXP,
             dailyXP: updatedDailyXP,
           });
-          console.log('✓ Dashboard Firebase: Check-in data updated successfully');
+          debugLog.log('✓ Dashboard Firebase: Check-in data updated successfully');
         } catch (firebaseError) {
-          console.log('⚠️ Firebase error during check-in, switching to demo mode:', firebaseError.message);
+          debugLog.log('⚠️ Firebase error during check-in, switching to demo mode:', firebaseError.message);
           
           // FALLBACK: Switch to demo mode if Firebase fails persistently
           try {
             // Create demo user with current data
             const demoUserData = { ...optimisticUser };
             await demoUpdateUser(user.id, demoUserData);
-            console.log('✓ Switched to demo mode successfully, check-in preserved');
+            debugLog.log('✓ Switched to demo mode successfully, check-in preserved');
           } catch (demoError) {
-            console.error('Demo fallback also failed:', demoError);
+            debugLog.error('Demo fallback also failed:', demoError);
             // Even if demo fails, the optimistic UI update already happened
           }
         }
@@ -1034,7 +1139,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         const demoUser = demoGetCurrentUser();
         if (demoUser) {
           await demoUpdateUser(user.id, updates);
-          console.log('✓ Demo: Check-in data updated (development mode)');
+          debugLog.log('✓ Demo: Check-in data updated (development mode)');
         }
       }
 
@@ -1047,7 +1152,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       setUser(updatedUser);
       
       // Force recalculation by triggering a re-render
-      console.log('✅ Local state updated after check-in:', {
+      debugLog.log('✅ Local state updated after check-in:', {
         oldTotalDays: user.totalDays,
         newTotalDays: updatedUser.totalDays,
         shouldUpdateMoney: user.totalDays !== updatedUser.totalDays
@@ -1063,7 +1168,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           const firebaseUser = auth.currentUser;
           if (firebaseUser) {
             // Firebase users are already updated by checkAndAwardBadges
-            console.log('New badges awarded to Firebase user:', newBadges.length);
+            debugLog.log('New badges awarded to Firebase user:', newBadges.length);
           } else {
             // Update demo user in-memory data with new badges
             const demoUser = demoGetCurrentUser();
@@ -1075,7 +1180,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           }
         }
       } catch (error) {
-        console.error('Error checking badges:', error);
+        debugLog.error('Error checking badges:', error);
       }
 
       // Update user again if badges were added
@@ -1086,9 +1191,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       // Contribute anonymous stats to community
       try {
         await contributeAnonymousStats(updatedUser);
-        console.log('✅ Anonymous stats contributed to community');
+        debugLog.log('✅ Anonymous stats contributed to community');
       } catch (error) {
-        console.error('⚠️ Failed to contribute anonymous stats:', error);
+        debugLog.error('⚠️ Failed to contribute anonymous stats:', error);
         // Don't break check-in flow for this
       }
 
@@ -1139,7 +1244,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               }
             }
           } catch (error) {
-            console.error('Error recording check-in mission:', error);
+            debugLog.error('Error recording check-in mission:', error);
           }
         }
       }
@@ -1162,10 +1267,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       // message += `\nDebug: Daily XP today: ${todayXP}`;
       
       showCustomAlert(t.dashboard.checkInSuccess, message, 'success');
-      
-      // 🎉 Show confetti animation for check-in celebration
-      setShowConfetti(true);
-      
+
       // Show interstitial ad after successful check-in (for free users only)
       showAdAfterDelay('daily_checkin');
       
@@ -1173,12 +1275,22 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       showCustomAlert('Error', 'Gagal melakukan check-in', 'error');
     } finally {
       setCheckingIn(false);
-      // Reset the local updating flag after a short delay to allow Firebase to sync
+      // FIXED: Reset the local updating flag after Firebase confirms write (reduced delay)
       setTimeout(() => {
         setIsLocallyUpdating(false);
-      }, 2000);
+      }, 500); // Reduced from 2000ms to 500ms - just enough for Firebase write confirmation
     }
   };
+
+  // Get Lungcat health percentage - use boosted health from interactions if available
+  const getLungcatHealth = useCallback(() => {
+    // If user has interacted with Lungcat (has petStats), show the boosted health
+    if (user?.petStats?.health !== undefined) {
+      return Math.round(user.petStats.health);
+    }
+    // Otherwise fall back to base unified health
+    return getLungcatHealthPercentage(user);
+  }, [user]);
 
   const handleAdUnlockMissions = useCallback(async () => {
     if (!user || isAdUnlockLoading || adUnlockedMissions.length > 0) return;
@@ -1196,14 +1308,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         return;
       }
 
-      console.log('🎯 Starting mission unlock ad...');
+      debugLog.log('🎯 Starting mission unlock ad...');
       
       // Show rewarded ad with mission_unlock context
       const adWatched = await showRewardedAd('mission_unlock');
       
       if (adWatched) {
         // User successfully watched the ad, unlock missions 3 & 4
-        console.log('✅ Ad watched! Unlocking missions 3 & 4...');
+        debugLog.log('✅ Ad watched! Unlocking missions 3 & 4...');
         
         // Set flag to indicate missions are unlocked
         setAdUnlockedMissions(['unlocked']); // Just use as a flag
@@ -1219,7 +1331,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         setShowConfetti(true);
         
       } else {
-        console.log('❌ Ad was not completed');
+        debugLog.log('❌ Ad was not completed');
         showCustomAlert(
           t.common.error,
           language === 'en' ? 'Ad was not completed. Please try again.' : 'Iklan tidak selesai. Silakan coba lagi.',
@@ -1228,7 +1340,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       }
       
     } catch (error) {
-      console.error('Error showing mission unlock ad:', error);
+      debugLog.error('Error showing mission unlock ad:', error);
       showCustomAlert(
         t.common.error,
         'Failed to show ad. Please try again.',
@@ -1239,13 +1351,57 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     }
   }, [user, isAdUnlockLoading, adUnlockedMissions.length, language, t]);
 
+  // Helper function to complete mission after check-in
+  const completeMissionAfterCheckIn = useCallback(async (mission: Mission) => {
+    try {
+      // Track mission completion
+      await trackMissionEngagement(mission.id, 'completed', {
+        xpReward: mission.xpReward,
+        difficulty: mission.difficulty
+      });
+
+      // Complete the mission logic (similar to main mission completion)
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser && user) {
+        const result = await completeMission(user.id, mission, user);
+        if (result.success) {
+          const updatedDailyXP = addDailyXP(user.dailyXP, result.xpAwarded);
+          const updatedUser = {
+            ...user,
+            xp: user.xp + result.xpAwarded,
+            dailyXP: updatedDailyXP,
+            completedMissions: [...(user.completedMissions || []), {
+              ...mission,
+              isCompleted: true,
+              completedAt: new Date(),
+            }],
+            badges: [...user.badges, ...result.newBadges],
+          };
+          setUser(updatedUser);
+
+          if (result.xpAwarded > 0) {
+            showCustomAlert(
+              '🎉 Mission Complete!',
+              `Great job! You earned ${result.xpAwarded} XP.`,
+              'success'
+            );
+          }
+        }
+      }
+    } catch (error) {
+      debugLog.error('Error completing mission after check-in:', error);
+    } finally {
+      setIsLocallyUpdating(false);
+    }
+  }, [user, setUser, showCustomAlert, setShowConfetti, setIsLocallyUpdating]);
+
   const handleMissionToggle = useCallback(async (mission: Mission) => {
     // OPTIMIZED: Immediate haptic feedback for better responsiveness
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
     // Track mission interaction (async, non-blocking)
     trackUserAction('dashboard', 'mission_tapped', { missionId: mission.id }).catch(error => {
-      console.log('Analytics tracking failed but continuing with mission logic');
+      debugLog.log('Analytics tracking failed but continuing with mission logic');
     });
     
     // Handle locked missions or specific ad unlock mission
@@ -1259,6 +1415,37 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
       // If it's the daily check-in mission, trigger the check-in process
       await handleCheckIn();
     } else {
+      // Check if user has checked in today before allowing mission completion
+      if (!hasCheckedInToday(user.lastCheckIn)) {
+        showCustomAlert(
+          'Check In First! 📅',
+          'Start your day by checking in to unlock missions and build your quit-smoking streak!',
+          'info',
+          [
+            {
+              text: 'Later',
+              style: 'cancel'
+            },
+            {
+              text: 'Check In Now',
+              onPress: async () => {
+                await handleCheckIn();
+                // Small delay to let state update, then retry mission
+                setTimeout(() => {
+                  // The mission will now complete since check-in is done
+                  setCompletedMissions(prev => [...prev, mission.id]);
+                  setIsLocallyUpdating(true);
+
+                  // Complete the mission directly after check-in
+                  completeMissionAfterCheckIn(mission);
+                }, 500);
+              }
+            }
+          ]
+        );
+        return;
+      }
+
       // For other missions, toggle completion status
       if (mission.isCompleted) {
         setCompletedMissions(prev => prev.filter(id => id !== mission.id));
@@ -1275,10 +1462,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         } catch (error) {
           // Continue even if tracking fails
         }
-        
-        // 🎉 Show confetti animation for mission completion
-        setShowConfetti(true);
-        
+
         // Actually complete the mission
         try {
           
@@ -1290,9 +1474,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           
           if (firebaseUser) {
             // Handle Firebase user mission completion
-            console.log('  - Completing Firebase mission:', mission.id);
+            debugLog.log('  - Completing Firebase mission:', mission.id);
             const result = await completeMission(user.id, mission, user);
-            console.log('  - Mission completion result:', result.success, 'XP:', result.xpAwarded);
+            debugLog.log('  - Mission completion result:', result.success, 'XP:', result.xpAwarded);
             
             if (result.success) {
               // Update user data to reflect XP and badge changes including daily XP
@@ -1308,7 +1492,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 }],
                 badges: [...user.badges, ...result.newBadges],
               };
-              console.log('  - Updated user with completed missions count:', updatedUser.completedMissions?.length);
+              debugLog.log('  - Updated user with completed missions count:', updatedUser.completedMissions?.length);
               setUser(updatedUser);
               
               // Show success message if XP was awarded
@@ -1331,11 +1515,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             }
           } else {
             // Handle demo user mission completion
-            console.log('🎯 Handling demo user mission completion');
+            debugLog.log('🎯 Handling demo user mission completion');
             const demoUser = demoGetCurrentUser();
             if (demoUser && demoUser.id === user.id) {
-              console.log('🎯 Demo user found, calculating XP update');
-              console.log('🎯 Old XP:', user.xp, 'Mission reward:', mission.xpReward);
+              debugLog.log('🎯 Demo user found, calculating XP update');
+              debugLog.log('🎯 Old XP:', user.xp, 'Mission reward:', mission.xpReward);
               
               const completedMission = {
                 ...mission,
@@ -1347,7 +1531,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
               const updatedDailyXP = addDailyXP(user.dailyXP, mission.xpReward);
               const updatedCompletedMissions = [...(user.completedMissions || []), completedMission];
               
-              console.log('🎯 New XP calculated:', newXP);
+              debugLog.log('🎯 New XP calculated:', newXP);
               
               // Check for new badges
               const updatedUser = {
@@ -1366,7 +1550,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 completedMissions: updatedCompletedMissions,
                 badges: [...user.badges, ...newBadges],
               });
-              console.log('Demo user updated after mission completion:', {
+              debugLog.log('Demo user updated after mission completion:', {
                 xp: newXP,
                 missionsCount: updatedCompletedMissions.length,
                 badgesCount: [...user.badges, ...newBadges].length
@@ -1377,9 +1561,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
                 ...updatedUser,
                 badges: [...user.badges, ...newBadges],
               };
-              console.log('🎯 Updating local state with XP:', finalUpdatedUser.xp);
+              debugLog.log('🎯 Updating local state with XP:', finalUpdatedUser.xp);
               setUser(finalUpdatedUser);
-              console.log('🎯 Local state updated after mission completion');
+              debugLog.log('🎯 Local state updated after mission completion');
               
               if (mission.xpReward > 0) {
                 showCustomAlert(
@@ -1399,7 +1583,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
             }
           }
         } catch (error) {
-          console.error('Error completing mission:', error);
+          debugLog.error('Error completing mission:', error);
           
           // Log error for crash reporting
           import('../services/crashReporting').then(({ logError }) => {
@@ -1412,10 +1596,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           
           showCustomAlert('Error', 'Gagal menyelesaikan misi', 'error');
         } finally {
-          // Reset the local updating flag after a short delay
+          // FIXED: Reset the local updating flag after Firebase confirms write
           setTimeout(() => {
             setIsLocallyUpdating(false);
-          }, 2000);
+          }, 500); // Reduced from 2000ms to 500ms
         }
       }
     }
@@ -1477,7 +1661,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
         );
       }
     } catch (error) {
-      console.error('Error showing motivation reward ad:', error);
+      debugLog.error('Error showing motivation reward ad:', error);
       showCustomAlert(
         language === 'en' ? 'Error' : 'Kesalahan',
         language === 'en' 
@@ -1493,14 +1677,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
 
 
 
-  // Calculate premium status - handles skeleton user
-  const hasActivePremium = useMemo(() => user.isPremium, [user.isPremium]);
+  // Calculate premium status - null-safe
+  const hasActivePremium = useMemo(() => user?.isPremium || false, [user?.isPremium]);
 
   // Memoize daily missions to prevent recalculation on every render
   // This must be called before any early returns to maintain hook order
   const dailyMissions = useMemo(() => {
-    // Handle skeleton user - show empty missions while loading
-    if (user.id === 'loading') {
+    // Handle null user or skeleton user - show empty missions while loading
+    if (!user || user.id === 'loading') {
       return [];
     }
     
@@ -1525,7 +1709,76 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
     );
   }
 
-  // REMOVED: No more error screen - we always have skeleton user for instant loading
+  // SKELETON: Show skeleton dashboard instead of loading screen for better UX
+  if (!user) {
+    return (
+      <ErrorBoundary>
+        <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+          <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
+            <View style={styles.headerContent}>
+              <View style={styles.headerTextContainer}>
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 150, height: 24 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 120, height: 18, marginTop: 8 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 180, height: 16, marginTop: 4 }]} />
+              </View>
+            </View>
+          </LinearGradient>
+
+          {/* Skeleton Level Card */}
+          <View style={[styles.levelCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.levelTopRow}>
+              <View style={[styles.skeletonCircle, { backgroundColor: colors.lightGray, width: 24, height: 24 }]} />
+              <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 100, height: 20 }]} />
+              <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 60, height: 20 }]} />
+            </View>
+            <View style={styles.levelProgressRow}>
+              <View style={[styles.levelProgressBar, { backgroundColor: colors.lightGray, height: 8 }]} />
+            </View>
+          </View>
+
+          {/* Skeleton Stats Card */}
+          <View style={[styles.statsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <View style={[styles.skeletonCircle, { backgroundColor: colors.lightGray, width: 40, height: 40 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 40, height: 24, marginTop: 8 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 60, height: 16, marginTop: 4 }]} />
+              </View>
+              <View style={styles.statItem}>
+                <View style={[styles.skeletonCircle, { backgroundColor: colors.lightGray, width: 40, height: 40 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 50, height: 24, marginTop: 8 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 70, height: 16, marginTop: 4 }]} />
+              </View>
+              <View style={styles.statItem}>
+                <View style={[styles.skeletonCircle, { backgroundColor: colors.lightGray, width: 40, height: 40 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 80, height: 24, marginTop: 8 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 60, height: 16, marginTop: 4 }]} />
+              </View>
+            </View>
+          </View>
+
+          {/* Skeleton Motivation Card */}
+          <View style={[styles.motivationCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 150, height: 20, marginBottom: 12 }]} />
+            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: '100%', height: 16, marginBottom: 8 }]} />
+            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: '80%', height: 16, marginBottom: 8 }]} />
+            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: '60%', height: 16 }]} />
+          </View>
+
+          {/* Skeleton Daily Missions */}
+          <View style={[styles.missionsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 120, height: 20, marginBottom: 16 }]} />
+            {[1, 2].map(i => (
+              <View key={i} style={[styles.missionItem, { backgroundColor: colors.lightGray, marginBottom: 12, padding: 16 }]}>
+                <View style={[styles.skeletonText, { backgroundColor: colors.background, width: '70%', height: 16, marginBottom: 8 }]} />
+                <View style={[styles.skeletonText, { backgroundColor: colors.background, width: '50%', height: 14 }]} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </ErrorBoundary>
+    );
+  }
 
   // All calculations are now memoized at the top of the component for better performance
   return (
@@ -1634,6 +1887,94 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
           </View>
         </View>
       </View>
+
+      {/* Lungcat Pet Widget */}
+      <TouchableOpacity 
+        style={[styles.lungcatWidget, { backgroundColor: colors.surface }]}
+        onPress={() => {
+          // Navigate to Tamagotchi tab
+          try {
+            navigation?.navigate('Tamagotchi');
+          } catch (error) {
+            // Fallback if navigation fails
+            showCustomAlert(
+              language === 'en' ? '🐱 Lungcat' : '🐱 Lungcat',
+              language === 'en' 
+                ? 'Opening Lungcat page... 🎮' 
+                : 'Membuka halaman Lungcat... 🎮',
+              'info'
+            );
+          }
+        }}
+        activeOpacity={0.8}
+      >
+        <View style={styles.lungcatWidgetContent}>
+          <View style={styles.lungcatInfo}>
+            <Text style={[styles.lungcatSubtitle, { color: colors.textSecondary }]}>
+              {language === 'en'
+                ? "Care for your Lungcat by checking in daily and completing missions!"
+                : "Rawat Lungcat Anda dengan check-in harian dan selesaikan misi!"
+              }
+            </Text>
+
+            {/* Lungcat Status */}
+            <Text style={[styles.lungcatStatus, { color: colors.textPrimary }]}>
+              {user?.streak >= 30
+                ? (language === 'en' ? '🌟 Thriving & Happy!' : '🌟 Berkembang & Bahagia!')
+                : user?.streak >= 7
+                ? (language === 'en' ? '😊 Healthy & Growing' : '😊 Sehat & Berkembang')
+                : user?.streak > 0
+                ? (language === 'en' ? '🌱 Getting Better' : '🌱 Semakin Baik')
+                : (language === 'en' ? '😷 Needs Your Care' : '😷 Butuh Perhatian')
+              }
+            </Text>
+
+            {/* Health Meter */}
+            <View style={styles.lungcatHealthMeter}>
+              <View style={[styles.lungcatHealthBar, { backgroundColor: colors.lightGray }]}>
+                <View
+                  style={[
+                    styles.lungcatHealthFill,
+                    {
+                      width: `${getLungcatHealth()}%`,
+                      backgroundColor: getLungcatHealthColor(user, colors)
+                    }
+                  ]}
+                />
+              </View>
+              <Text style={[styles.lungcatHealthText, { color: colors.textSecondary }]}>
+                ❤️ {getLungcatHealth()}%
+              </Text>
+            </View>
+          </View>
+
+          {/* Lungcat animation on the right */}
+          <View style={styles.lungcatRightSection}>
+            <View style={[styles.lungcatCircle, { backgroundColor: colors.white }]}>
+              {/* Temporarily disabled LottieView for testing black screen
+              <LottieView
+                source={require('../../assets/lungcat/animations/lungcat-idle.json')}
+                autoPlay
+                loop
+                style={styles.lungcatLottieView}
+                resizeMode="contain"
+              />
+              */}
+              <Animated.View
+                style={{
+                  transform: [{ translateX: shakeAnimation }],
+                }}
+              >
+                <Image
+                  source={require('../../assets/images/lungcat.png')}
+                  style={styles.lungcatLottieView}
+                  resizeMode="contain"
+                />
+              </Animated.View>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
 
       {/* Daily Missions Card */}
       <View style={[styles.missionCardContainer, { backgroundColor: colors.surface }]}>
@@ -2275,7 +2616,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
-    marginTop: SIZES.sm,
+    marginTop: 4,
     marginBottom: SIZES.xs || 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -2370,6 +2711,123 @@ const styles = StyleSheet.create({
   },
   
   // SOS button styles removed - now integrated into navigation tab bar
+  
+  // Lungcat Widget styles
+  lungcatWidget: {
+    marginHorizontal: SIZES.screenPadding,
+    marginTop: SIZES.xs / 2,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.cardPadding,
+    borderRadius: SIZES.cardRadius,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  lungcatWidgetContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  lungcatInfo: {
+    flex: 1,
+    marginRight: SIZES.sm,
+  },
+  lungcatTitle: {
+    ...TYPOGRAPHY.bodyMedium,
+    fontWeight: '700',
+    textAlign: 'left',
+    marginBottom: 4,
+  },
+  lungcatSubtitle: {
+    ...TYPOGRAPHY.bodySmall,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  lungcatStatus: {
+    ...TYPOGRAPHY.bodyMedium,
+    fontWeight: '600',
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  lungcatHealthMeter: {
+    marginTop: 6,
+    alignItems: 'flex-start',
+  },
+  lungcatHealthBar: {
+    width: 120,
+    height: 6,
+    borderRadius: 3,
+    marginBottom: 3,
+    overflow: 'hidden',
+  },
+  lungcatHealthFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  lungcatHealthText: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '600',
+  },
+  lungcatRightSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lungcatCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  lungcatLottieView: {
+    width: 80,
+    height: 80,
+  },
+  shimmerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'transparent',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 165, 0, 0.7)', // Orange with transparency
+    shadowColor: '#FF8C00',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+
+  // Skeleton loading styles
+  skeletonText: {
+    borderRadius: 4,
+    opacity: 0.7,
+  },
+  skeletonCircle: {
+    borderRadius: 50,
+    opacity: 0.7,
+  },
 });
 
 // Memo comparison to prevent unnecessary re-renders

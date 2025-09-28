@@ -781,10 +781,36 @@ export const addDailyXP = (dailyXP: { [date: string]: number } | undefined, xpAm
 
 export const getDailyXP = (dailyXP: { [date: string]: number } | undefined, date: Date): number => {
   // Use local timezone to match addDailyXP format
-  const dateKey = date.getFullYear() + '-' + 
-                  String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+  const dateKey = date.getFullYear() + '-' +
+                  String(date.getMonth() + 1).padStart(2, '0') + '-' +
                   String(date.getDate()).padStart(2, '0');
   return dailyXP?.[dateKey] || 0;
+};
+
+export const cleanCorruptedDailyXP = (dailyXP: { [date: string]: number } | undefined): { [date: string]: number } => {
+  if (!dailyXP) return {};
+
+  const cleanedData: { [date: string]: number } = {};
+
+  for (const [key, value] of Object.entries(dailyXP)) {
+    // Valid date format should be YYYY-MM-DD
+    const isValidDateFormat = /^\d{4}-\d{2}-\d{2}$/.test(key);
+    const isValidNumber = typeof value === 'number' && !isNaN(value) && isFinite(value);
+
+    if (isValidDateFormat && isValidNumber) {
+      cleanedData[key] = value;
+    } else {
+      console.warn('🧹 Removing corrupted dailyXP entry:', { key, value, type: typeof value });
+    }
+  }
+
+  console.log('🧹 Daily XP cleanup completed:', {
+    originalEntries: Object.keys(dailyXP).length,
+    cleanedEntries: Object.keys(cleanedData).length,
+    removedEntries: Object.keys(dailyXP).length - Object.keys(cleanedData).length
+  });
+
+  return cleanedData;
 };
 
 // Smart Streak Notifications - Streak Risk Detection

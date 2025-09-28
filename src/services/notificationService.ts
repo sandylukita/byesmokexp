@@ -17,6 +17,7 @@
 
 import * as Notifications from 'expo-notifications';
 import { Platform, AppState } from 'react-native';
+import { debugLog } from '../utils/performanceOptimizer';
 import { translations, Language } from '../utils/translations';
 import { User } from '../types';
 import { detectStreakRisk, getStreakNotificationContent, shouldScheduleStreakReminder } from '../utils/helpers';
@@ -132,18 +133,18 @@ export class NotificationService {
     try {
       // Listen for notifications received while app is foregrounded
       this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
-        console.log('Notification received while app active:', notification);
+        debugLog.log('Notification received while app active:', notification);
       });
 
       // Listen for user tapping notifications
       this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-        console.log('User tapped notification:', response);
+        debugLog.log('User tapped notification:', response);
         // Could navigate to specific screen or perform action here
       });
 
-      console.log('Notification listeners initialized');
+      debugLog.log('Notification listeners initialized');
     } catch (error) {
-      console.error('Error initializing notification listeners:', error);
+      debugLog.error('Error initializing notification listeners:', error);
     }
   }
 
@@ -162,9 +163,9 @@ export class NotificationService {
         this.responseListener = null;
       }
       
-      console.log('Notification listeners removed');
+      debugLog.log('Notification listeners removed');
     } catch (error) {
-      console.error('Error removing notification listeners:', error);
+      debugLog.error('Error removing notification listeners:', error);
     }
   }
   /**
@@ -175,7 +176,7 @@ export class NotificationService {
       const { status } = await Notifications.getPermissionsAsync();
       return status as PermissionStatus;
     } catch (error) {
-      console.error('Error getting notification permission status:', error);
+      debugLog.error('Error getting notification permission status:', error);
       return 'undetermined';
     }
   }
@@ -188,11 +189,11 @@ export class NotificationService {
       // Check if we already have permissions
       const currentStatus = await this.getPermissionStatus();
       if (currentStatus === 'granted') {
-        console.log('Permissions already granted');
+        debugLog.log('Permissions already granted');
         return 'granted';
       }
 
-      console.log('Requesting notification permissions...');
+      debugLog.log('Requesting notification permissions...');
       
       // Request permissions
       const { status } = await Notifications.requestPermissionsAsync({
@@ -203,10 +204,10 @@ export class NotificationService {
         },
       });
 
-      console.log('Permission request result:', status);
+      debugLog.log('Permission request result:', status);
       return status as PermissionStatus;
     } catch (error) {
-      console.error('Error requesting notification permissions:', error);
+      debugLog.error('Error requesting notification permissions:', error);
       return 'denied';
     }
   }
@@ -234,7 +235,7 @@ export class NotificationService {
     try {
       const hasPermission = await this.hasPermissions();
       if (!hasPermission) {
-        console.log('No notification permissions');
+        debugLog.log('No notification permissions');
         return null;
       }
 
@@ -243,7 +244,7 @@ export class NotificationService {
       
       // Validate time
       if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-        console.error('Invalid time format:', time);
+        debugLog.error('Invalid time format:', time);
         return null;
       }
 
@@ -257,7 +258,7 @@ export class NotificationService {
         const now = new Date();
         const daysSinceQuit = Math.floor((now.getTime() - quitDate.getTime()) / (1000 * 60 * 60 * 24));
         message = getProgressBasedNotificationMessage(Math.max(1, daysSinceQuit), language);
-        console.log(`Using progress-based message for day ${daysSinceQuit}`);
+        debugLog.log(`Using progress-based message for day ${daysSinceQuit}`);
       } else {
         message = getRandomNotificationMessage(language);
       }
@@ -279,10 +280,10 @@ export class NotificationService {
         } as Notifications.CalendarTriggerInput,
       });
 
-      console.log(`Scheduled daily reminder for ${time}:`, identifier);
+      debugLog.log(`Scheduled daily reminder for ${time}:`, identifier);
       return identifier;
     } catch (error) {
-      console.error('Error scheduling notification:', error);
+      debugLog.error('Error scheduling notification:', error);
       return null;
     }
   }
@@ -293,9 +294,9 @@ export class NotificationService {
   static async cancelNotification(identifier: string): Promise<void> {
     try {
       await Notifications.cancelScheduledNotificationAsync(identifier);
-      console.log('Cancelled notification:', identifier);
+      debugLog.log('Cancelled notification:', identifier);
     } catch (error) {
-      console.error('Error cancelling notification:', error);
+      debugLog.error('Error cancelling notification:', error);
     }
   }
 
@@ -306,9 +307,9 @@ export class NotificationService {
     try {
       const beforeCount = (await this.getScheduledNotifications()).length;
       await Notifications.cancelAllScheduledNotificationsAsync();
-      console.log(`Cancelled all notifications (${beforeCount} notifications removed)`);
+      debugLog.log(`Cancelled all notifications (${beforeCount} notifications removed)`);
     } catch (error) {
-      console.error('Error cancelling all notifications:', error);
+      debugLog.error('Error cancelling all notifications:', error);
     }
   }
 
@@ -323,14 +324,14 @@ export class NotificationService {
   ): Promise<boolean> {
     try {
       if (!notificationsEnabled) {
-        console.log('Notifications disabled, ensuring all are cancelled');
+        debugLog.log('Notifications disabled, ensuring all are cancelled');
         await this.cancelAllNotifications();
         return true;
       }
 
       const hasPermissions = await this.hasPermissions();
       if (!hasPermissions) {
-        console.log('No permissions, cannot reschedule notifications');
+        debugLog.log('No permissions, cannot reschedule notifications');
         return false;
       }
 
@@ -342,17 +343,17 @@ export class NotificationService {
       );
 
       if (dailyReminders.length === 1) {
-        console.log('Correct notification already scheduled');
+        debugLog.log('Correct notification already scheduled');
         return true;
       }
 
       // Cancel all and reschedule
-      console.log('Rescheduling notifications for correct time');
+      debugLog.log('Rescheduling notifications for correct time');
       await this.cancelAllNotifications();
       const result = await this.scheduleDailyReminder(reminderTime, language, undefined, undefined, user);
       return result !== null;
     } catch (error) {
-      console.error('Error rescheduling notifications:', error);
+      debugLog.error('Error rescheduling notifications:', error);
       return false;
     }
   }
@@ -364,7 +365,7 @@ export class NotificationService {
     try {
       return await Notifications.getAllScheduledNotificationsAsync();
     } catch (error) {
-      console.error('Error getting scheduled notifications:', error);
+      debugLog.error('Error getting scheduled notifications:', error);
       return [];
     }
   }
@@ -393,7 +394,7 @@ export class NotificationService {
     try {
       const hasPermission = await this.hasPermissions();
       if (!hasPermission) {
-        console.log('No notification permissions for test');
+        debugLog.log('No notification permissions for test');
         return null;
       }
 
@@ -414,10 +415,10 @@ export class NotificationService {
         } as Notifications.TimeIntervalTriggerInput,
       });
 
-      console.log('Test notification scheduled for 5 seconds:', identifier);
+      debugLog.log('Test notification scheduled for 5 seconds:', identifier);
       return identifier;
     } catch (error) {
-      console.error('Error scheduling test notification:', error);
+      debugLog.error('Error scheduling test notification:', error);
       return null;
     }
   }
@@ -427,21 +428,21 @@ export class NotificationService {
    */
   static async getDebugInfo(): Promise<void> {
     try {
-      console.log('=== Notification Debug Info ===');
+      debugLog.log('=== Notification Debug Info ===');
       const scheduled = await this.getScheduledNotifications();
-      console.log(`Total scheduled notifications: ${scheduled.length}`);
+      debugLog.log(`Total scheduled notifications: ${scheduled.length}`);
       
       scheduled.forEach((notification, index) => {
-        console.log(`${index + 1}. ID: ${notification.identifier}`);
-        console.log(`   Title: ${notification.content.title}`);
-        console.log(`   Body: ${notification.content.body}`);
-        console.log(`   Trigger:`, notification.trigger);
-        console.log('---');
+        debugLog.log(`${index + 1}. ID: ${notification.identifier}`);
+        debugLog.log(`   Title: ${notification.content.title}`);
+        debugLog.log(`   Body: ${notification.content.body}`);
+        debugLog.log(`   Trigger:`, notification.trigger);
+        debugLog.log('---');
       });
       
-      console.log('=== Debug Info Complete ===');
+      debugLog.log('=== Debug Info Complete ===');
     } catch (error) {
-      console.error('Error getting debug info:', error);
+      debugLog.error('Error getting debug info:', error);
     }
   }
 
@@ -451,26 +452,26 @@ export class NotificationService {
    */
   static async testPermissions(language: Language = 'id'): Promise<void> {
     try {
-      console.log('=== Testing Notification Service ===');
-      console.log('Language:', language);
+      debugLog.log('=== Testing Notification Service ===');
+      debugLog.log('Language:', language);
       const status = await this.getPermissionStatus();
-      console.log('Current permission status:', status);
-      console.log('Permission message:', this.getPermissionMessage(status, language));
-      console.log('Has permissions:', await this.hasPermissions());
-      console.log('Can ask for permissions:', await this.canAskForPermissions());
+      debugLog.log('Current permission status:', status);
+      debugLog.log('Permission message:', this.getPermissionMessage(status, language));
+      debugLog.log('Has permissions:', await this.hasPermissions());
+      debugLog.log('Can ask for permissions:', await this.canAskForPermissions());
       
       // Schedule test notification if permissions granted
       if (await this.hasPermissions()) {
-        console.log('Scheduling test notification...');
+        debugLog.log('Scheduling test notification...');
         await this.scheduleTestNotification(language);
       }
       
       // Show debug info
       await this.getDebugInfo();
       
-      console.log('=== Test Complete ===');
+      debugLog.log('=== Test Complete ===');
     } catch (error) {
-      console.error('Error testing notification service:', error);
+      debugLog.error('Error testing notification service:', error);
     }
   }
 
@@ -478,10 +479,10 @@ export class NotificationService {
    * Test both languages quickly
    */
   static async testBothLanguages(): Promise<void> {
-    console.log('\n🇮🇩 Testing Indonesian notifications...');
+    debugLog.log('\n🇮🇩 Testing Indonesian notifications...');
     await this.testPermissions('id');
     
-    console.log('\n🇺🇸 Testing English notifications...');
+    debugLog.log('\n🇺🇸 Testing English notifications...');
     await this.testPermissions('en');
   }
 
@@ -498,13 +499,13 @@ export class NotificationService {
     try {
       const hasPermission = await this.hasPermissions();
       if (!hasPermission) {
-        console.log('No notification permissions for streak reminder');
+        debugLog.log('No notification permissions for streak reminder');
         return null;
       }
 
       const streakRisk = detectStreakRisk(user);
       if (!streakRisk.shouldNotify) {
-        console.log('No streak notification needed at this time');
+        debugLog.log('No streak notification needed at this time');
         return null;
       }
 
@@ -527,10 +528,10 @@ export class NotificationService {
         } as Notifications.TimeIntervalTriggerInput : null, // Immediate if no delay
       });
 
-      console.log(`Scheduled streak reminder (${streakRisk.riskLevel}):`, identifier);
+      debugLog.log(`Scheduled streak reminder (${streakRisk.riskLevel}):`, identifier);
       return identifier;
     } catch (error) {
-      console.error('Error scheduling streak notification:', error);
+      debugLog.error('Error scheduling streak notification:', error);
       return null;
     }
   }
@@ -544,7 +545,7 @@ export class NotificationService {
   ): Promise<string[]> {
     try {
       if (!shouldScheduleStreakReminder(user)) {
-        console.log('Streak reminders not needed for user');
+        debugLog.log('Streak reminders not needed for user');
         return [];
       }
 
@@ -592,10 +593,10 @@ export class NotificationService {
         }
       }
 
-      console.log(`Scheduled ${scheduledIds.length} escalating streak reminders`);
+      debugLog.log(`Scheduled ${scheduledIds.length} escalating streak reminders`);
       return scheduledIds;
     } catch (error) {
-      console.error('Error scheduling escalating streak reminders:', error);
+      debugLog.error('Error scheduling escalating streak reminders:', error);
       return [];
     }
   }
@@ -614,9 +615,9 @@ export class NotificationService {
         await this.cancelNotification(notification.identifier);
       }
 
-      console.log(`Cancelled ${streakNotifications.length} streak notifications`);
+      debugLog.log(`Cancelled ${streakNotifications.length} streak notifications`);
     } catch (error) {
-      console.error('Error cancelling streak notifications:', error);
+      debugLog.error('Error cancelling streak notifications:', error);
     }
   }
 
@@ -626,28 +627,28 @@ export class NotificationService {
   static async manageStreakProtection(user: User, language: Language = 'id'): Promise<void> {
     try {
       if (!user.settings?.notifications) {
-        console.log('Notifications disabled, skipping streak protection');
+        debugLog.log('Notifications disabled, skipping streak protection');
         return;
       }
 
       const streakRisk = detectStreakRisk(user);
       
       if (streakRisk.currentStreak === 0) {
-        console.log('No streak to protect');
+        debugLog.log('No streak to protect');
         return;
       }
 
       if (!streakRisk.isAtRisk) {
-        console.log('Streak not at risk, no notifications needed');
+        debugLog.log('Streak not at risk, no notifications needed');
         // Cancel any existing streak notifications since they're not needed
         await this.cancelStreakNotifications();
         return;
       }
 
-      console.log(`Managing streak protection for ${streakRisk.currentStreak}-day streak (${streakRisk.riskLevel} risk)`);
+      debugLog.log(`Managing streak protection for ${streakRisk.currentStreak}-day streak (${streakRisk.riskLevel} risk)`);
       await this.scheduleEscalatingStreakReminders(user, language);
     } catch (error) {
-      console.error('Error managing streak protection:', error);
+      debugLog.error('Error managing streak protection:', error);
     }
   }
 
@@ -656,10 +657,10 @@ export class NotificationService {
    */
   static async testStreakNotification(user: User, language: Language = 'id'): Promise<void> {
     try {
-      console.log('=== Testing Streak Notifications ===');
+      debugLog.log('=== Testing Streak Notifications ===');
       
       const streakRisk = detectStreakRisk(user);
-      console.log('Streak risk analysis:', {
+      debugLog.log('Streak risk analysis:', {
         isAtRisk: streakRisk.isAtRisk,
         currentStreak: streakRisk.currentStreak,
         riskLevel: streakRisk.riskLevel,
@@ -667,16 +668,340 @@ export class NotificationService {
       });
 
       if (await this.hasPermissions()) {
-        console.log('Scheduling test streak notification...');
+        debugLog.log('Scheduling test streak notification...');
         const testId = await this.scheduleStreakReminder(user, 0, language);
-        console.log('Test streak notification scheduled:', testId);
+        debugLog.log('Test streak notification scheduled:', testId);
       } else {
-        console.log('No permissions for streak notification test');
+        debugLog.log('No permissions for streak notification test');
       }
 
-      console.log('=== Streak Test Complete ===');
+      debugLog.log('=== Streak Test Complete ===');
     } catch (error) {
-      console.error('Error testing streak notifications:', error);
+      debugLog.error('Error testing streak notifications:', error);
+    }
+  }
+
+  // Lungcat Notifications
+
+  /**
+   * Get lungcat notification content based on care type
+   */
+  static getLungcatNotificationContent(
+    type: 'feeding' | 'playing' | 'health_good' | 'health_bad' | 'energy_low',
+    language: Language = 'id'
+  ): { title: string; body: string } {
+    const messages = {
+      feeding: {
+        en: {
+          title: 'Your Lungcat is Hungry! 🍽️',
+          body: 'Time to feed your lungcat! A well-fed lungcat is a happy lungcat.'
+        },
+        id: {
+          title: 'Lungcat Anda Lapar! 🍽️',
+          body: 'Waktunya memberi makan lungcat! Lungcat yang kenyang adalah lungcat yang bahagia.'
+        }
+      },
+      playing: {
+        en: {
+          title: 'Your Lungcat Wants to Play! 🎾',
+          body: 'Your lungcat is ready for some fun! Playing keeps your lungcat energetic and happy.'
+        },
+        id: {
+          title: 'Lungcat Anda Ingin Bermain! 🎾',
+          body: 'Lungcat Anda siap untuk bersenang-senang! Bermain membuat lungcat energik dan bahagia.'
+        }
+      },
+      health_good: {
+        en: {
+          title: 'Your Lungcat is Thriving! 🌟',
+          body: 'Amazing progress! Your lungcat is healthy and happy thanks to your daily care.'
+        },
+        id: {
+          title: 'Lungcat Anda Berkembang Pesat! 🌟',
+          body: 'Progress luar biasa! Lungcat Anda sehat dan bahagia berkat perawatan harian Anda.'
+        }
+      },
+      health_bad: {
+        en: {
+          title: 'Your Lungcat Needs Care! 💔',
+          body: 'Your lungcat is feeling unwell. Regular check-ins and care will help them recover!'
+        },
+        id: {
+          title: 'Lungcat Anda Butuh Perawatan! 💔',
+          body: 'Lungcat Anda kurang sehat. Check-in dan perawatan rutin akan membantu mereka pulih!'
+        }
+      },
+      energy_low: {
+        en: {
+          title: 'Your Lungcat is Tired! 😴',
+          body: 'Your lungcat\'s energy is running low. Time for a check-in to boost their spirits!'
+        },
+        id: {
+          title: 'Lungcat Anda Capek! 😴',
+          body: 'Energi lungcat Anda menurun. Waktunya check-in untuk meningkatkan semangat mereka!'
+        }
+      }
+    };
+
+    return messages[type][language];
+  }
+
+  /**
+   * Schedule lungcat care reminder (feeding or playing)
+   */
+  static async scheduleLungcatCareReminder(
+    type: 'feeding' | 'playing',
+    delayHours: number,
+    language: Language = 'id'
+  ): Promise<string | null> {
+    try {
+      const hasPermission = await this.hasPermissions();
+      if (!hasPermission) {
+        debugLog.log('No notification permissions for lungcat care reminder');
+        return null;
+      }
+
+      const content = this.getLungcatNotificationContent(type, language);
+
+      const identifier = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: content.title,
+          body: content.body,
+          sound: 'default',
+          data: {
+            type: 'lungcat_care',
+            careType: type,
+          },
+        },
+        trigger: {
+          seconds: delayHours * 3600, // Convert hours to seconds
+        } as Notifications.TimeIntervalTriggerInput,
+      });
+
+      debugLog.log(`Scheduled lungcat ${type} reminder for ${delayHours} hours:`, identifier);
+      return identifier;
+    } catch (error) {
+      debugLog.error(`Error scheduling lungcat ${type} reminder:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Schedule lungcat health status notification
+   */
+  static async scheduleLungcatHealthNotification(
+    isHealthy: boolean,
+    language: Language = 'id',
+    delayHours: number = 0
+  ): Promise<string | null> {
+    try {
+      const hasPermission = await this.hasPermissions();
+      if (!hasPermission) {
+        debugLog.log('No notification permissions for lungcat health notification');
+        return null;
+      }
+
+      const type = isHealthy ? 'health_good' : 'health_bad';
+      const content = this.getLungcatNotificationContent(type, language);
+
+      const identifier = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: content.title,
+          body: content.body,
+          sound: 'default',
+          data: {
+            type: 'lungcat_health',
+            isHealthy,
+          },
+        },
+        trigger: delayHours > 0 ? {
+          seconds: delayHours * 3600,
+        } as Notifications.TimeIntervalTriggerInput : null,
+      });
+
+      debugLog.log(`Scheduled lungcat health notification (${type}):`, identifier);
+      return identifier;
+    } catch (error) {
+      debugLog.error('Error scheduling lungcat health notification:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Schedule lungcat energy low notification
+   */
+  static async scheduleLungcatEnergyNotification(
+    language: Language = 'id',
+    delayHours: number = 0
+  ): Promise<string | null> {
+    try {
+      const hasPermission = await this.hasPermissions();
+      if (!hasPermission) {
+        debugLog.log('No notification permissions for lungcat energy notification');
+        return null;
+      }
+
+      const content = this.getLungcatNotificationContent('energy_low', language);
+
+      const identifier = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: content.title,
+          body: content.body,
+          sound: 'default',
+          data: {
+            type: 'lungcat_energy',
+          },
+        },
+        trigger: delayHours > 0 ? {
+          seconds: delayHours * 3600,
+        } as Notifications.TimeIntervalTriggerInput : null,
+      });
+
+      debugLog.log('Scheduled lungcat energy notification:', identifier);
+      return identifier;
+    } catch (error) {
+      debugLog.error('Error scheduling lungcat energy notification:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Cancel all lungcat-related notifications
+   */
+  static async cancelLungcatNotifications(): Promise<void> {
+    try {
+      const scheduled = await this.getScheduledNotifications();
+      const lungcatNotifications = scheduled.filter(
+        n => n.content.data?.type?.startsWith('lungcat_')
+      );
+
+      for (const notification of lungcatNotifications) {
+        await this.cancelNotification(notification.identifier);
+      }
+
+      debugLog.log(`Cancelled ${lungcatNotifications.length} lungcat notifications`);
+    } catch (error) {
+      debugLog.error('Error cancelling lungcat notifications:', error);
+    }
+  }
+
+  /**
+   * Smart lungcat care management - schedules appropriate notifications based on pet stats
+   */
+  static async manageLungcatCare(
+    petStats: {
+      happiness: number;
+      health: number;
+      energy: number;
+      lastFed: number;
+      lastPlayed: number;
+    },
+    enabled: boolean,
+    language: Language = 'id'
+  ): Promise<void> {
+    try {
+      if (!enabled) {
+        debugLog.log('Lungcat notifications disabled, cancelling all');
+        await this.cancelLungcatNotifications();
+        return;
+      }
+
+      // Cancel existing lungcat notifications to avoid duplicates
+      await this.cancelLungcatNotifications();
+
+      const now = Date.now();
+      const feedingScheduled: string[] = [];
+      const playingScheduled: string[] = [];
+
+      // Schedule feeding reminders based on last fed time
+      const timeSinceFed = now - petStats.lastFed;
+      const hoursSinceFed = timeSinceFed / (1000 * 60 * 60);
+
+      if (hoursSinceFed >= 2) {
+        // Already can feed - schedule immediate reminder
+        const feedId = await this.scheduleLungcatCareReminder('feeding', 0, language);
+        if (feedId) feedingScheduled.push(feedId);
+      } else {
+        // Schedule reminder when feeding becomes available
+        const hoursUntilFeed = 2 - hoursSinceFed;
+        const feedId = await this.scheduleLungcatCareReminder('feeding', hoursUntilFeed, language);
+        if (feedId) feedingScheduled.push(feedId);
+      }
+
+      // Schedule playing reminders based on last played time
+      const timeSincePlayed = now - petStats.lastPlayed;
+      const hoursSincePlayed = timeSincePlayed / (1000 * 60 * 60);
+
+      if (hoursSincePlayed >= 1) {
+        // Already can play - schedule immediate reminder
+        const playId = await this.scheduleLungcatCareReminder('playing', 0, language);
+        if (playId) playingScheduled.push(playId);
+      } else {
+        // Schedule reminder when playing becomes available
+        const hoursUntilPlay = 1 - hoursSincePlayed;
+        const playId = await this.scheduleLungcatCareReminder('playing', hoursUntilPlay, language);
+        if (playId) playingScheduled.push(playId);
+      }
+
+      // Schedule health notifications based on current stats
+      if (petStats.health < 40) {
+        await this.scheduleLungcatHealthNotification(false, language, 0);
+      } else if (petStats.health >= 80) {
+        await this.scheduleLungcatHealthNotification(true, language, 0);
+      }
+
+      // Schedule energy notification if energy is low
+      if (petStats.energy < 30) {
+        await this.scheduleLungcatEnergyNotification(language, 0);
+      }
+
+      debugLog.log(`Scheduled ${feedingScheduled.length} feeding and ${playingScheduled.length} playing reminders`);
+    } catch (error) {
+      debugLog.error('Error managing lungcat care notifications:', error);
+    }
+  }
+
+  /**
+   * Test lungcat notifications (for development)
+   */
+  static async testLungcatNotifications(language: Language = 'id'): Promise<void> {
+    try {
+      debugLog.log('=== Testing Lungcat Notifications ===');
+
+      if (!await this.hasPermissions()) {
+        debugLog.log('No permissions for lungcat notification test');
+        return;
+      }
+
+      // Test each type of notification
+      const types: Array<'feeding' | 'playing' | 'health_good' | 'health_bad' | 'energy_low'> = [
+        'feeding', 'playing', 'health_good', 'health_bad', 'energy_low'
+      ];
+
+      for (let i = 0; i < types.length; i++) {
+        const type = types[i];
+        const content = this.getLungcatNotificationContent(type, language);
+
+        debugLog.log(`Testing ${type}:`, content.title);
+
+        // Schedule test notification with delay
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `[TEST] ${content.title}`,
+            body: content.body,
+            sound: 'default',
+            data: { type: 'lungcat_test' },
+          },
+          trigger: {
+            seconds: (i + 1) * 3, // 3, 6, 9, 12, 15 seconds
+          } as Notifications.TimeIntervalTriggerInput,
+        });
+      }
+
+      debugLog.log('Scheduled 5 test lungcat notifications');
+      debugLog.log('=== Lungcat Test Complete ===');
+    } catch (error) {
+      debugLog.error('Error testing lungcat notifications:', error);
     }
   }
 }

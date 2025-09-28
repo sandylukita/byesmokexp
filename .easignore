@@ -1,0 +1,11 @@
+# EAS ignore file
+node_modules/
+.git/
+.expo/
+dist/
+.DS_Store
+*.log
+.env.local
+.env.development
+.env.test
+.env.production

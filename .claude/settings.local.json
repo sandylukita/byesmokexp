@@ -116,7 +116,10 @@
       "Read(/C:\\Users\\windows11\\ZXP\\byesmoke-v0\\byesmoke-v00\\src\\services/**)",
       "Read(/C:\\Users\\windows11\\ZXP\\byesmoke-v0\\byesmoke-v00\\src\\services/**)",
       "Bash(npm test:*)",
-      "Bash(del clear-today-xp.js)"
+      "Bash(del clear-today-xp.js)",
+      "Bash(eas:*)",
+      "Bash(sort:*)",
+      "Bash(del compress-animations.js)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

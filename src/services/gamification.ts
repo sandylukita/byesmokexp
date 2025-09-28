@@ -6,6 +6,7 @@ import { demoGetCurrentUser, demoUpdateUser } from './demoAuth';
 import { calculateLevel, calculateMoneySaved, addDailyXP } from '../utils/helpers';
 import { getTranslatedMissions, getTranslatedMissionsWithSeed } from '../utils/missionTranslations';
 import { getTranslation } from '../utils/translations';
+import { debugLog } from '../utils/performanceOptimizer';
 // import { showInterstitialAd } from './adMob';
 
 // Baseline badge statistics to make the app feel established
@@ -47,7 +48,7 @@ const BASELINE_BADGE_STATS: {[badgeId: string]: number} = {
 };
 
 export const initializeBadgeStatistics = async (): Promise<void> => {
-  console.log('🚀 Initializing baseline badge statistics...');
+  debugLog.log('🚀 Initializing baseline badge statistics...');
   
   for (const badge of BADGES) {
     const baselineCount = BASELINE_BADGE_STATS[badge.id] || Math.floor(Math.random() * 100) + 50;
@@ -60,13 +61,13 @@ export const initializeBadgeStatistics = async (): Promise<void> => {
         realUsers: 0
       }, { merge: true });
       
-      console.log(`✓ Initialized ${badge.id}: ${baselineCount} baseline`);
+      debugLog.log(`✓ Initialized ${badge.id}: ${baselineCount} baseline`);
     } catch (error) {
-      console.log(`⚠️ Could not initialize ${badge.id} baseline:`, error.message);
+      debugLog.log(`⚠️ Could not initialize ${badge.id} baseline:`, error.message);
     }
   }
   
-  console.log('✅ Badge statistics baseline initialization complete');
+  debugLog.log('✅ Badge statistics baseline initialization complete');
 };
 
 export const incrementBadgeCount = async (badgeId: string): Promise<void> => {
@@ -78,7 +79,7 @@ export const incrementBadgeCount = async (badgeId: string): Promise<void> => {
       count: increment(1),
       realUsers: increment(1)
     });
-    console.log(`✓ Badge counter incremented for: ${badgeId} (real user)`);
+    debugLog.log(`✓ Badge counter incremented for: ${badgeId} (real user)`);
   } catch (error) {
     // If document doesn't exist, initialize with baseline + 1
     try {
@@ -89,10 +90,10 @@ export const incrementBadgeCount = async (badgeId: string): Promise<void> => {
         baseline: baselineCount,
         realUsers: 1
       });
-      console.log(`✓ Badge counter created for: ${badgeId} (baseline: ${baselineCount} + 1 real user)`);
+      debugLog.log(`✓ Badge counter created for: ${badgeId} (baseline: ${baselineCount} + 1 real user)`);
     } catch (createError) {
       // If we can't access Firebase, just log and continue
-      console.log(`⚠️ Unable to increment badge count for ${badgeId} (permissions/demo mode):`, createError.message);
+      debugLog.log(`⚠️ Unable to increment badge count for ${badgeId} (permissions/demo mode):`, createError.message);
     }
   }
 };
@@ -110,7 +111,7 @@ export const getBadgeStatistics = async (): Promise<{[badgeId: string]: number}>
           count: badgeDoc.exists() ? (badgeDoc.data().count || 0) : 0
         };
       } catch (error) {
-        console.log(`Failed to read badge stat for ${badgeId}:`, error);
+        debugLog.log(`Failed to read badge stat for ${badgeId}:`, error);
         return { id: badgeId, count: 0 };
       }
     });
@@ -126,10 +127,10 @@ export const getBadgeStatistics = async (): Promise<{[badgeId: string]: number}>
     // Merge Firebase data with baseline, ensuring all badges have statistics
     const stats = mergeWithBaseline(firebaseStats);
     
-    console.log('✓ Badge statistics loaded from Firebase (optimized reads):', Object.keys(firebaseStats).length, 'badges, merged with baseline');
+    debugLog.log('✓ Badge statistics loaded from Firebase (optimized reads):', Object.keys(firebaseStats).length, 'badges, merged with baseline');
     return stats;
   } catch (error) {
-    console.error('Error loading badge statistics from Firebase, using baseline data:', error);
+    debugLog.error('Error loading badge statistics from Firebase, using baseline data:', error);
     
     // Return baseline statistics if Firebase fails
     return getBaselineStats();
@@ -162,7 +163,7 @@ const getBaselineStats = (): {[badgeId: string]: number} => {
     stats[badge.id] = BASELINE_BADGE_STATS[badge.id] || Math.floor(Math.random() * 100) + 50;
   });
   
-  console.log('✓ Using baseline badge statistics for', Object.keys(stats).length, 'badges');
+  debugLog.log('✓ Using baseline badge statistics for', Object.keys(stats).length, 'badges');
   return stats;
 };
 
@@ -284,12 +285,12 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
       try {
         const updatedBadges = [...(demoUser.badges || []), ...newBadges];
         await demoUpdateUser(userId, { badges: updatedBadges });
-        console.log('✓ Demo: Successfully awarded badges:', newBadges.length);
+        debugLog.log('✓ Demo: Successfully awarded badges:', newBadges.length);
         
         // Skip badge statistics for demo users to avoid Firebase errors
-        console.log('ℹ️ Skipping badge statistics for demo user');
+        debugLog.log('ℹ️ Skipping badge statistics for demo user');
       } catch (demoError) {
-        console.error('Demo badge awarding failed:', demoError);
+        debugLog.error('Demo badge awarding failed:', demoError);
       }
     } else {
       // Handle Firebase user
@@ -298,14 +299,14 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
         await updateDoc(userDoc, {
           badges: arrayUnion(...newBadges)
         });
-        console.log('✓ Firebase: Successfully awarded badges:', newBadges.length);
+        debugLog.log('✓ Firebase: Successfully awarded badges:', newBadges.length);
         
         // Increment badge counters for statistics (Firebase users only)
         for (const badge of newBadges) {
           await incrementBadgeCount(badge.id);
         }
       } catch (error) {
-        console.error('Firebase error awarding badges:', error);
+        debugLog.error('Firebase error awarding badges:', error);
       }
     }
     
@@ -317,7 +318,7 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
         // Show ad after a short delay, don't block the function
         setTimeout(() => {
           // showInterstitialAd(user.isPremium, `badge_earned_${newBadges[0].id}`); // Commented out for web compatibility
-          console.log('🎯 Badge earned ad would show here on native platforms');
+          debugLog.log('🎯 Badge earned ad would show here on native platforms');
         }, 3000); // 3 second delay to let user enjoy the badge notification
       }
     }
@@ -336,9 +337,9 @@ export const awardXP = async (userId: string, xpAmount: number, reason: string):
       xp: xpAmount // This should be increment(xpAmount) in a real implementation
     });
 
-    console.log(`Awarded ${xpAmount} XP to user ${userId} for: ${reason}`);
+    debugLog.log(`Awarded ${xpAmount} XP to user ${userId} for: ${reason}`);
   } catch (error) {
-    console.error('Error awarding XP:', error);
+    debugLog.error('Error awarding XP:', error);
   }
 };
 
@@ -365,11 +366,11 @@ export const completeMission = async (
 
     try {
       // Try Firebase first - get current data, then update
-      console.log('🔥 Attempting Firebase mission save:');
-      console.log('  - User ID:', userId);
-      console.log('  - Mission ID:', completedMission.id);
-      console.log('  - Mission completed at:', completedMission.completedAt);
-      console.log('  - New XP:', newXP);
+      debugLog.log('🔥 Attempting Firebase mission save:');
+      debugLog.log('  - User ID:', userId);
+      debugLog.log('  - Mission ID:', completedMission.id);
+      debugLog.log('  - Mission completed at:', completedMission.completedAt);
+      debugLog.log('  - New XP:', newXP);
       
       const userDoc = doc(db, 'users', userId);
       
@@ -391,17 +392,17 @@ export const completeMission = async (
             dailyXP: updatedDailyXP,
             completedMissions: updatedMissions,
           });
-          console.log('✅ Firebase: Successfully completed mission and saved to Firestore');
-          console.log('  - Updated missions count:', updatedMissions.length);
+          debugLog.log('✅ Firebase: Successfully completed mission and saved to Firestore');
+          debugLog.log('  - Updated missions count:', updatedMissions.length);
         } else {
-          console.log('⚠️ Mission already exists, skipping duplicate save');
+          debugLog.log('⚠️ Mission already exists, skipping duplicate save');
         }
       } else {
-        console.log('❌ User document not found');
+        debugLog.log('❌ User document not found');
         throw new Error('User document not found');
       }
     } catch (firebaseError) {
-      console.error('Firebase error completing mission, trying demo fallback:', firebaseError);
+      debugLog.error('Firebase error completing mission, trying demo fallback:', firebaseError);
       
       // Fallback to demo user update
       const demoUser = demoGetCurrentUser();
@@ -412,7 +413,7 @@ export const completeMission = async (
           dailyXP: updatedDailyXP,
           completedMissions: updatedCompletedMissions,
         });
-        console.log('✓ Demo: Successfully completed mission as fallback');
+        debugLog.log('✓ Demo: Successfully completed mission as fallback');
       } else {
         throw firebaseError; // Re-throw if no demo fallback available
       }
@@ -427,7 +428,7 @@ export const completeMission = async (
       newBadges,
     };
   } catch (error) {
-    console.error('Error completing mission (all methods failed):', error);
+    debugLog.error('Error completing mission (all methods failed):', error);
     return {
       success: false,
       xpAwarded: 0,
@@ -457,7 +458,7 @@ export const handleStreakUpdate = async (
 
     return { newBadges };
   } catch (error) {
-    console.error('Error handling streak update:', error);
+    debugLog.error('Error handling streak update:', error);
     return { newBadges: [] };
   }
 };

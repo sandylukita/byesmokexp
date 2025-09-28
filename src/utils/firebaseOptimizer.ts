@@ -7,6 +7,7 @@
 import { doc, getDoc, updateDoc, writeBatch, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { User } from '../types';
+import { debugLog } from './performanceOptimizer';
 
 // Global listener management to prevent duplicate listeners
 class ListenerManager {
@@ -29,7 +30,7 @@ class ListenerManager {
       return null;
     }
     
-    console.log(`💰 Using cache for ${key} - SAVED 1 read ($0.0006)`);
+    // Cache hit - saving cost
     return cached.data;
   }
 
@@ -48,20 +49,20 @@ class ListenerManager {
 
     // Verify user is still authenticated before creating listener
     if (!auth.currentUser || auth.currentUser.uid !== userId) {
-      console.log('🔐 User not authenticated, skipping listener setup');
+      debugLog.log('🔐 User not authenticated, skipping listener setup');
       return;
     }
 
     // If we already have a listener for this user, reuse it
     if (this.activeListener === listenerId) {
-      console.log('💰 Reusing existing listener - SAVED setup cost');
+      debugLog.log('💰 Reusing existing listener - SAVED setup cost');
       return;
     }
 
     // Clean up any existing listener first
     this.cleanup();
 
-    console.log('🔥 Creating new shared listener for:', listenerId);
+    debugLog.log('🔥 Creating new shared listener for:', listenerId);
     
     const userDocRef = doc(db, 'users', userId);
     const unsubscribe = onSnapshot(
@@ -73,7 +74,7 @@ class ListenerManager {
       (doc) => {
         // Verify user is still authenticated before processing data
         if (!auth.currentUser || auth.currentUser.uid !== userId) {
-          console.log('🔐 User no longer authenticated, ignoring listener data');
+          debugLog.log('🔐 User no longer authenticated, ignoring listener data');
           return;
         }
         
@@ -82,13 +83,13 @@ class ListenerManager {
           const userData = { ...doc.data(), id: userId } as User;
           this.setCache(listenerId, userData);
           callback(userData);
-          console.log('📊 Listener read - Cost: $0.0006');
+          // Listener read tracked
         }
       }, 
       (error) => {
         // Handle different types of authentication errors
         if (error.code === 'permission-denied') {
-          console.log('🔐 User authentication changed, cleaning up listener...');
+          debugLog.log('🔐 User authentication changed, cleaning up listener...');
           // Cleanup this specific listener when permission denied
           this.listeners.delete(listenerId);
           this.activeListener = null;
@@ -97,12 +98,12 @@ class ListenerManager {
         
         // Handle other Firebase errors
         if (error.code === 'unavailable' || error.code === 'failed-precondition') {
-          console.log('📶 Firebase temporarily unavailable, will retry when available');
+          debugLog.log('📶 Firebase temporarily unavailable, will retry when available');
           return; // Don't log error for expected network issues
         }
         
         // Log unexpected errors
-        console.error('Shared listener error:', error.code || error.message);
+        debugLog.error('Shared listener error:', error.code || error.message);
       });
 
     this.listeners.set(listenerId, unsubscribe);
@@ -121,7 +122,7 @@ class ListenerManager {
 
     // Fallback to Firebase read
     try {
-      console.log('🔥 Firebase read - Cost: $0.0006');
+      // Firebase read tracked
       const userDoc = await getDoc(doc(db, 'users', userId));
       
       if (userDoc.exists()) {
@@ -131,7 +132,7 @@ class ListenerManager {
       }
       return null;
     } catch (error) {
-      console.error('Error getting user data:', error);
+      debugLog.error('Error getting user data:', error);
       return null;
     }
   }
@@ -142,7 +143,7 @@ class ListenerManager {
   cleanup(): void {
     this.listeners.forEach((unsubscribe, key) => {
       unsubscribe();
-      console.log(`🧹 Cleaned up listener: ${key}`);
+      debugLog.log(`🧹 Cleaned up listener: ${key}`);
     });
     this.listeners.clear();
     this.activeListener = null;
@@ -193,7 +194,7 @@ class BatchWriter {
       this.executeBatch();
     }, this.BATCH_DELAY);
 
-    console.log(`📝 Queued write - Batch size: ${this.pendingWrites.length}`);
+    // Write queued for batching
   }
 
   /**
@@ -212,21 +213,21 @@ class BatchWriter {
     try {
       await batch.commit();
       const savedCost = (writeCount - 1) * 0.0018; // Each write costs $0.0018/1000
-      console.log(`💰 Batch executed: ${writeCount} writes in 1 batch - SAVED $${savedCost.toFixed(6)}`);
+      debugLog.log(`💰 Batch executed: ${writeCount} writes in 1 batch - SAVED $${savedCost.toFixed(6)}`);
       
       this.pendingWrites = [];
       this.batchTimeout = null;
     } catch (error) {
-      console.error('Batch write failed:', error);
+      debugLog.error('Batch write failed:', error);
       
       // Try individual writes as fallback
-      console.log('🔄 Attempting individual writes as fallback...');
+      debugLog.log('🔄 Attempting individual writes as fallback...');
       for (const { ref, data } of this.pendingWrites) {
         try {
           await updateDoc(ref, data);
-          console.log('✓ Individual write succeeded');
+          debugLog.log('✓ Individual write succeeded');
         } catch (individualError) {
-          console.error('Individual write failed:', individualError);
+          debugLog.error('Individual write failed:', individualError);
           // Continue with other writes even if one fails
         }
       }
@@ -242,9 +243,9 @@ class BatchWriter {
     for (const { ref, data } of this.pendingWrites) {
       try {
         await updateDoc(ref, data);
-        console.log('🔄 Individual retry successful');
+        debugLog.log('🔄 Individual retry successful');
       } catch (error) {
-        console.error('Individual write failed:', error);
+        debugLog.error('Individual write failed:', error);
       }
     }
     this.pendingWrites = [];
@@ -276,13 +277,13 @@ export class CostTracker {
   static trackRead(count: number = 1): void {
     this.reads += count;
     const cost = count * 0.0006; // $0.06 per 100K reads
-    console.log(`📊 Read tracked - Count: ${count}, Cost: $${cost.toFixed(6)}`);
+    // Read operation tracked
   }
 
   static trackWrite(count: number = 1): void {
     this.writes += count;
     const cost = count * 0.0018; // $0.18 per 100K writes
-    console.log(`✍️ Write tracked - Count: ${count}, Cost: $${cost.toFixed(6)}`);
+    // Write operation tracked
   }
 
   static getStats(): {
@@ -310,7 +311,7 @@ export class CostTracker {
 
   static logSessionSummary(): void {
     const stats = this.getStats();
-    console.log('💰 SESSION COST SUMMARY:', {
+    debugLog.log('💰 SESSION COST SUMMARY:', {
       duration: `${Math.round(stats.sessionDuration / 1000)}s`,
       reads: stats.reads,
       writes: stats.writes,
@@ -361,7 +362,7 @@ export const OptimizedUserOperations = {
  * Initialize cost tracking
  */
 export const initializeCostOptimization = (): void => {
-  console.log('💰 Firebase cost optimization initialized');
+  debugLog.log('💰 Firebase cost optimization initialized');
   
   // Log session summary on app background/close
   const logSummaryOnExit = () => {
@@ -380,7 +381,7 @@ export const initializeCostOptimization = (): void => {
   }
 
   // React Native AppState listeners would go here
-  console.log('💰 Cost tracking and optimization hooks installed');
+  debugLog.log('💰 Cost tracking and optimization hooks installed');
 };
 
 export default {
