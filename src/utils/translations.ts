@@ -72,8 +72,12 @@ export interface Translations {
     unlockExtraMissionsDesc: string;
     
     // BREATHING & MINDFULNESS (8 missions)
+    breathingRelax: string;
+    breathingRelaxDesc: string;
     wimHofBreathing: string;
     wimHofBreathingDesc: string;
+    quietMeditation: string;
+    quietMeditationDesc: string;
     fourSevenEightBreathing: string;
     fourSevenEightBreathingDesc: string;
     boxBreathing: string;
@@ -481,7 +485,7 @@ export const translations: Record<Language, Translations> = {
       dailyMissions: 'Misi Harian',
       todaysMotivation: 'Motivasi Hari Ini',
       personalMotivator: 'Personal Motivator',
-      personalMotivatorDesc: '',
+      personalMotivatorDesc: '🚀 Dapatkan dorongan personal setiap hari! Motivasi yang disesuaikan dengan perjalanan bebas rokok Anda',
       activateMotivator: 'Aktifkan Personal Motivator',
       daysSinceQuit: 'hari bebas rokok',
       moneySaved: 'Uang Dihemat',
@@ -1097,7 +1101,7 @@ export const translations: Record<Language, Translations> = {
       dailyMissions: 'Daily Missions',
       todaysMotivation: 'Today\'s Motivation',
       personalMotivator: 'Personal Motivator',
-      personalMotivatorDesc: '',
+      personalMotivatorDesc: '🚀 Get your daily personal boost! Motivation tailored to your smoke-free journey',
       activateMotivator: 'Activate Personal Motivator',
       daysSinceQuit: 'days smoke-free',
       moneySaved: 'Money Saved',

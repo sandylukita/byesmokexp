@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { OptimizedUserOperations, CostTracker } from '../utils/firebaseOptimizer';
+import { log } from '../config/environment';
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
     ActivityIndicator,
@@ -27,15 +28,13 @@ import { generateAIMotivation, generateAIMilestoneInsight } from '../services/ge
 import { OptimizedAI } from '../utils/geminiOptimizer';
 
 import { BentoCard, BentoGrid } from '../components/BentoGrid';
-import ConfettiAnimation from '../components/ConfettiAnimation';
-import LungcatLottieAnimation from '../components/LungcatLottieAnimation';
 import LungcatAnimation from '../components/LungcatAnimation';
 import LottieView from 'lottie-react-native';
 import { Mission, User } from '../types';
 import { COLORS, DARK_COLORS, SIZES } from '../utils/constants';
 import { useTranslation } from '../hooks/useTranslation';
 import { Language } from '../utils/translations';
-import { getLungcatHealthPercentage, getLungcatHealthColor } from '../utils/lungcatHealth';
+import { getLungcatHealthPercentage, getLungcatHealthColor, getEvolutionCareMessage, getEvolutionStatusMessage } from '../utils/lungcatHealth';
 import { completeMission, checkAndAwardBadges, generateDailyMissions as generateDailyMissionsFromService } from '../services/gamification';
 import { contributeAnonymousStats } from '../services/communityStats';
 import { useTheme } from '../contexts/ThemeContext';
@@ -66,6 +65,8 @@ import {
 import { getCommunityMessage } from '../utils/socialProof';
 import { TYPOGRAPHY } from '../utils/typography';
 import ErrorBoundary from '../components/ErrorBoundary';
+const ConfettiAnimation = React.lazy(() => import('../components/ConfettiAnimation'));
+const LungcatLottieAnimation = React.lazy(() => import('../components/LungcatLottieAnimation'));
 
 const { width, height } = Dimensions.get('window');
 
@@ -1791,7 +1792,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
           <View style={styles.headerTextContainer}>
             <Text style={styles.greeting}>{getGreeting(user.displayName)}</Text>
             <Text style={styles.headerSubtext}>{levelInfo.nextLevelXP - user.xp} XP {language === 'en' ? 'to next level' : 'ke level berikutnya'}</Text>
-            <Text style={styles.headerMotivation}>{language === 'en' ? 'Keep going, champion! 🚀' : 'Terus semangat, juara! 🚀'}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -1891,19 +1891,56 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       {/* Lungcat Pet Widget */}
       <TouchableOpacity 
         style={[styles.lungcatWidget, { backgroundColor: colors.surface }]}
-        onPress={() => {
-          // Navigate to Tamagotchi tab
+        onPress={async () => {
+          // Check if we can show an ad before navigating to Lungcat
+          const userIsPremium = user?.isPremium || false;
+
           try {
-            navigation?.navigate('Tamagotchi');
+            // Try to show interstitial ad first (if user is not premium)
+            if (!userIsPremium && canShowAd(userIsPremium)) {
+              log.debug('🎯 Showing ad before Lungcat navigation');
+
+              // Show brief loading indication
+              showCustomAlert(
+                language === 'en' ? '🐱 Lungcat' : '🐱 Lungcat',
+                language === 'en'
+                  ? 'Loading... 🎮'
+                  : 'Memuat... 🎮',
+                'info'
+              );
+
+              // Attempt to show ad
+              const adShown = await showInterstitialAd(userIsPremium, 'lungcat_navigation');
+
+              // Small delay to let ad complete, then navigate
+              setTimeout(() => {
+                try {
+                  navigation?.navigate('Tamagotchi');
+                } catch (navError) {
+                  log.error('Navigation error after ad:', navError);
+                }
+              }, adShown ? 1000 : 500);
+
+            } else {
+              // No ad needed - direct navigation for premium users or when ad not available
+              log.debug('🎯 Direct Lungcat navigation (premium user or ad not available)');
+              navigation?.navigate('Tamagotchi');
+            }
+
           } catch (error) {
-            // Fallback if navigation fails
-            showCustomAlert(
-              language === 'en' ? '🐱 Lungcat' : '🐱 Lungcat',
-              language === 'en' 
-                ? 'Opening Lungcat page... 🎮' 
-                : 'Membuka halaman Lungcat... 🎮',
-              'info'
-            );
+            // Fallback if anything fails - always allow access to Lungcat
+            log.error('Error in Lungcat navigation with ads:', error);
+            try {
+              navigation?.navigate('Tamagotchi');
+            } catch (navError) {
+              showCustomAlert(
+                language === 'en' ? '🐱 Lungcat' : '🐱 Lungcat',
+                language === 'en'
+                  ? 'Opening Lungcat page... 🎮'
+                  : 'Membuka halaman Lungcat... 🎮',
+                'info'
+              );
+            }
           }
         }}
         activeOpacity={0.8}
@@ -1911,22 +1948,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
         <View style={styles.lungcatWidgetContent}>
           <View style={styles.lungcatInfo}>
             <Text style={[styles.lungcatSubtitle, { color: colors.textSecondary }]}>
-              {language === 'en'
-                ? "Care for your Lungcat by checking in daily and completing missions!"
-                : "Rawat Lungcat Anda dengan check-in harian dan selesaikan misi!"
-              }
+              {getEvolutionCareMessage(user, language)}
             </Text>
 
             {/* Lungcat Status */}
             <Text style={[styles.lungcatStatus, { color: colors.textPrimary }]}>
-              {user?.streak >= 30
-                ? (language === 'en' ? '🌟 Thriving & Happy!' : '🌟 Berkembang & Bahagia!')
-                : user?.streak >= 7
-                ? (language === 'en' ? '😊 Healthy & Growing' : '😊 Sehat & Berkembang')
-                : user?.streak > 0
-                ? (language === 'en' ? '🌱 Getting Better' : '🌱 Semakin Baik')
-                : (language === 'en' ? '😷 Needs Your Care' : '😷 Butuh Perhatian')
-              }
+              {getEvolutionStatusMessage(user, language)}
             </Text>
 
             {/* Health Meter */}
@@ -2076,15 +2103,23 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
           />
         ) : (
           <View style={styles.lockedContent}>
-            <MaterialIcons name="psychology" size={32} color={colors.accent} />
-            <Text style={[styles.lockedText, { color: colors.textPrimary }]}>{t.dashboard.personalMotivatorDesc}</Text>
-            <Text style={[styles.lockedSubtext, { color: colors.textSecondary }]}>{t.premium.features.dailyMotivation + ' + ' + t.premium.features.personalConsultation}</Text>
-            <TouchableOpacity 
+            <View style={styles.motivatorPreview}>
+              <Text style={[styles.lockedText, { color: colors.textPrimary }]}>{t.dashboard.personalMotivatorDesc}</Text>
+            </View>
+            <View style={styles.featureHighlight}>
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                💡 {language === 'en' ? 'Smart motivation based on your progress' : 'Motivasi cerdas berdasarkan progress Anda'}
+              </Text>
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                ⚡ {language === 'en' ? 'Instant access after watching ad' : 'Akses langsung setelah menonton iklan'}
+              </Text>
+            </View>
+            <TouchableOpacity
               style={[styles.upgradeButton, { backgroundColor: colors.secondary }]}
               onPress={() => handleWatchAdForMotivation()}
             >
               <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
-                <MaterialIcons name="play-circle-filled" size={16} color="#FFFFFF" />
+                <MaterialIcons name="play-circle-filled" size={18} color="#FFFFFF" />
                 <Text style={[styles.upgradeButtonText, { color: colors.white, marginLeft: 6 }]}>
                   {language === 'en' ? 'Watch Ad for Motivation' : 'Tonton Iklan untuk Motivasi'}
                 </Text>
@@ -2096,13 +2131,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       </View>
     </ScrollView>
     
-    <ConfettiAnimation 
-      visible={showConfetti}
-      onComplete={() => setShowConfetti(false)}
-      colors={['#F99546', '#27AE60', '#3498DB', '#E74C3C', '#F39C12', '#9B59B6']}
-      pieceCount={25}
-      duration={2500}
-    />
+    <React.Suspense fallback={null}>
+      <ConfettiAnimation
+        visible={showConfetti}
+        onComplete={() => setShowConfetti(false)}
+        colors={['#F99546', '#27AE60', '#3498DB', '#E74C3C', '#F39C12', '#9B59B6']}
+        pieceCount={25}
+        duration={2500}
+      />
+    </React.Suspense>
     
     <CustomAlert
       visible={customAlert.visible}
@@ -2160,8 +2197,8 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   header: {
-    paddingTop: Math.max(45, height * 0.05), // Balanced top padding like Achievement page
-    paddingBottom: SIZES.xl, // Consistent bottom padding like Achievement page
+    paddingTop: Math.max(35, height * 0.035), // Reduced top padding to move content up
+    paddingBottom: SIZES.lg, // Increased bottom padding to provide more space for XP text
     paddingHorizontal: SIZES.screenPadding,
   },
   headerContent: {
@@ -2359,15 +2396,34 @@ const styles = StyleSheet.create({
   },
   lockedContent: {
     alignItems: 'center',
-    paddingVertical: SIZES.md,
+    paddingVertical: SIZES.sm, // Reduced padding to minimize empty space
+  },
+  motivatorPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SIZES.sm,
+    paddingHorizontal: SIZES.xs,
   },
   lockedText: {
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.textPrimary,
     textAlign: 'center',
-    marginTop: SIZES.sm,
-    marginBottom: SIZES.xs,
+    marginLeft: SIZES.xs,
     fontWeight: '600',
+    flex: 1,
+    lineHeight: 20,
+  },
+  featureHighlight: {
+    alignSelf: 'stretch',
+    marginBottom: SIZES.sm,
+    paddingHorizontal: SIZES.xs,
+  },
+  featureText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.textSecondary,
+    textAlign: 'left',
+    marginBottom: SIZES.xs / 2,
+    lineHeight: 16,
   },
   lockedSubtext: {
     ...TYPOGRAPHY.bodySmall,
@@ -2382,7 +2438,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.buttonRadius || 12,
     marginHorizontal: SIZES.screenPadding,
-    marginTop: -Math.max(SIZES.lg, height * 0.04), // Responsive negative margin for floating effect
+    marginTop: -Math.min(SIZES.md, height * 0.025), // Reduced negative margin to prevent overlap with header text
     marginBottom: 4, // Minimal bottom margin
     padding: Math.max(SIZES.sm, width * 0.04), // Responsive padding
     shadowColor: '#000',
@@ -2674,7 +2730,7 @@ const styles = StyleSheet.create({
   
   // Level card check-in button styles
   levelCheckInButton: {
-    marginTop: 0,
+    marginTop: SIZES.sm, // Added margin to prevent overlap with level info
     borderRadius: SIZES.buttonRadius || 12,
     overflow: 'hidden',
   },

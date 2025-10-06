@@ -1,0 +1,38 @@
+#!/bin/sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# DevOps pre-commit quality gates
+echo "🔍 Running pre-commit quality checks..."
+
+# Check for console.log statements in production code
+echo "📝 Checking for console.log statements..."
+if grep -r "console\.log" src/ --exclude-dir=__tests__ --exclude="*.test.*" --exclude="*.spec.*" 2>/dev/null; then
+  echo "❌ Found console.log statements in production code. Please remove them or use log.debug() instead."
+  exit 1
+fi
+
+# Run linting with zero warnings allowed
+echo "🔍 Running ESLint..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "❌ ESLint check failed. Please fix all errors and warnings."
+  exit 1
+fi
+
+# Run TypeScript type checking
+echo "🔍 Running TypeScript check..."
+npm run type-check
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript check failed. Please fix all type errors."
+  exit 1
+fi
+
+# Run tests
+echo "🧪 Running tests..."
+npm run test:ci
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please ensure all tests pass."
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"

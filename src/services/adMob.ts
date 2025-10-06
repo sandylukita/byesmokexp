@@ -19,15 +19,17 @@ if (Platform.OS !== 'web') {
   RewardedAdEventType = AdMobModule.RewardedAdEventType;
   TestIds = AdMobModule.TestIds;
   
-  // Debug log to check what's actually available
-  console.log('📱 AdMob Module loaded:', {
-    hasRewardedAd: !!AdMobModule.RewardedAd,
-    hasAdEventType: !!AdMobModule.AdEventType,
-    hasRewardedAdEventType: !!AdMobModule.RewardedAdEventType,
-    allExports: Object.keys(AdMobModule),
-    adEventTypeKeys: AdMobModule.AdEventType ? Object.keys(AdMobModule.AdEventType) : 'not found',
-    rewardedAdEventTypeKeys: AdMobModule.RewardedAdEventType ? Object.keys(AdMobModule.RewardedAdEventType) : 'not found'
-  });
+  // Debug log to check what's actually available (development only)
+  if (__DEV__) {
+    log.debug('📱 AdMob Module loaded:', {
+      hasRewardedAd: !!AdMobModule.RewardedAd,
+      hasAdEventType: !!AdMobModule.AdEventType,
+      hasRewardedAdEventType: !!AdMobModule.RewardedAdEventType,
+      allExports: Object.keys(AdMobModule),
+      adEventTypeKeys: AdMobModule.AdEventType ? Object.keys(AdMobModule.AdEventType) : 'not found',
+      rewardedAdEventTypeKeys: AdMobModule.RewardedAdEventType ? Object.keys(AdMobModule.RewardedAdEventType) : 'not found'
+    });
+  }
 }
 
 // Google's official test ad unit IDs for development
@@ -38,10 +40,10 @@ const TEST_REWARDED_AD_UNIT_ANDROID = 'ca-app-pub-3940256099942544/5224354917';
 const TEST_REWARDED_AD_UNIT_IOS = 'ca-app-pub-3940256099942544/1712485313';
 
 // Production ad unit IDs from secure environment configuration
-const PRODUCTION_INTERSTITIAL_AD_UNIT_ANDROID = ENV_CONFIG.ADMOB.interstitialAndroid || 'ca-app-pub-3940256099942544/1033173712';
-const PRODUCTION_INTERSTITIAL_AD_UNIT_IOS = ENV_CONFIG.ADMOB.interstitialIOS || 'ca-app-pub-3940256099942544/4411468910';
-const PRODUCTION_REWARDED_AD_UNIT_ANDROID = ENV_CONFIG.ADMOB.rewardedAndroid || 'ca-app-pub-3940256099942544/5224354917';
-const PRODUCTION_REWARDED_AD_UNIT_IOS = ENV_CONFIG.ADMOB.rewardedIOS || 'ca-app-pub-3940256099942544/1712485313';
+const PRODUCTION_INTERSTITIAL_AD_UNIT_ANDROID = ENV_CONFIG.ADMOB.interstitialAndroid || 'ca-app-pub-9522080569647318/1234567890';
+const PRODUCTION_INTERSTITIAL_AD_UNIT_IOS = ENV_CONFIG.ADMOB.interstitialIOS || 'ca-app-pub-9522080569647318/0987654321';
+const PRODUCTION_REWARDED_AD_UNIT_ANDROID = ENV_CONFIG.ADMOB.rewardedAndroid || 'ca-app-pub-9522080569647318/2468013579';
+const PRODUCTION_REWARDED_AD_UNIT_IOS = ENV_CONFIG.ADMOB.rewardedIOS || 'ca-app-pub-9522080569647318/9753108642';
 
 class AdMobService {
   private interstitialAd: any = null;

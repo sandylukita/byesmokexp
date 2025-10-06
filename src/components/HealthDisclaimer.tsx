@@ -121,7 +121,7 @@ const HealthDisclaimer: React.FC<HealthDisclaimerProps> = ({
             style={[styles.button, styles.declineButton]}
             onPress={handleDecline}
           >
-            <Text style={styles.declineButtonText}>I Don't Agree</Text>
+            <Text style={styles.declineButtonText}>I Don&apos;t Agree</Text>
           </TouchableOpacity>
           
           <TouchableOpacity

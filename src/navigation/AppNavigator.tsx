@@ -1,9 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { TouchableOpacity, View, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { showInterstitialAd, canShowAd } from '../services/adMob';
+import { log } from '../config/environment';
+import { auth, db } from '../services/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import BadgeStatisticsScreen from '../screens/BadgeStatisticsScreen';
@@ -51,6 +56,78 @@ const TamagotchiWrapper: React.FC<{ navigation: any; route: any }> = ({ navigati
 const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
   const { colors } = useTheme();
   const [showCravingModal, setShowCravingModal] = useState(false);
+  const [userIsPremium, setUserIsPremium] = useState(false);
+
+  // Monitor user's premium status for ad decisions
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserIsPremium(userData.isPremium || false);
+            log.debug('🎯 User premium status updated:', userData.isPremium);
+          }
+        } catch (error) {
+          log.error('Error fetching user premium status:', error);
+          setUserIsPremium(false); // Default to non-premium on error
+        }
+      } else {
+        setUserIsPremium(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Custom tab bar button component for Tamagotchi with ads
+  const TamagotchiTabButton = (props: any) => {
+    const { children, onPress, style, ...otherProps } = props;
+
+    const handleTamagotchiPress = async () => {
+      try {
+        // Check if we can show an ad before navigating to Tamagotchi
+        if (!userIsPremium && canShowAd(userIsPremium)) {
+          log.debug('🎯 Showing ad before Tamagotchi tab navigation');
+
+          // Show interstitial ad first
+          const adShown = await showInterstitialAd(userIsPremium, 'tamagotchi_tab_navigation');
+
+          // Small delay after ad, then navigate
+          setTimeout(() => {
+            onPress && onPress();
+          }, adShown ? 500 : 100);
+        } else {
+          // Direct navigation for premium users or when ad not available
+          log.debug('🎯 Direct Tamagotchi tab navigation (premium user or ad not available)');
+          onPress && onPress();
+        }
+      } catch (error) {
+        // Fallback - always allow navigation even if ads fail
+        log.error('Error in Tamagotchi tab navigation with ads:', error);
+        onPress && onPress();
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        onPress={handleTamagotchiPress}
+        style={[
+          {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingVertical: 8,
+          },
+          style
+        ]}
+        {...otherProps}
+      >
+        {children}
+      </TouchableOpacity>
+    );
+  };
   
   // Memoize components to prevent recreation on theme/language changes
   const DashboardComponent = useMemo(() => 
@@ -147,15 +224,16 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
           component={ProgressComponent}
         />
         
-        <Tab.Screen 
-          name="Tamagotchi" 
-          options={{ 
+        <Tab.Screen
+          name="Tamagotchi"
+          options={{
             tabBarLabel: 'Lungcat',
             tabBarLabelStyle: {
               fontSize: SIZES.xs,
               fontWeight: '600',
               color: colors.textSecondary,
             },
+            tabBarButton: TamagotchiTabButton,
           }}
           component={TamagotchiComponent}
         />

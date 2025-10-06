@@ -112,7 +112,7 @@ interface ConfettiPieceProps {
   duration: number;
 }
 
-const ConfettiPieceComponent: React.FC<ConfettiPieceProps> = React.memo(({ piece, visible, duration }) => {
+const ConfettiPieceComponent: React.FC<ConfettiPieceProps> = React.memo(function ConfettiPieceComponent({ piece, visible, duration }) {
   const translateY = useSharedValue(piece.y);
   const translateX = useSharedValue(piece.x);
   const rotation = useSharedValue(piece.rotation);
