@@ -124,7 +124,8 @@
       "Bash(del nul)",
       "Bash(git commit:*)",
       "Bash(npm view:*)",
-      "Bash(del test-lottie.js)"
+      "Bash(del test-lottie.js)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
