@@ -73,7 +73,6 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
             if (userDoc.exists()) {
               const userData = { id: currentUser.uid, ...userDoc.data() } as User;
               setUser(userData);
-              log.debug('🔍 TamagotchiScreen Firebase user updated:', userData.displayName, 'petStage:', userData.petStage, 'totalDays:', userData.totalDays);
 
               // Load persisted pet stats from user data
               if (userData.petStats) {
@@ -94,11 +93,9 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
         );
       } else {
         // No Firebase user - check for demo user
-        log.debug('No Firebase user, checking for demo user in TamagotchiScreen...');
         const demoUser = demoGetCurrentUser();
 
         if (demoUser) {
-          log.debug('🔍 TamagotchiScreen demo user loaded:', demoUser.displayName, 'petStage:', demoUser.petStage, 'totalDays:', demoUser.totalDays);
           setUser(demoUser);
 
           // Load persisted pet stats from demo user data
@@ -114,10 +111,8 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
           }
         } else {
           // Try to restore demo user from storage as last resort
-          log.debug('No demo user in memory, checking storage...');
           const restoredUser = await demoRestoreUser();
           if (restoredUser) {
-            log.debug('🔍 TamagotchiScreen restored demo user:', restoredUser.displayName, 'petStage:', restoredUser.petStage, 'totalDays:', restoredUser.totalDays);
             setUser(restoredUser);
           } else {
             setUser(null);
@@ -135,6 +130,16 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
       authUnsubscribe();
       if (userUnsubscribe) {
         userUnsubscribe();
+      }
+    };
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        log.debug('🎭 Cleaning up timeout on unmount');
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);
@@ -172,8 +177,14 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
     lastInteractionDate: new Date().toDateString(),
   });
   const [isInteracting, setIsInteracting] = useState(false);
-  const [temporaryAnimation, setTemporaryAnimation] = useState<string | null>(null);
+  const [temporaryAnimation, _setTemporaryAnimation] = useState<string | null>(null);
   const lungcatRef = useRef<any>(null);
+
+  // Wrap setTemporaryAnimation with logging
+  const setTemporaryAnimation = useCallback((value: string | null) => {
+    log.debug('🎭 setTemporaryAnimation called with:', value);
+    _setTemporaryAnimation(value);
+  }, []);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -193,7 +204,6 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
 
     // Use unified health system
     const unifiedHealth = getLungcatHealthPercentage(user);
-    log.debug('🔍 TamagotchiScreen unified health:', unifiedHealth, 'for user:', user?.displayName);
 
     // Happiness increases with longer streaks
     const baseHappiness = Math.min(30 + (streak * 1.5), 100);
@@ -252,13 +262,28 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
   }, []);
 
   // Helper function to trigger temporary animations
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const triggerTemporaryAnimation = useCallback((animationType: string, duration: number = 3000) => {
-    log.debug('🎭 Setting temporaryAnimation to:', animationType, 'for', duration, 'ms');
+    const startTime = Date.now();
+    log.debug('🎭 [START] Setting temporaryAnimation to:', animationType, 'for', duration, 'ms at', startTime);
+
+    // Clear any existing timeout to prevent conflicts
+    if (timeoutRef.current) {
+      log.debug('🎭 Clearing previous timeout');
+      clearTimeout(timeoutRef.current);
+    }
+
     setTemporaryAnimation(animationType);
-    setTimeout(() => {
-      log.debug('🎭 Clearing temporaryAnimation after', duration, 'ms');
+
+    timeoutRef.current = setTimeout(() => {
+      const endTime = Date.now();
+      const elapsed = endTime - startTime;
+      log.debug('🎭 [END] Timeout fired after', elapsed, 'ms (expected:', duration, 'ms)');
       setTemporaryAnimation(null);
+      timeoutRef.current = null;
     }, duration);
+
+    log.debug('🎭 Timeout scheduled with ID:', timeoutRef.current);
   }, []);
 
   // Helper function to show custom alert
@@ -278,13 +303,6 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
     const totalDays = user.totalDays || 0;
     let petStage = user.petStage;
 
-    // Debug log to troubleshoot tiger demo user
-    log.debug(`🐾 TamagotchiScreen Pet Stage Debug:`, {
-      totalDays,
-      explicitPetStage: user.petStage,
-      userEmail: user.email
-    });
-
     // Auto-determine stage if not set
     if (!petStage) {
       if (totalDays >= 91) {
@@ -295,8 +313,6 @@ export const TamagotchiScreen: React.FC<TamagotchiScreenProps> = ({
         petStage = 'cat';
       }
     }
-
-    log.debug(`🐾 Final determined pet stage: ${petStage}`);
 
     switch (petStage) {
       case 'tiger':
@@ -651,8 +667,10 @@ Cheerleader pribadi kamu makin seneng dan sehat setiap hari bebas rokok! 💖
   }, [petStats.lastPlayed, isInteracting, language, onUpdateUser, user?.xp, user?.dailyXP, triggerTemporaryAnimation, showCustomAlert]);
 
   const handlePetInteraction = useCallback(async () => {
-    // Trigger happy animation for poke - shorter duration for responsiveness
-    triggerTemporaryAnimation('happy', 2000);
+    log.debug('🐾 handlePetInteraction called - triggering happy animation');
+
+    // Trigger happy animation for poke - longer duration for better visibility
+    triggerTemporaryAnimation('happy', 4000);
 
     const newStats = {
       happiness: Math.min(petStats.happiness + 5, 100),
@@ -710,7 +728,7 @@ Cheerleader pribadi kamu makin seneng dan sehat setiap hari bebas rokok! 💖
   // Get simple recovery status text
   const getLungcatRecoveryStatus = () => {
     if (!user) {
-      return language === 'en' ? '🥺 Waiting for their hero!' : '🥺 Menunggu pahlawan mereka!';
+      return language === 'en' ? '🥺 Waiting for you!' : '🥺 Menunggu Anda!';
     }
 
     const streak = user.streak || 0;
@@ -719,73 +737,46 @@ Cheerleader pribadi kamu makin seneng dan sehat setiap hari bebas rokok! 💖
     if (streak >= 30) {
       switch (evolutionInfo.currentStage) {
         case 'lion':
-          return language === 'en' ? '👑 Ruling their kingdom!' : '👑 Memerintah kerajaan mereka!';
+          return language === 'en' ? '👑 Perfect Health!' : '👑 Kesehatan Sempurna!';
         case 'tiger':
-          return language === 'en' ? '🐯 Prowling with power!' : '🐯 Mengintai dengan kekuatan!';
+          return language === 'en' ? '🐯 Very Healthy!' : '🐯 Sangat Sehat!';
         default:
-          return language === 'en' ? '🌟 Living their best life!' : '🌟 Hidup terbaiknya!';
+          return language === 'en' ? '🌟 Fully Recovered!' : '🌟 Sudah Pulih!';
       }
     } else if (streak >= 7) {
-      switch (evolutionInfo.currentStage) {
-        case 'tiger':
-          const totalDaysT = user.totalDays || 0;
-          const daysToLion = Math.max(0, 90 - totalDaysT);
-          if (daysToLion > 0) {
-            return language === 'en'
-              ? `🐯 Growing stronger daily! ${daysToLion} days until Lion evolution!`
-              : `🐯 Makin kuat setiap hari! ${daysToLion} hari lagi jadi Lion!`;
-          } else {
-            return language === 'en' ? '🐯 Growing stronger daily!' : '🐯 Makin kuat setiap hari!';
-          }
-        default:
-          const totalDaysC = user.totalDays || 0;
-          const daysToTiger = Math.max(0, 30 - totalDaysC);
-          if (daysToTiger > 0) {
-            return language === 'en'
-              ? `😊 Happy and growing! ${daysToTiger} days until Tiger evolution!`
-              : `😊 Senang dan berkembang! ${daysToTiger} hari lagi jadi Tiger!`;
-          } else {
-            return language === 'en' ? '😊 Happy and growing!' : '😊 Senang dan berkembang!';
-          }
-      }
+      return language === 'en' ? '😊 Healthy & Happy' : '😊 Sehat & Senang';
     } else if (streak > 0) {
-      const totalDays = user.totalDays || 0;
-      const daysToTiger = Math.max(0, 30 - totalDays);
-      if (daysToTiger > 0) {
-        return language === 'en'
-          ? `🤒 Recovering from smoke sickness! ${daysToTiger} days until Tiger evolution!`
-          : `🤒 Sembuh dari sakit asap rokok! ${daysToTiger} hari lagi jadi Tiger!`;
-      } else {
-        return language === 'en' ? '🤒 Recovering from smoke sickness!' : '🤒 Sembuh dari sakit asap rokok!';
-      }
+      return language === 'en' ? '🤒 Still Recovering' : '🤒 Masih Dalam Pemulihan';
     } else {
-      const totalDays = user?.totalDays || 0;
-      const daysToTiger = Math.max(0, 30 - totalDays);
-      return language === 'en'
-        ? `💤 Dreaming of adventures! ${daysToTiger} days to Tiger evolution!`
-        : `💤 Bermimpi petualangan! ${daysToTiger} hari lagi jadi Tiger!`;
+      return language === 'en' ? '💤 Sleeping' : '💤 Sedang Tidur';
     }
   };
 
-  // Get detailed healing information
+  // Get detailed healing and evolution information
   const getHealingInformation = () => {
     if (!user) {
-      return language === 'en' ? 'Start your journey to help your Lungcat grow strong and healthy!' : 'Mulai perjalanan Anda untuk membantu Lungcat tumbuh kuat dan sehat!';
+      return language === 'en' ? 'Start daily check-ins to help Lungcat grow!' : 'Check-in harian untuk bantu Lungcat tumbuh!';
     }
 
     const streak = user.streak || 0;
+    const evolutionInfo = getEvolutionInfo(user);
+    const daysToNextEvolution = evolutionInfo.daysToNextStage;
 
-    if (streak >= 30) {
-      return language === 'en' ? 'Perfect health achieved! Keep up the amazing care!' : 'Kesehatan sempurna tercapai! Teruskan perawatan yang luar biasa!';
-    } else if (streak >= 7) {
-      return language === 'en' ? 'Great progress! Your daily care is working perfectly!' : 'Progress bagus! Perawatan harian Anda bekerja dengan sempurna!';
-    } else if (streak > 0) {
+    // Show evolution progress OR health progress, not both
+    if (evolutionInfo.currentStage === 'lion') {
+      return language === 'en' ? '🏆 Maximum evolution achieved!' : '🏆 Evolusi maksimal tercapai!';
+    } else if (daysToNextEvolution > 0) {
+      const nextStage = evolutionInfo.currentStage === 'cat' ? 'Tiger' : 'Lion';
+      return language === 'en'
+        ? `📈 ${daysToNextEvolution} days to evolve into ${nextStage}`
+        : `📈 ${daysToNextEvolution} hari lagi evolusi jadi ${nextStage}`;
+    } else if (streak < 7) {
       const daysNeeded = 7 - streak;
       return language === 'en'
-        ? `${daysNeeded} more days to heal! Keep checking in daily!`
-        : `${daysNeeded} hari lagi untuk sembuh! Terus check-in harian!`;
+        ? `💪 ${daysNeeded} more check-ins to reach full health`
+        : `💪 ${daysNeeded} check-in lagi untuk kesehatan penuh`;
     } else {
-      return language === 'en' ? 'Start daily check-ins to begin the healing journey!' : 'Mulai check-in harian untuk memulai perjalanan penyembuhan!';
+      return language === 'en' ? '✨ Keep up the great progress!' : '✨ Pertahankan progress yang bagus!';
     }
   };
 

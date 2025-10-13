@@ -178,17 +178,17 @@ You agree to indemnify and hold us harmless from any claims arising from:
 ## Contact Information
 
 ### General Inquiries
-**Zayn Studio**  
-Email: support@zaynstudio.app  
+**Zayn Studio**
+Email: sandy@zaynstudio.app
 Website: https://zaynstudio.app
 
 ### Legal Notices
-Email: legal@zaynstudio.app  
+Email: sandy@zaynstudio.app
 Subject Line: "ByeSmoke AI Legal Notice"
 
 ### Terms Questions
 For questions about these Terms of Service:
-- Email: terms@zaynstudio.app
+- Email: sandy@zaynstudio.app
 - Include: Specific questions or concerns
 
 ---

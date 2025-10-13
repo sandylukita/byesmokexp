@@ -8,6 +8,7 @@ import { auth } from '../src/services/firebase';
 import { NotificationService } from '../src/services/notificationService';
 import { errorTracker } from '../src/services/errorTracking';
 import { initializeAds } from '../src/services/adMob';
+import { log } from '../src/config/environment';
 
 import MainNavigator from '../src/navigation/MainNavigator';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -24,13 +25,13 @@ import ErrorBoundary from '../src/components/ErrorBoundary';
 type AppState = 'splash' | 'login' | 'signup' | 'onboarding' | 'dashboard';
 
 export default function Main() {
-  console.log('🔥🔥🔥 MAIN COMPONENT STARTED - App is starting (debug version)');
+  log.debug('🔥🔥🔥 MAIN COMPONENT STARTED - App is starting (debug version)');
   
   // Debug function to check Firebase auth persistence
   const debugFirebaseAuth = async () => {
     try {
       const currentUser = auth.currentUser;
-      console.log('🔥 DEBUG: Firebase currentUser on startup:', {
+      log.debug('🔥 DEBUG: Firebase currentUser on startup:', {
         hasCurrentUser: !!currentUser,
         uid: currentUser?.uid,
         email: currentUser?.email,
@@ -41,20 +42,20 @@ export default function Main() {
       const AsyncStorage = await import('@react-native-async-storage/async-storage');
       const keys = await AsyncStorage.default.getAllKeys();
       const firebaseKeys = keys.filter(key => key.includes('firebase') || key.includes('auth'));
-      console.log('🔥 DEBUG: Firebase-related AsyncStorage keys:', firebaseKeys);
+      log.debug('🔥 DEBUG: Firebase-related AsyncStorage keys:', firebaseKeys);
       
       // Check if there are any auth tokens
       const authKeys = keys.filter(key => key.includes('authUser') || key.includes('token'));
-      console.log('🔥 DEBUG: Auth-related AsyncStorage keys:', authKeys);
+      log.debug('🔥 DEBUG: Auth-related AsyncStorage keys:', authKeys);
     } catch (error) {
-      console.log('🔥 DEBUG: Error checking Firebase auth:', error);
+      log.debug('🔥 DEBUG: Error checking Firebase auth:', error);
     }
   };
   
   const navigationRef = useRef<any>(null);
   const [appState, _setAppState] = useState<AppState>(() => {
     const initialState: AppState = 'splash';
-    console.log('Main.tsx: Initial appState set to', initialState);
+    log.debug('Main.tsx: Initial appState set to', initialState);
     return initialState;
   });
 
@@ -62,10 +63,16 @@ export default function Main() {
   useEffect(() => {
     NotificationService.initializeListeners();
     // errorTracker.initialize(); // Temporarily disabled error tracking
-    initializeAds(); // Initialize AdMob for rewarded video ads
-    
+
+    // Defer AdMob initialization to improve initial load time
+    // This prevents blocking the main thread during app startup
+    const adInitTimer = setTimeout(() => {
+      initializeAds(); // Initialize AdMob for rewarded video ads
+    }, 2000); // Delay by 2 seconds to prioritize UI rendering
+
     return () => {
       NotificationService.removeListeners();
+      clearTimeout(adInitTimer);
     };
   }, []);
 
@@ -89,7 +96,7 @@ export default function Main() {
   const [firebaseInitialized, setFirebaseInitialized] = useState(false);
 
   useEffect(() => {
-    console.log('🔥🔥🔥 MAIN USEEFFECT TRIGGERED - Setting up auth');
+    log.debug('🔥🔥🔥 MAIN USEEFFECT TRIGGERED - Setting up auth');
     
     // Debug Firebase auth state on startup
     debugFirebaseAuth();
@@ -97,12 +104,12 @@ export default function Main() {
     // Simplified auth initialization - just check demo users, let onAuthStateChanged handle Firebase
     const initializeAuth = async () => {
       try {
-        console.log('🔐 Checking demo users...');
+        log.debug('🔐 Checking demo users...');
         
         // Check demo user in storage first
         const restoredDemoUser = await demoRestoreUser();
         if (restoredDemoUser) {
-          console.log('🚀 FOUND: Demo user in storage, going to dashboard');
+          log.debug('🚀 FOUND: Demo user in storage, going to dashboard');
           setUser(restoredDemoUser as unknown as FirebaseUser);
           setAuthStateLoaded(true);
           setSplashFinished(true);
@@ -113,7 +120,7 @@ export default function Main() {
         // Check demo user in memory
         const memoryDemoUser = demoGetCurrentUser();
         if (memoryDemoUser) {
-          console.log('🚀 FOUND: Demo user in memory, going to dashboard');
+          log.debug('🚀 FOUND: Demo user in memory, going to dashboard');
           setUser(memoryDemoUser as unknown as FirebaseUser);
           setAuthStateLoaded(true);
           setSplashFinished(true);
@@ -121,11 +128,11 @@ export default function Main() {
           return;
         }
         
-        console.log('🔐 No demo users found, waiting for Firebase auth state...');
+        log.debug('🔐 No demo users found, waiting for Firebase auth state...');
         // Don't set any state here - let onAuthStateChanged handle Firebase users
         
       } catch (error) {
-        console.error('❌ Error in auth initialization:', error);
+        log.error('❌ Error in auth initialization:', error);
         // Fallback to login on any error
         setAuthStateLoaded(true);
         setSplashFinished(true);
@@ -138,22 +145,22 @@ export default function Main() {
     
     // Set up Firebase listener for auth state changes - this is the primary auth handler
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('🔐 AUTH STATE CHANGE - User:', firebaseUser?.email || 'null');
+      log.debug('🔐 AUTH STATE CHANGE - User:', firebaseUser?.email || 'null');
       
       // Mark Firebase as initialized once the first auth state change fires
       if (!firebaseInitialized) {
-        console.log('🔥 Firebase auth initialized');
+        log.debug('🔥 Firebase auth initialized');
         setFirebaseInitialized(true);
       }
       
       if (firebaseUser) {
-        console.log('🔐 AUTH CHANGE: User logged in, checking onboarding');
+        log.debug('🔐 AUTH CHANGE: User logged in, checking onboarding');
         setUser(firebaseUser);
         setAuthStateLoaded(true);
         setSplashFinished(true);
         await handleDashboardNavigation(firebaseUser);
       } else {
-        console.log('🔐 AUTH CHANGE: User logged out, checking demo users');
+        log.debug('🔐 AUTH CHANGE: User logged out, checking demo users');
         const demoUser = await demoRestoreUser() || demoGetCurrentUser();
         if (demoUser) {
           setUser(demoUser as unknown as FirebaseUser);
@@ -177,24 +184,24 @@ export default function Main() {
   
   // Handle onboarding check only when going to dashboard with a Firebase user
   const handleDashboardNavigation = async (firebaseUser: FirebaseUser) => {
-    console.log('🚀 Handling dashboard navigation for Firebase user:', firebaseUser.email);
+    log.debug('🚀 Handling dashboard navigation for Firebase user:', firebaseUser.email);
     
     try {
       await checkOnboardingStatus(firebaseUser);
     } catch (error) {
-      console.log('📱 ❌ Onboarding check failed, defaulting to dashboard:', error.message);
+      log.debug('📱 ❌ Onboarding check failed, defaulting to dashboard:', error instanceof Error ? error.message : String(error));
       setAppState('dashboard');
     }
   };
 
   const checkOnboardingStatus = async (firebaseUser: FirebaseUser) => {
-    console.log('🔍 Starting checkOnboardingStatus for user:', firebaseUser.email);
+    log.debug('🔍 Starting checkOnboardingStatus for user:', firebaseUser.email);
     
     // Add a maximum timeout for the entire function to prevent infinite hanging
     const functionTimeoutPromise = new Promise<void>((_, reject) => {
       setTimeout(() => {
-        reject(new Error('checkOnboardingStatus function timeout after 15 seconds'));
-      }, 15000); // 15 second total timeout
+        reject(new Error('checkOnboardingStatus function timeout after 5 seconds'));
+      }, 5000); // 5 second total timeout for faster loading
     });
     
     const checkOnboardingPromise = async (): Promise<void> => {
@@ -213,8 +220,8 @@ export default function Main() {
           // Create a proper timeout promise that actually rejects
           const timeoutPromise = new Promise<never>((_, reject) => {
             setTimeout(() => {
-              reject(new Error('Firebase request timeout after 5 seconds'));
-            }, 5000); // Increased from 2 to 5 seconds
+              reject(new Error('Firebase request timeout after 2 seconds'));
+            }, 2000); // Optimized for faster loading
           });
           
           const userDocPromise = getUserDocument(firebaseUser.uid);
@@ -222,7 +229,7 @@ export default function Main() {
           
           if (userData) {
             console.log(`✅ User document found for ${firebaseUser.email}`, userData.onboardingCompleted);
-            console.log('📊 User data details:', {
+            log.debug('📊 User data details:', {
               onboardingCompleted: userData.onboardingCompleted,
               xp: userData.xp,
               streak: userData.streak,
@@ -231,71 +238,71 @@ export default function Main() {
             break; // Exit loop on success
           }
         } catch (error) {
-          console.log(`⚠️ Error getting user document (attempt ${attempt}/${maxRetries}):`, error.message);
+          console.log(`⚠️ Error getting user document (attempt ${attempt}/${maxRetries}):`, error instanceof Error ? error.message : String(error));
           
           // If this was the last attempt, we'll handle fallback outside the loop
           if (attempt < maxRetries) {
-            console.log('🔄 Retrying in 500ms...');
+            log.debug('🔄 Retrying in 500ms...');
             await new Promise(resolve => setTimeout(resolve, 500)); // Faster retry
           } else {
-            console.log('🚨 All attempts failed, proceeding with fallback logic');
+            log.debug('🚨 All attempts failed, proceeding with fallback logic');
           }
         }
       }
       
-      console.log('🔍 Checking onboarding status...');
+      log.debug('🔍 Checking onboarding status...');
       
       if (userData && userData.onboardingCompleted === false) {
-        console.log('📝 User has onboardingCompleted = false');
+        log.debug('📝 User has onboardingCompleted = false');
         // Check if this is an existing user with progress data
         const hasExistingProgress = userData.xp > 0 || userData.streak > 0 || 
                                    (userData.dailyXP && Object.keys(userData.dailyXP).length > 0) ||
                                    (userData.badges && userData.badges.length > 0);
         
-        console.log('🎯 Has existing progress:', hasExistingProgress);
+        log.debug('🎯 Has existing progress:', hasExistingProgress);
         
         if (hasExistingProgress) {
-          console.log('✅ Existing user with progress, skipping onboarding and going to dashboard');
+          log.debug('✅ Existing user with progress, skipping onboarding and going to dashboard');
           // Auto-complete onboarding for existing users to prevent data loss
           const { updateUserDocument } = await import('../src/services/auth');
           try {
             await updateUserDocument(userData.id, { onboardingCompleted: true });
-            console.log('🚀 Setting app state to dashboard (existing user)');
+            log.debug('🚀 Setting app state to dashboard (existing user)');
             setAppState('dashboard');
           } catch (error) {
-            console.error('Error auto-completing onboarding:', error);
+            log.error('Error auto-completing onboarding:', error);
             setNeedsOnboarding(true);
             setAppState('onboarding');
           }
         } else {
-          console.log('📋 New user, going to onboarding');
+          log.debug('📋 New user, going to onboarding');
           setNeedsOnboarding(true);
           setAppState('onboarding');
         }
       } else if (userData && userData.onboardingCompleted === true) {
-        console.log('✅ User has completed onboarding, going to dashboard');
-        console.log('🚀 Setting app state to dashboard (completed onboarding)');
+        log.debug('✅ User has completed onboarding, going to dashboard');
+        log.debug('🚀 Setting app state to dashboard (completed onboarding)');
         setAppState('dashboard');
       } else {
         // No user document found after retries - proceed with reasonable defaults
-        console.log('🔄 No user document found after retries');
+        log.debug('🔄 No user document found after retries');
         
         // For Firebase users who can't load their document due to network issues,
         // default to dashboard instead of onboarding to avoid data loss
-        console.log('🔄 Firebase user but no document found - defaulting to dashboard (faster fallback)');
+        log.debug('🔄 Firebase user but no document found - defaulting to dashboard (faster fallback)');
         setAppState('dashboard');
       }
     } catch (error) {
-      console.error('❌ Error checking onboarding status (likely Firebase timeout):', error);
+      log.error('❌ Error checking onboarding status (likely Firebase timeout):', error);
       
       // Aggressive fallback - if we have a Firebase user, just go to dashboard
       // This prevents users from getting stuck on splash screen
       if (firebaseUser) {
-        console.log('🔄 Firebase timeout - sending user directly to dashboard');
+        log.debug('🔄 Firebase timeout - sending user directly to dashboard');
         setAuthStateLoaded(true);
         setAppState('dashboard');
       } else {
-        console.log('🔄 No Firebase user - going to login screen');
+        log.debug('🔄 No Firebase user - going to login screen');
         setAuthStateLoaded(true);
         setAppState('login');
       }
@@ -306,17 +313,17 @@ export default function Main() {
     try {
       await Promise.race([checkOnboardingPromise(), functionTimeoutPromise]);
     } catch (timeoutError) {
-      console.error('🚨 checkOnboardingStatus function timed out:', timeoutError.message);
+      log.error('🚨 checkOnboardingStatus function timed out:', timeoutError instanceof Error ? timeoutError.message : String(timeoutError));
       // Aggressive timeout fallback - prioritize user experience over perfect data loading
-      console.log('🚀 TIMEOUT FALLBACK: Sending user to dashboard to prevent hanging');
+      log.debug('🚀 TIMEOUT FALLBACK: Sending user to dashboard to prevent hanging');
       setAuthStateLoaded(true);
       setAppState('dashboard'); // Always go to dashboard on timeout to avoid user frustration
     }
   };
 
   const handleSplashFinish = () => {
-    console.log('🎬 Splash screen finished, but keeping splash visible until auth is ready');
-    console.log('🎬 Splash finish state:', {
+    log.debug('🎬 Splash screen finished, but keeping splash visible until auth is ready');
+    log.debug('🎬 Splash finish state:', {
       currentAuthStateLoaded: authStateLoaded,
       hasUser: !!user,
       currentAppState: appState
@@ -324,32 +331,20 @@ export default function Main() {
     
     // Don't immediately set splash finished - wait for auth to be ready
     if (authStateLoaded) {
-      console.log('🎬 Auth already loaded, can proceed');
+      log.debug('🎬 Auth already loaded, can proceed');
       setSplashFinished(true);
     } else {
-      console.log('🎬 Auth not ready, extending splash screen');
+      log.debug('🎬 Auth not ready, extending splash screen');
       // No timeout - let Firebase auth handle navigation completely
     }
   };
 
   const handleLogin = async () => {
-    console.log('🚀 handleLogin called - FORCING navigation to dashboard');
-    
-    // Wait a moment for Firebase auth to fully process
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    // Force direct navigation after successful login
-    console.log('🚀 BYPASS: Going directly to dashboard after successful login');
-    setAuthStateLoaded(true);
-    setSplashFinished(true); // Ensure splash is finished
-    setAppState('dashboard');
-    
-    // Also try to get current user for state consistency
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      console.log('✅ Setting current user:', currentUser.email);
-      setUser(currentUser);
-    }
+    log.debug('🚀 handleLogin called - let Firebase auth state listener handle navigation');
+
+    // Don't manually navigate - let the onAuthStateChanged listener handle it
+    // This ensures user data is loaded before navigating to dashboard
+    // The listener at line 141 will detect the auth state change and handle navigation properly
   };
 
   const handleSignUp = () => {
@@ -363,7 +358,7 @@ export default function Main() {
 
   const handleLogout = async () => {
     try {
-      console.log('🔓 Logging out user...');
+      log.debug('🔓 Logging out user...');
       
       // Clear demo user first
       await demoLogout();
@@ -384,9 +379,9 @@ export default function Main() {
         setAppState('login');
       }, 500);
       
-      console.log('✅ User logged out successfully');
+      log.debug('✅ User logged out successfully');
     } catch (error) {
-      console.error('Error signing out:', error);
+      log.error('Error signing out:', error);
       // Fallback - force to login screen
       setUser(null);
       setAppState('login');
@@ -394,14 +389,14 @@ export default function Main() {
   };
 
   const renderCurrentScreen = () => {
-    console.log('🎯 MAIN.TSX: renderCurrentScreen called with appState:', appState);
+    log.debug('🎯 MAIN.TSX: renderCurrentScreen called with appState:', appState);
     try {
       switch (appState) {
         case 'splash':
-          console.log('🎯 MAIN.TSX: Rendering SplashScreen');
+          log.debug('🎯 MAIN.TSX: Rendering SplashScreen');
           return <SplashScreen onFinish={handleSplashFinish} />;
         case 'login':
-          console.log('🎯 MAIN.TSX: Rendering LoginScreen');
+          log.debug('🎯 MAIN.TSX: Rendering LoginScreen');
           return (
             <LoginScreen
               onLogin={handleLogin}
@@ -409,7 +404,7 @@ export default function Main() {
             />
           );
         case 'signup':
-          console.log('🎯 MAIN.TSX: Rendering SignUpScreen');
+          log.debug('🎯 MAIN.TSX: Rendering SignUpScreen');
           return (
             <SignUpScreen
               onSignUp={handleSignUp}
@@ -417,15 +412,15 @@ export default function Main() {
             />
           );
         case 'onboarding':
-          console.log('🎯 MAIN.TSX: Rendering OnboardingScreen');
+          log.debug('🎯 MAIN.TSX: Rendering OnboardingScreen');
           return <OnboardingScreen onComplete={handleOnboardingComplete} />;
         case 'dashboard':
-          console.log('🎯 MAIN.TSX: Rendering Dashboard with NavigationContainer');
+          log.debug('🎯 MAIN.TSX: Rendering Dashboard with NavigationContainer');
           return (
             <NavigationContainer 
               ref={navigationRef}
               onReady={() => {
-                console.log('🧭 NavigationContainer is ready');
+                log.debug('🧭 NavigationContainer is ready');
                 if (navigationRef.current) {
                   setSubscriptionNavigation(navigationRef.current);
                 }
@@ -435,11 +430,11 @@ export default function Main() {
             </NavigationContainer>
           );
         default:
-          console.log('⚠️ Unknown appState, falling back to splash:', appState);
+          log.debug('⚠️ Unknown appState, falling back to splash:', appState);
           return <SplashScreen onFinish={handleSplashFinish} />;
       }
     } catch (error) {
-      console.error('❌ Error rendering screen:', error);
+      log.error('❌ Error rendering screen:', error);
       return (
         <View style={{ flex: 1, backgroundColor: '#F0EBE8', justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ color: '#40302B', fontSize: 16 }}>Loading...</Text>

@@ -47,6 +47,7 @@ export const COLORS = {
   neutralDark: '#40302B',
   divider: '#EFE6E0',
   iconInactive: '#E0D7CF',
+  border: '#E0D7CF',
 };
 
 export const DARK_COLORS = {
@@ -98,6 +99,7 @@ export const DARK_COLORS = {
   neutralDark: '#FFFFFF',
   divider: '#3A3A3A',
   iconInactive: '#6C757D',
+  border: '#6C757D',
 };
 
 export const SIZES = {

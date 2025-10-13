@@ -4,6 +4,7 @@ import { doc as docRef, getDoc, onSnapshot, updateDoc } from 'firebase/firestore
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { log } from '../config/environment';
 import {
     Dimensions,
     RefreshControl,
@@ -15,81 +16,6 @@ import {
     Share,
     Alert,
 } from 'react-native';
-
-const { width, height } = Dimensions.get('window');
-
-// Cache constants for Progress screen data
-const PROGRESS_CACHE_KEY = 'progress_user_cache';
-const COMMUNITY_CACHE_KEY = 'community_comparison_cache';
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache for user progress data
-
-// Load user data from AsyncStorage cache
-const loadCachedUserData = async (): Promise<User | null> => {
-  try {
-    const cached = await AsyncStorage.getItem(PROGRESS_CACHE_KEY);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed.data && parsed.timestamp) {
-        const age = Date.now() - parsed.timestamp;
-        if (age < CACHE_DURATION) {
-          console.log('✓ Loaded fresh user data from Progress cache');
-          return parsed.data;
-        }
-      }
-    }
-  } catch (error) {
-    console.log('Error loading cached user data:', error);
-  }
-  return null;
-};
-
-// Save user data to AsyncStorage cache
-const cacheUserData = async (userData: User) => {
-  try {
-    const cacheData = {
-      data: userData,
-      timestamp: Date.now()
-    };
-    await AsyncStorage.setItem(PROGRESS_CACHE_KEY, JSON.stringify(cacheData));
-    console.log('✓ User data cached for Progress screen');
-  } catch (error) {
-    console.log('Error caching user data:', error);
-  }
-};
-
-// Load community comparison from cache
-const loadCachedCommunityComparison = async (userId: string): Promise<any | null> => {
-  try {
-    const cached = await AsyncStorage.getItem(`${COMMUNITY_CACHE_KEY}_${userId}`);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed.data && parsed.timestamp) {
-        const age = Date.now() - parsed.timestamp;
-        if (age < CACHE_DURATION) {
-          console.log('✓ Using cached community comparison');
-          return parsed.data;
-        }
-      }
-    }
-  } catch (error) {
-    console.log('Error loading cached community comparison:', error);
-  }
-  return null;
-};
-
-// Cache community comparison data
-const cacheCommunityComparison = async (userId: string, comparison: any) => {
-  try {
-    const cacheData = {
-      data: comparison,
-      timestamp: Date.now()
-    };
-    await AsyncStorage.setItem(`${COMMUNITY_CACHE_KEY}_${userId}`, JSON.stringify(cacheData));
-    console.log('✓ Community comparison cached');
-  } catch (error) {
-    console.log('Error caching community comparison:', error);
-  }
-};
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { User } from '../types';
@@ -108,6 +34,81 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { TYPOGRAPHY } from '../utils/typography';
 
+const { width, height } = Dimensions.get('window');
+
+// Cache constants for Progress screen data
+const PROGRESS_CACHE_KEY = 'progress_user_cache';
+const COMMUNITY_CACHE_KEY = 'community_comparison_cache';
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache for user progress data
+
+// Load user data from AsyncStorage cache
+const loadCachedUserData = async (): Promise<User | null> => {
+  try {
+    const cached = await AsyncStorage.getItem(PROGRESS_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.data && parsed.timestamp) {
+        const age = Date.now() - parsed.timestamp;
+        if (age < CACHE_DURATION) {
+          log.debug('✓ Loaded fresh user data from Progress cache');
+          return parsed.data;
+        }
+      }
+    }
+  } catch (error) {
+    log.debug('Error loading cached user data:', error);
+  }
+  return null;
+};
+
+// Save user data to AsyncStorage cache
+const cacheUserData = async (userData: User) => {
+  try {
+    const cacheData = {
+      data: userData,
+      timestamp: Date.now()
+    };
+    await AsyncStorage.setItem(PROGRESS_CACHE_KEY, JSON.stringify(cacheData));
+    log.debug('✓ User data cached for Progress screen');
+  } catch (error) {
+    log.debug('Error caching user data:', error);
+  }
+};
+
+// Load community comparison from cache
+const loadCachedCommunityComparison = async (userId: string): Promise<any | null> => {
+  try {
+    const cached = await AsyncStorage.getItem(`${COMMUNITY_CACHE_KEY}_${userId}`);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.data && parsed.timestamp) {
+        const age = Date.now() - parsed.timestamp;
+        if (age < CACHE_DURATION) {
+          log.debug('✓ Using cached community comparison');
+          return parsed.data;
+        }
+      }
+    }
+  } catch (error) {
+    log.debug('Error loading cached community comparison:', error);
+  }
+  return null;
+};
+
+// Cache community comparison data
+const cacheCommunityComparison = async (userId: string, comparison: any) => {
+  try {
+    const cacheData = {
+      data: comparison,
+      timestamp: Date.now()
+    };
+    await AsyncStorage.setItem(`${COMMUNITY_CACHE_KEY}_${userId}`, JSON.stringify(cacheData));
+    log.debug('✓ Community comparison cached');
+  } catch (error) {
+    log.debug('Error caching community comparison:', error);
+  }
+};
+
 // OPTIMIZED: Memoized heatmap calculation to prevent expensive re-renders
 const MemoizedHeatmapGrid = React.memo(({ 
   user, 
@@ -119,7 +120,7 @@ const MemoizedHeatmapGrid = React.memo(({
   colors: any 
 }) => {
   return useMemo(() => {
-    console.log('🗓️ HEATMAP RENDER START:', {
+    log.debug('🗓️ HEATMAP RENDER START:', {
       userEmail: user.email,
       userXP: user.xp,
       dailyXPData: user.dailyXP,
@@ -162,7 +163,7 @@ const MemoizedHeatmapGrid = React.memo(({
       
       // Debug quit date comparison for new users
       if (isToday) {
-        console.log('🏁 QUIT DATE COMPARISON (FIXED):', {
+        log.debug('🏁 QUIT DATE COMPARISON (FIXED):', {
           today: date.toDateString(),
           quitDateOriginal: quitDate.toDateString(),
           quitDateNormalized: quitDateNormalized.toDateString(),
@@ -213,7 +214,7 @@ const MemoizedHeatmapGrid = React.memo(({
 
             hasActuallyCheckedInToday = checkInDate.toDateString() === today.toDateString() && hoursDiff < 24;
 
-            console.log('🔍 Heatmap check-in debug:', {
+            log.debug('🔍 Heatmap check-in debug:', {
               lastCheckIn: user.lastCheckIn,
               checkInDateString: checkInDate.toDateString(),
               todayDateString: today.toDateString(),
@@ -279,7 +280,7 @@ const MemoizedHeatmapGrid = React.memo(({
 
             // Debug logging for historical days without XP data
             if (daysSinceQuit >= 0 && daysSinceQuit < Math.min(10, maxDaysSinceQuit)) {
-              console.log('🔍 FALLBACK LOGIC DEBUG (FIXED):', {
+              log.debug('🔍 FALLBACK LOGIC DEBUG (FIXED):', {
                 date: date.toDateString(),
                 daysSinceQuit,
                 totalDays,
@@ -295,7 +296,7 @@ const MemoizedHeatmapGrid = React.memo(({
               // STRICT MODE: Only show green if there's actual evidence of activity
               // No more fake green days for missing data
 
-              console.log('⚪ STRICT: No XP data found for day within journey:', {
+              log.debug('⚪ STRICT: No XP data found for day within journey:', {
                 date: date.toDateString(),
                 daysSinceQuit,
                 message: 'Setting intensity 0 - no fake green days'
@@ -305,7 +306,7 @@ const MemoizedHeatmapGrid = React.memo(({
             } else {
               intensity = 0; // No activity before quit date or after journey
               if (daysSinceQuit >= 0) {
-                console.log('⚪ FALLBACK: No activity (outside journey):', date.toDateString(), 'daysSinceQuit:', daysSinceQuit, 'totalDays:', totalDays);
+                log.debug('⚪ FALLBACK: No activity (outside journey):', date.toDateString(), 'daysSinceQuit:', daysSinceQuit, 'totalDays:', totalDays);
               }
             }
           }
@@ -313,7 +314,7 @@ const MemoizedHeatmapGrid = React.memo(({
       } else {
         // Debug: Why isn't activity being calculated?
         if (isToday) {
-          console.log('❌ NO ACTIVITY CALCULATION - Reason:', {
+          log.debug('❌ NO ACTIVITY CALCULATION - Reason:', {
             isFuture: isFuture,
             dateGteQuitDate: date >= quitDateNormalized,
             failedCondition: isFuture ? 'Date is in future' : 'Date is before quit date'
@@ -323,7 +324,7 @@ const MemoizedHeatmapGrid = React.memo(({
       
       // Debug the style calculation for today
       if (isToday) {
-        console.log('🎨 HEATMAP STYLE CALCULATION:', {
+        log.debug('🎨 HEATMAP STYLE CALCULATION:', {
           day,
           isToday,
           isFuture,
@@ -417,7 +418,7 @@ const ProgressScreen: React.FC = () => {
   const [user, setUser] = useState<User | null>(() => {
     const cachedUser = demoGetCurrentUser();
     if (cachedUser) {
-      console.log('✅ Progress: Starting with cached user data');
+      log.debug('✅ Progress: Starting with cached user data');
       return cachedUser;
     }
     return null; // Original approach: null until data loads
@@ -429,31 +430,39 @@ const ProgressScreen: React.FC = () => {
   const { colors, updateUser, language } = useTheme();
   const { t } = useTranslation();
 
+  // Memoized expensive calculations
+  const daysSinceQuit = useMemo(() => user?.totalDays || 0, [user?.totalDays]);
+  const moneySavedData = useMemo(() => {
+    if (!user) return { totalSaved: 0, cigarettesAvoided: 0 };
+    return calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
+  }, [daysSinceQuit, user?.cigarettesPerDay, user?.cigarettePrice]);
+  const cigarettesAvoided = useMemo(() => daysSinceQuit * (user?.cigarettesPerDay || 0), [daysSinceQuit, user?.cigarettesPerDay]);
+
   useEffect(() => {
     initializeProgressData();
   }, []);
 
-  const initializeProgressData = async () => {
+  const initializeProgressData = useCallback(async () => {
     // First load cached data for instant display (if available)
     const cachedData = await loadCachedUserData();
     if (cachedData && cachedData.id !== 'loading') {
       setUser(cachedData);
-      console.log('✓ Progress screen showing cached data instantly');
+      log.debug('✓ Progress screen showing cached data instantly');
     } else {
-      console.log('✓ Progress screen showing skeleton user instantly (no cache)');
+      log.debug('✓ Progress screen showing skeleton user instantly (no cache)');
       // Keep skeleton user until real data loads
     }
-    
+
     // Then load fresh data in background
     loadUserData();
-  };
+  }, [loadUserData]);
 
   // Optimized real-time listener with better error handling
   useEffect(() => {
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) return;
 
-    console.log('Setting up optimized real-time listener for ProgressScreen...');
+    log.debug('Setting up optimized real-time listener for ProgressScreen...');
     const userDocRef = docRef(db, 'users', firebaseUser.uid);
     
     const unsubscribe = onSnapshot(
@@ -474,14 +483,14 @@ const ProgressScreen: React.FC = () => {
 
           // If corruption was detected and cleaned, persist the clean data back to Firestore
           if (rawUserData.dailyXP && Object.keys(rawUserData.dailyXP).length !== Object.keys(cleanedDailyXP).length) {
-            console.log('🔧 Persisting cleaned dailyXP data to Firestore');
+            log.debug('🔧 Persisting cleaned dailyXP data to Firestore');
             try {
               updateDoc(docRef(db, 'users', firebaseUser.uid), { dailyXP: cleanedDailyXP });
             } catch (error) {
               console.error('Error persisting cleaned dailyXP:', error);
             }
           }
-          console.log('🔄 Progress real-time update received:', {
+          log.debug('🔄 Progress real-time update received:', {
             email: userData.email,
             xp: userData.xp,
             totalDays: userData.totalDays,
@@ -494,7 +503,7 @@ const ProgressScreen: React.FC = () => {
           // Update user data with smart logic and cache it
           setUser(currentUser => {
             if (!currentUser) {
-              console.log('Setting initial Progress screen user data');
+              log.debug('Setting initial Progress screen user data');
               cacheUserData(userData);
               return userData;
             }
@@ -511,7 +520,7 @@ const ProgressScreen: React.FC = () => {
               (userData.completedMissions?.length || 0) !== (currentUser.completedMissions?.length || 0); // Mission count changed
               
             if (shouldUpdate) {
-              console.log('✅ Accepting Progress screen Firebase update:', {
+              log.debug('✅ Accepting Progress screen Firebase update:', {
                 xpChange: userData.xp - currentUser.xp,
                 checkInChanged: userData.lastCheckIn !== currentUser.lastCheckIn,
                 dailyXPEntries: Object.keys(userData.dailyXP || {}).length,
@@ -528,7 +537,7 @@ const ProgressScreen: React.FC = () => {
               cacheUserData(userData);
               return userData;
             } else {
-              console.log('⏭️ Ignoring stale Progress data from Firebase');
+              log.debug('⏭️ Ignoring stale Progress data from Firebase');
               return currentUser;
             }
           });
@@ -537,13 +546,13 @@ const ProgressScreen: React.FC = () => {
       (error) => {
         // Handle authentication errors gracefully
         if (error.code === 'permission-denied') {
-          console.log('🔐 Progress screen: User authentication changed, stopping listener');
+          log.debug('🔐 Progress screen: User authentication changed, stopping listener');
           return; // Don't log error for expected auth changes
         }
         
         // Handle network errors gracefully  
         if (error.code === 'unavailable' || error.code === 'failed-precondition') {
-          console.log('📶 Progress screen: Firebase temporarily unavailable');
+          log.debug('📶 Progress screen: Firebase temporarily unavailable');
           return; // Don't log error for expected network issues
         }
         
@@ -555,7 +564,7 @@ const ProgressScreen: React.FC = () => {
     );
     
     return () => {
-      console.log('Cleaning up Progress real-time listener');
+      log.debug('Cleaning up Progress real-time listener');
       unsubscribe();
     };
   }, [auth.currentUser]);
@@ -564,37 +573,37 @@ const ProgressScreen: React.FC = () => {
   // Only reload data when screen comes into focus if cache is stale
   useFocusEffect(
     useCallback(() => {
-      console.log('ProgressScreen focused...');
+      log.debug('ProgressScreen focused...');
       
       // Check if we need to refresh (only if no user data or cache is stale)
       if (!user) {
-        console.log('No user data, loading...');
+        log.debug('No user data, loading...');
         initializeProgressData();
       } else {
         // Check cache age - only reload if data is older than 5 minutes
         loadCachedUserData().then(cachedData => {
           if (!cachedData) {
-            console.log('Cache expired, refreshing in background...');
+            log.debug('Cache expired, refreshing in background...');
             loadUserData(); // Background refresh without loading state
           } else {
-            console.log('Using existing user data, skipping reload');
+            log.debug('Using existing user data, skipping reload');
           }
         });
       }
     }, [user])
   );
 
-  const loadUserData = async () => {
-    console.log('Starting loadUserData in ProgressScreen...');
+  const loadUserData = useCallback(async () => {
+    log.debug('Starting loadUserData in ProgressScreen...');
     try {
       // First priority: Check Firebase authentication for real users
-      console.log('Checking Firebase auth first...');
+      log.debug('Checking Firebase auth first...');
       try {
         const currentUser = auth.currentUser;
-        console.log('Firebase currentUser:', currentUser?.email);
+        log.debug('Firebase currentUser:', currentUser?.email);
         
         if (currentUser) {
-          console.log('Getting user doc from Firestore...');
+          log.debug('Getting user doc from Firestore...');
           const userDoc = await getDoc(docRef(db, 'users', currentUser.uid));
           if (userDoc.exists()) {
             const rawUserData = { id: currentUser.uid, ...userDoc.data() } as User;
@@ -606,14 +615,14 @@ const ProgressScreen: React.FC = () => {
 
             // If corruption was detected and cleaned, persist the clean data back to Firestore
             if (rawUserData.dailyXP && Object.keys(rawUserData.dailyXP).length !== Object.keys(cleanedDailyXP).length) {
-              console.log('🔧 Persisting cleaned dailyXP data to Firestore');
+              log.debug('🔧 Persisting cleaned dailyXP data to Firestore');
               try {
                 updateDoc(docRef(db, 'users', currentUser.uid), { dailyXP: cleanedDailyXP });
               } catch (error) {
                 console.error('Error persisting cleaned dailyXP:', error);
               }
             }
-            console.log('✓ ProgressScreen Firebase user data loaded:', {
+            log.debug('✓ ProgressScreen Firebase user data loaded:', {
               email: userData.email,
               completedMissions: userData.completedMissions?.length || 0,
               badges: userData.badges?.length || 0,
@@ -632,10 +641,10 @@ const ProgressScreen: React.FC = () => {
             setLoading(false);
             return;
           } else {
-            console.log('User doc does not exist in Firestore');
+            log.debug('User doc does not exist in Firestore');
           }
         } else {
-          console.log('No current user in Firebase auth');
+          log.debug('No current user in Firebase auth');
         }
       } catch (firebaseError) {
         console.error('Firebase error, falling back to demo:', firebaseError);
@@ -643,10 +652,10 @@ const ProgressScreen: React.FC = () => {
       }
 
       // Fallback to demo data for development/testing
-      console.log('No Firebase user, checking for demo user in memory...');
+      log.debug('No Firebase user, checking for demo user in memory...');
       const demoUser = demoGetCurrentUser();
       if (demoUser) {
-        console.log('✓ Demo user found in memory:', {
+        log.debug('✓ Demo user found in memory:', {
           email: demoUser.email,
           completedMissions: demoUser.completedMissions?.length || 0,
           badges: demoUser.badges?.length || 0,
@@ -663,10 +672,10 @@ const ProgressScreen: React.FC = () => {
       }
       
       // Try to restore demo user from storage as last resort
-      console.log('No demo user in memory, checking storage...');
+      log.debug('No demo user in memory, checking storage...');
       const restoredUser = await demoRestoreUser();
       if (restoredUser) {
-        console.log('✓ Demo user restored from storage:', {
+        log.debug('✓ Demo user restored from storage:', {
           email: restoredUser.email,
           completedMissions: restoredUser.completedMissions?.length || 0,
           badges: restoredUser.badges?.length || 0,
@@ -681,49 +690,47 @@ const ProgressScreen: React.FC = () => {
         return;
       }
 
-      console.log('No user found in any data source');
+      log.debug('No user found in any data source');
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
-      console.log('Setting loading to false');
+      log.debug('Setting loading to false');
       setLoading(false);
     }
-  };
+  }, [updateUser]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadUserData();
     setRefreshing(false);
-  };
+  }, [loadUserData]);
 
   // Month navigation functions
-  const goToPreviousMonth = () => {
+  const goToPreviousMonth = useCallback(() => {
     setSelectedDate(prev => {
       const newDate = new Date(prev);
       newDate.setMonth(newDate.getMonth() - 1);
       return newDate;
     });
-  };
+  }, []);
 
-  const goToNextMonth = () => {
+  const goToNextMonth = useCallback(() => {
     setSelectedDate(prev => {
       const newDate = new Date(prev);
       newDate.setMonth(newDate.getMonth() + 1);
       return newDate;
     });
-  };
+  }, []);
 
-  const goToCurrentMonth = () => {
+  const goToCurrentMonth = useCallback(() => {
     setSelectedDate(new Date());
-  };
+  }, []);
 
   // Achievement sharing functions
-  const shareAchievement = async (type: 'days' | 'money' | 'cigarettes' | 'streak' | 'milestone', data?: any) => {
+  const shareAchievement = useCallback(async (type: 'days' | 'money' | 'cigarettes' | 'streak' | 'milestone', data?: any) => {
     if (!user) return;
 
-    const daysSinceQuit = user.totalDays || 0;
-    const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
-    const cigarettesAvoided = daysSinceQuit * user.cigarettesPerDay;
+    const moneySaved = moneySavedData;
 
     let message = '';
     
@@ -778,15 +785,13 @@ const ProgressScreen: React.FC = () => {
         language === 'en' ? 'Failed to share achievement' : 'Gagal membagikan pencapaian'
       );
     }
-  };
+  }, [user, daysSinceQuit, moneySavedData, cigarettesAvoided, language]);
 
   // Comprehensive progress summary sharing
   const shareProgressSummary = async () => {
     if (!user) return;
 
-    const daysSinceQuit = user.totalDays || 0;
-    const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
-    const cigarettesAvoided = daysSinceQuit * user.cigarettesPerDay;
+    const moneySaved = moneySavedData;
     const currentStreak = user.longestStreak || user.streak || 0;
     const missionsCompleted = user.completedMissions?.length || 0;
     const savings = formatCurrency(moneySaved).replace('Rp', '').trim();
@@ -811,7 +816,7 @@ const ProgressScreen: React.FC = () => {
           : `\n🏆 Berada di ${comparison.streakRank} pengguna ByeSmoke!`;
       }
     } catch (error) {
-      console.log('Could not get community comparison for sharing');
+      log.debug('Could not get community comparison for sharing');
     }
 
     const message = language === 'en'
@@ -866,11 +871,8 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
     );
   }
 
-  // Use check-in based calculation to match Dashboard
-  const daysSinceQuit = user.totalDays || 0;
-  const moneySaved = calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
+  // Use memoized calculations
   const healthMilestones = getHealthMilestones(new Date(user.quitDate));
-  const cigarettesAvoided = daysSinceQuit * user.cigarettesPerDay;
 
   const renderHealthMilestones = () => (
     <View style={styles.tabContent}>
@@ -1767,4 +1769,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProgressScreen;
+export default React.memo(ProgressScreen);

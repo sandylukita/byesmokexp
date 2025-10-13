@@ -974,7 +974,7 @@ export class NotificationService {
       }
 
       // Test each type of notification
-      const types: Array<'feeding' | 'playing' | 'health_good' | 'health_bad' | 'energy_low'> = [
+      const types: ('feeding' | 'playing' | 'health_good' | 'health_bad' | 'energy_low')[] = [
         'feeding', 'playing', 'health_good', 'health_bad', 'energy_low'
       ];
 

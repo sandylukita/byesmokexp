@@ -167,11 +167,11 @@ export const listenerManager = new ListenerManager();
  * Batch Writer - Combine multiple writes to save costs
  */
 class BatchWriter {
-  private pendingWrites: Array<{
+  private pendingWrites: {
     ref: any;
     data: any;
     timestamp: number;
-  }> = [];
+  }[] = [];
   private readonly BATCH_DELAY = 2000; // 2 second delay for batching
   private batchTimeout: NodeJS.Timeout | null = null;
 

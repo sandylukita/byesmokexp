@@ -71,7 +71,7 @@ describe('CustomAlert', () => {
     );
 
     // Since we don't have testID in the component, let's test overlay press
-    const modal = getByText('Test Title').parent?.parent?.parent;
+    const modal = result.getByText('Test Title').parent?.parent?.parent;
     if (modal) {
       fireEvent.press(modal);
     }
@@ -80,7 +80,7 @@ describe('CustomAlert', () => {
   });
 
   it('should show correct icon for different alert types', () => {
-    const types: Array<'success' | 'info' | 'warning' | 'error'> = ['success', 'info', 'warning', 'error'];
+    const types: ('success' | 'info' | 'warning' | 'error')[] = ['success', 'info', 'warning', 'error'];
     
     types.forEach(type => {
       const { rerender } = render(

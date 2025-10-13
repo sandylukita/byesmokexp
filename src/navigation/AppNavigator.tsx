@@ -118,7 +118,6 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            paddingVertical: 8,
           },
           style
         ]}

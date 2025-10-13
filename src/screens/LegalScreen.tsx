@@ -89,7 +89,7 @@ You have the right to:
 ## Contact Us
 
 If you have questions about this Privacy Policy, contact us at:
-- Email: privacy@byesmoke.ai
+- Email: sandy@zaynstudio.app
 
 ## Consent
 
@@ -149,7 +149,7 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW:
 ## 6. Contact Information
 
 For questions about these Terms, contact us at:
-- Email: legal@byesmoke.ai
+- Email: sandy@zaynstudio.app
 
 ---
 

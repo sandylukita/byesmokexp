@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
@@ -127,6 +127,9 @@ const storeBadgeStats = async (stats: {[badgeId: string]: number}) => {
 const BadgeStatisticsScreen: React.FC = () => {
   const { colors } = useTheme();
   const { t, language } = useTranslation();
+  const route = useRoute();
+  const params = route.params as { initialTab?: number } | undefined;
+
   const [badgeStats, setBadgeStats] = useState<{[badgeId: string]: number}>(FALLBACK_STATS);
   const [userBadges, setUserBadges] = useState<Badge[]>(() => {
     const cachedUser = demoGetCurrentUser();
@@ -142,7 +145,10 @@ const BadgeStatisticsScreen: React.FC = () => {
     console.log('📱 Achievement: Starting with skeleton user (no cached data)');
     return createSkeletonAchievementUser();
   });
-  const [activeTab, setActiveTab] = useState<'badges' | 'community'>('badges');
+  // Set initial tab based on route param: 0 = badges, 1 = community
+  const [activeTab, setActiveTab] = useState<'badges' | 'community'>(() => {
+    return params?.initialTab === 1 ? 'community' : 'badges';
+  });
   const [loading, setLoading] = useState(false); // Never show loading, always show fallback data immediately
   const [refreshing, setRefreshing] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -151,6 +157,14 @@ const BadgeStatisticsScreen: React.FC = () => {
   useEffect(() => {
     initializeBadgeStats();
   }, []);
+
+  // Handle initialTab param changes (when navigating to this screen with a specific tab)
+  useEffect(() => {
+    if (params?.initialTab === 1) {
+      setActiveTab('community');
+      setCommunityTabLoaded(true);
+    }
+  }, [params?.initialTab]);
 
   const initializeBadgeStats = async () => {
     // First try to load from AsyncStorage for instant display

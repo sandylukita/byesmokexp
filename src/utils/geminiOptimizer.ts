@@ -353,18 +353,22 @@ export class GeminiCostOptimizer {
       const cost = (inputTokens * GEMINI_COSTS.INPUT_TOKEN) + (outputTokens * GEMINI_COSTS.OUTPUT_TOKEN);
       
       console.log(`💰 Making AI call - Estimated cost: $${cost.toFixed(6)} - Language: ${language}`);
-      
-      // FORCE MOCK RESPONSE (Disable real AI temporarily to fix language issue)
-      const aiResponse = language === 'en'
-        ? `Amazing work ${user.displayName}! Your ${user.streak} day streak shows the incredible strength you have within yourself. Keep maintaining this spirit because every day is a huge victory for your health!`
-        : `Luar biasa ${user.displayName}! Pencapaian ${user.streak} hari ini membuktikan kekuatan luar biasa dalam diri Anda. Sistem peredaran darah sudah membaik, fungsi paru-paru meningkat, dan setiap hari adalah kemenangan besar untuk kesehatan Anda. Terus pertahankan semangat ini!`;
-      
-      console.log(`✅ Generated MOCK AI motivation in language: ${language} - "${aiResponse.substring(0, 50)}..."`);  
-      
+
+      // Make real Gemini API call
+      const { generateAIMilestoneInsight } = await import('../services/gemini');
+      const aiResponse = await generateAIMilestoneInsight(
+        user,
+        'daily_motivation',
+        { customPrompt: shortPrompt },
+        language
+      );
+
+      console.log(`✅ Generated real AI motivation in language: ${language} - "${aiResponse.substring(0, 50)}..."`);
+
       // Track usage and cache result
       await this.trackUsage(user.id, inputTokens + outputTokens, cost);
       await this.setCachedContent(user.id, `motivation_${language}`, aiResponse, userContext, inputTokens + outputTokens, cost);
-      
+
       return aiResponse;
       
     } catch (error) {

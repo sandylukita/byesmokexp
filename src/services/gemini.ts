@@ -17,7 +17,7 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 
 // Global lock to prevent multiple simultaneous API calls
 let isGeminiCallInProgress = false;
-const geminiCallQueue: Array<() => void> = [];
+const geminiCallQueue: (() => void)[] = [];
 
 // Enhanced AI consultation for milestones and recovery
 export const generateAIMilestoneInsight = async (user: User, triggerType: 'milestone' | 'streak_recovery' | 'daily_motivation', triggerData: any, language: 'en' | 'id' = 'id'): Promise<string> => {

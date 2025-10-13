@@ -79,11 +79,11 @@ export const CommunityComparison: React.FC<CommunityComparisonProps> = ({
     return colors.textSecondary;
   };
 
-  const getPercentileIcon = (percentile: number): string => {
-    if (percentile >= 90) return 'emoji-events';
-    if (percentile >= 75) return 'local-fire-department';
-    if (percentile >= 50) return 'trending-up';
-    return 'people';
+  const getPercentileIcon = (percentile: number) => {
+    if (percentile >= 90) return 'emoji-events' as const;
+    if (percentile >= 75) return 'local-fire-department' as const;
+    if (percentile >= 50) return 'trending-up' as const;
+    return 'people' as const;
   };
 
   return (

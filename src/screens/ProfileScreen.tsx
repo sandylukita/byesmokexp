@@ -720,7 +720,7 @@ You have the right to:
 Contact Us
 
 If you have questions about this Privacy Policy, contact us at:
-Email: privacy@byesmoke.ai
+Email: sandy@zaynstudio.app
 
 By using ByeSmoke AI, you consent to the collection and use of your information as described in this Privacy Policy.`;
 
@@ -778,7 +778,7 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW:
 6. Contact Information
 
 For questions about these Terms, contact us at:
-Email: legal@byesmoke.ai
+Email: sandy@zaynstudio.app
 
 By using ByeSmoke AI, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.`;
 

@@ -11,6 +11,8 @@ import {
   TouchableOpacity,
   Text,
   Dimensions,
+  Image,
+  Animated,
 } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,7 +21,6 @@ import { User } from '../types';
 import { getLungcatHealthPercentage, getLungcatHealthColor } from '../utils/lungcatHealth';
 import EvolutionScreen from './EvolutionScreen';
 import { debugLog } from '../utils/performanceOptimizer';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -63,213 +64,16 @@ const ANIMATION_IMPORTS = {
   },
 };
 
-// Enhanced animation cache with persistent storage
-class AnimationCache {
-  private memoryCache = new Map<string, any>();
-  private cacheMetadata = new Map<string, { timestamp: number; size: number }>();
-  private readonly CACHE_KEY = 'lungcat_animation_cache';
-  private readonly MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB limit
-  private readonly CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-  async get(key: string): Promise<any> {
-    // Check memory cache first
-    if (this.memoryCache.has(key)) {
-      return this.memoryCache.get(key);
-    }
-
-    // Check persistent cache
-    try {
-      const cachedData = await AsyncStorage.getItem(`${this.CACHE_KEY}_${key}`);
-      const metadata = this.cacheMetadata.get(key);
-
-      if (cachedData && metadata) {
-        // Check if cache is still valid
-        if (Date.now() - metadata.timestamp < this.CACHE_TTL) {
-          const parsed = JSON.parse(cachedData);
-          this.memoryCache.set(key, parsed);
-          return parsed;
-        } else {
-          // Cache expired, remove it
-          await this.remove(key);
-        }
-      }
-    } catch (error) {
-      debugLog.error(`Cache read error for ${key}:`, error);
-    }
-
-    return null;
-  }
-
-  async set(key: string, data: any): Promise<void> {
-    try {
-      const serialized = JSON.stringify(data);
-      const size = new Blob([serialized]).size;
-
-      // Check if adding this would exceed cache size limit
-      await this.ensureCacheSpace(size);
-
-      // Store in memory cache
-      this.memoryCache.set(key, data);
-
-      // Store metadata
-      this.cacheMetadata.set(key, {
-        timestamp: Date.now(),
-        size
-      });
-
-      // Store in persistent cache
-      await AsyncStorage.setItem(`${this.CACHE_KEY}_${key}`, serialized);
-
-      debugLog.log(`Cached animation: ${key} (${(size / 1024).toFixed(1)}KB)`);
-    } catch (error) {
-      debugLog.error(`Cache write error for ${key}:`, error);
-    }
-  }
-
-  async remove(key: string): Promise<void> {
-    this.memoryCache.delete(key);
-    this.cacheMetadata.delete(key);
-    try {
-      await AsyncStorage.removeItem(`${this.CACHE_KEY}_${key}`);
-    } catch (error) {
-      debugLog.error(`Cache remove error for ${key}:`, error);
-    }
-  }
-
-  private async ensureCacheSpace(requiredSize: number): Promise<void> {
-    const currentSize = Array.from(this.cacheMetadata.values())
-      .reduce((total, metadata) => total + metadata.size, 0);
-
-    if (currentSize + requiredSize > this.MAX_CACHE_SIZE) {
-      // Remove oldest entries until we have enough space
-      const sortedEntries = Array.from(this.cacheMetadata.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp);
-
-      let freedSpace = 0;
-      for (const [key] of sortedEntries) {
-        await this.remove(key);
-        freedSpace += this.cacheMetadata.get(key)?.size || 0;
-        if (freedSpace >= requiredSize) break;
-      }
-
-      debugLog.log(`Freed ${(freedSpace / 1024).toFixed(1)}KB of cache space`);
-    }
-  }
-
-  async loadMetadata(): Promise<void> {
-    try {
-      const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith(this.CACHE_KEY));
-
-      for (const fullKey of cacheKeys) {
-        const key = fullKey.replace(`${this.CACHE_KEY}_`, '');
-        const data = await AsyncStorage.getItem(fullKey);
-
-        if (data) {
-          const size = new Blob([data]).size;
-          this.cacheMetadata.set(key, {
-            timestamp: Date.now(), // Assume recent for existing cache
-            size
-          });
-        }
-      }
-
-      debugLog.log(`Loaded cache metadata for ${cacheKeys.length} animations`);
-    } catch (error) {
-      debugLog.error('Failed to load cache metadata:', error);
-    }
-  }
-
-  getCacheStats(): { count: number; sizeKB: number; memoryCount: number } {
-    const totalSize = Array.from(this.cacheMetadata.values())
-      .reduce((total, metadata) => total + metadata.size, 0);
-
-    return {
-      count: this.cacheMetadata.size,
-      sizeKB: Math.round(totalSize / 1024),
-      memoryCount: this.memoryCache.size
-    };
-  }
-}
-
-const animationCache = new AnimationCache();
-
-// Lazy loading function for animations
-const loadAnimation = async (stage: 'cat' | 'tiger' | 'lion', state: AnimationState): Promise<any> => {
-  const cacheKey = `${stage}-${state}`;
-
-  // Check cache first
-  const cached = await animationCache.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
+// Simple animation loading function
+const loadAnimation = (stage: 'cat' | 'tiger' | 'lion', state: AnimationState): any => {
   try {
-    // Import animation using static function based on stage and state
     const importFunction = ANIMATION_IMPORTS[stage][state];
     if (!importFunction) {
-      throw new Error(`No import function for ${stage}-${state}`);
+      return ANIMATION_IMPORTS.cat.idle();
     }
-
-    const animation = importFunction();
-
-    // Cache the loaded animation
-    await animationCache.set(cacheKey, animation);
-    debugLog.log(`Loaded animation: ${cacheKey}`);
-
-    return animation;
+    return importFunction();
   } catch (error) {
-    debugLog.error(`Failed to load animation ${cacheKey}:`, error);
-    // Fallback to cat idle animation
-    const fallbackKey = 'cat-idle';
-    const fallbackCached = await animationCache.get(fallbackKey);
-
-    if (fallbackCached) {
-      return fallbackCached;
-    }
-
-    const fallback = ANIMATION_IMPORTS.cat.idle();
-    await animationCache.set(fallbackKey, fallback);
-    return fallback;
-  }
-};
-
-// Preload critical animations
-const preloadCriticalAnimations = async (stage: 'cat' | 'tiger' | 'lion') => {
-  // Only preload idle and happy animations for immediate use
-  const criticalStates: AnimationState[] = ['idle', 'happy'];
-
-  for (const state of criticalStates) {
-    await loadAnimation(stage, state);
-  }
-
-  debugLog.log(`Preloaded critical animations for ${stage} stage`);
-
-  // Background preload next stage animations if close to evolution
-  setTimeout(() => {
-    preloadNextStageAnimations(stage);
-  }, 1000); // Delay to not impact initial load
-};
-
-// Preload next stage animations in background
-const preloadNextStageAnimations = async (currentStage: 'cat' | 'tiger' | 'lion') => {
-  try {
-    let nextStage: 'cat' | 'tiger' | 'lion' | null = null;
-
-    if (currentStage === 'cat') {
-      nextStage = 'tiger';
-    } else if (currentStage === 'tiger') {
-      nextStage = 'lion';
-    }
-
-    if (nextStage) {
-      // Preload just idle and happy for next stage
-      await loadAnimation(nextStage, 'idle');
-      await loadAnimation(nextStage, 'happy');
-      debugLog.log(`Preloaded next stage animations: ${nextStage}`);
-    }
-  } catch (error) {
-    debugLog.log('Background preload failed (non-critical):', error);
+    return ANIMATION_IMPORTS.cat.idle();
   }
 };
 
@@ -296,24 +100,62 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
 }, ref) => {
   const { colors } = useTheme();
   const [currentAnimation, setCurrentAnimation] = useState<AnimationState>('idle');
+
+  // Debug log props - DISABLED for performance
+  // useEffect(() => {
+  //   debugLog.log('🔧 LungcatLottieAnimation props:', { interactive, hasOnPetClick: !!onPetClick, temporaryAnimation });
+  // }, [interactive, onPetClick, temporaryAnimation]);
   const [showEffect, setShowEffect] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isEvolving, setIsEvolving] = useState(false);
   const [evolutionType, setEvolutionType] = useState<'catToTiger' | 'tigerToLion' | null>(null);
   const [showEvolutionScreen, setShowEvolutionScreen] = useState(false);
-  const [loadedAnimationSource, setLoadedAnimationSource] = useState<any>(null);
-  const [isLoadingAnimation, setIsLoadingAnimation] = useState(false);
-
   const lottieRef = useRef<LottieView>(null);
-  const effectRef = useRef<LottieView>(null);
+  const bounceValue = useRef(new Animated.Value(1)).current;
+
+  // Initialize animation state when user loads
+  useEffect(() => {
+    if (user) {
+      const initialAnimation = determineAnimationState();
+      setCurrentAnimation(initialAnimation);
+    }
+  }, [user]);
+
+  // Force play animation when source changes
+  useEffect(() => {
+    if (lottieRef.current) {
+      // Small delay to ensure LottieView is ready
+      setTimeout(() => {
+        lottieRef.current?.play();
+      }, 100);
+    }
+  }, [currentAnimation]);
+
+  // Simple breathing animation
+  useEffect(() => {
+    const breathingAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceValue, {
+          toValue: 1.05,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceValue, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    breathingAnimation.start();
+
+    return () => breathingAnimation.stop();
+  }, [bounceValue]);
 
   // Expose celebration trigger method to parent components
   React.useImperativeHandle(ref, () => ({
     triggerCelebration: () => {
       setShowEffect('celebration');
-      if (effectRef.current) {
-        effectRef.current.play();
-      }
       // Clear effect after animation
       setTimeout(() => {
         setShowEffect(null);
@@ -414,40 +256,21 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
       return 'happy';
     } else if (streak >= 7) {
       return 'idle';
+    } else if (streak >= 3) {
+      return 'idle';  // Show improvement for streaks 3-6
     } else {
-      return 'sick';
+      return 'sick';  // Streaks 1-2 still show sick
     }
   };
 
-  // Initialize cache and check for evolution on component mount
+  // Check for evolution on component mount
   useEffect(() => {
-    // Initialize cache metadata on first load
-    animationCache.loadMetadata();
-
     if (user) {
-      // Log current user progress and pet stage for debugging
-      const currentStage = getPetStage();
-      debugLog.log(`🐾 Pet Status: ${user.totalDays || 0} days → Stage: ${currentStage.toUpperCase()} (${
-        currentStage === 'cat' ? '🐱 Lungcat' :
-        currentStage === 'tiger' ? '🐯 Lung Tiger' :
-        '🦁 Lung Lion'
-      })`);
-
       checkForEvolution();
-
-      // Preload critical animations for current stage
-      preloadCriticalAnimations(currentStage);
-
-      // Log cache stats for debugging
-      const cacheStats = animationCache.getCacheStats();
-      debugLog.log(`Animation cache: ${cacheStats.count} total, ${cacheStats.memoryCount} in memory, ${cacheStats.sizeKB}KB`);
     }
   }, [user?.totalDays, user?.petStage]);
 
-  // Load animation when current animation or pet stage changes
-  useEffect(() => {
-    loadCurrentAnimationSource();
-  }, [currentAnimation, user?.petStage, isEvolving, evolutionType]);
+  // Static images don't need loading logic - simplified for production
 
   // Update animation based on user state
   useEffect(() => {
@@ -460,14 +283,6 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
 
     if (newAnimation !== currentAnimation) {
       setCurrentAnimation(newAnimation);
-
-      // Small delay to ensure animation source is updated
-      setTimeout(() => {
-        if (lottieRef.current && !temporaryAnimation) {
-          lottieRef.current.reset();
-          lottieRef.current.play();
-        }
-      }, 100);
     }
   }, [user?.totalDays, user?.streak, user?.lastCheckIn]);
 
@@ -475,7 +290,10 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
   useEffect(() => {
     if (temporaryAnimation) {
       const validAnimation = temporaryAnimation as AnimationState;
-      if (ANIMATION_IMPORTS.cat[validAnimation]) {
+      const petStage = getPetStage();
+
+      // Check if the current pet stage has this animation
+      if (ANIMATION_IMPORTS[petStage][validAnimation]) {
         setCurrentAnimation(validAnimation);
       }
     } else {
@@ -487,52 +305,8 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
     }
   }, [temporaryAnimation]);
 
-  // Handle pet interaction
-  const handlePetClick = () => {
-    if (!interactive) return;
+  // Handle pet interaction - use parent callback directly
 
-    // Play celebration animation
-    setCurrentAnimation('celebrate');
-    setShowEffect('celebration');
-
-    // Reset animation after celebration
-    setTimeout(() => {
-      const normalAnimation = determineAnimationState();
-      setCurrentAnimation(normalAnimation);
-      setShowEffect(null);
-    }, 3000);
-
-    // Trigger callback
-    onPetClick?.();
-
-    // Play celebration effect
-    if (effectRef.current) {
-      effectRef.current.play();
-    }
-  };
-
-  // Load animation source lazily
-  const loadCurrentAnimationSource = async () => {
-    setIsLoadingAnimation(true);
-
-    try {
-      // Show evolution animation if evolving
-      if (isEvolving && evolutionType) {
-        setLoadedAnimationSource(EVOLUTION_ANIMATIONS[evolutionType]);
-        return;
-      }
-
-      const petStage = getPetStage();
-      const source = await loadAnimation(petStage, currentAnimation);
-      setLoadedAnimationSource(source);
-    } catch (error) {
-      debugLog.error('Failed to load animation source:', error);
-      // Fallback to basic cat idle animation
-      setLoadedAnimationSource(require('../../assets/lungcat/animations/lungcat-idle.json'));
-    } finally {
-      setIsLoadingAnimation(false);
-    }
-  };
 
   // Get pet name based on current stage
   const getPetName = () => {
@@ -575,6 +349,29 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
   // Get health percentage using unified system
   const getHealthPercentage = () => {
     return getLungcatHealthPercentage(user);
+  };
+
+  // Get Lottie animation source based on current pet stage and state
+  const getAnimationSource = () => {
+    const petStage = getPetStage();
+    // IMPORTANT: Use temporaryAnimation if available, otherwise use currentAnimation
+    const animationState = temporaryAnimation || currentAnimation;
+
+    try {
+      if (ANIMATION_IMPORTS[petStage] && ANIMATION_IMPORTS[petStage][animationState]) {
+        return ANIMATION_IMPORTS[petStage][animationState]();
+      }
+
+      // Fallback to idle animation of the same stage
+      if (ANIMATION_IMPORTS[petStage] && ANIMATION_IMPORTS[petStage].idle) {
+        return ANIMATION_IMPORTS[petStage].idle();
+      }
+
+      // Ultimate fallback to cat idle
+      return ANIMATION_IMPORTS.cat.idle();
+    } catch (error) {
+      return ANIMATION_IMPORTS.cat.idle();
+    }
   };
 
   // Handle evolution screen completion
@@ -621,65 +418,66 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
       )}
 
       {/* Main Lottie Animation */}
-      <TouchableOpacity
-        onPress={handlePetClick}
-        disabled={!interactive}
-        style={[styles.petContainer, { width: size, height: size }]}
-        activeOpacity={0.8}
-      >
+      <View style={[styles.petContainer, { width: size, height: size }]}>
         {/* Container with overflow hidden to mask white background */}
-        <View style={[
-          styles.animationContainer,
-          {
-            width: size,
-            height: size,
-            backgroundColor: colors.surface,
-            borderRadius: size * 0.5,
-            overflow: 'hidden'
-          }
-        ]}>
-          {loadedAnimationSource ? (
-            <LottieView
-              key={`lungcat-${currentAnimation}-${getPetStage()}`} // Force re-render for clean animation changes
-              ref={lottieRef}
-              source={loadedAnimationSource}
-              autoPlay={true} // Always autoplay for immediate response
-              loop={!['celebrate', 'happy', 'exercising'].includes(currentAnimation)} // Don't loop temporary animations
-              style={[styles.lottieAnimation, { width: size, height: size }]}
-              resizeMode="contain"
-              renderMode="HARDWARE" // Use hardware rendering for smoother animations
-              speed={1.2} // Slightly faster for more responsive feel
-              useNativeLooping={false} // Disable native looping to have more control
-              cacheComposition={true}
-            />
-          ) : (
-            // Show loading placeholder while animation loads
-            <View style={[styles.loadingPlaceholder, { width: size, height: size }]}>
-              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-                {isLoadingAnimation ? 'Loading...' : '🐱'}
-              </Text>
-            </View>
-          )}
+        <View
+          style={[
+            styles.animationContainer,
+            {
+              width: size,
+              height: size,
+              backgroundColor: colors.surface,
+              borderRadius: size * 0.5,
+              overflow: 'hidden'
+            }
+          ]}
+        >
+          {/* Dynamic LottieView with streak-based animations */}
+          <LottieView
+            key={`${getPetStage()}-${temporaryAnimation || currentAnimation}`}
+            source={getAnimationSource()}
+            autoPlay
+            loop
+            style={{
+              width: size,
+              height: size,
+            }}
+          />
         </View>
+
+        {/* Transparent touch overlay on top */}
+        {interactive && (
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 10,
+            }}
+            onPress={() => {
+              if (onPetClick) {
+                onPetClick();
+              }
+            }}
+            activeOpacity={0.8}
+          />
+        )}
 
         {/* Interactive hint */}
         {interactive && (
-          <View style={[styles.interactionHint, { backgroundColor: colors.primary }]}>
+          <View style={[styles.interactionHint, { backgroundColor: colors.primary }]} pointerEvents="none">
             <MaterialIcons name="touch-app" size={16} color={colors.white} />
           </View>
         )}
-      </TouchableOpacity>
+      </View>
 
-      {/* Effect Animation Overlay */}
+      {/* Effect Animation - Simple emoji for reliable performance */}
       {showEffect && (
-        <LottieView
-          ref={effectRef}
-          source={EFFECT_ANIMATIONS[showEffect]}
-          autoPlay
-          loop={false}
-          style={[styles.effectAnimation, { width: size + 40, height: size + 40 }]}
-          resizeMode="contain"
-        />
+        <View style={[styles.effectAnimation, { width: size + 40, height: size + 40 }]}>
+          <Text style={{ fontSize: 48, textAlign: 'center' }}>🎉</Text>
+        </View>
       )}
 
       {/* Controls - Only show if showStatusBar is true */}
@@ -698,7 +496,9 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
 
           <TouchableOpacity
             style={[styles.controlButton, { backgroundColor: colors.secondary }]}
-            onPress={() => lottieRef.current?.play()}
+            onPress={() => {
+              // Static images don't need refresh - maintained for UI consistency
+            }}
           >
             <MaterialIcons name="refresh" size={20} color={colors.white} />
           </TouchableOpacity>
@@ -804,15 +604,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  loadingPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  loadingText: {
-    fontSize: 24,
-    fontWeight: '600',
   },
 });
 

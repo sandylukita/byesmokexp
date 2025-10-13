@@ -40,11 +40,14 @@ export interface User {
   migrationVersion?: string; // Track data migrations for system changes
   // Pet stats tracking
   petStats?: {
+    happiness: number;
+    health: number;
+    energy: number;
+    lastFed: number;
+    lastPlayed: number;
     totalInteractions: number;
     dailyInteractions: number;
     lastInteractionDate: string;
-    lastFed: number;
-    lastPlayed: number;
   };
   // Pet evolution tracking
   petStage?: 'cat' | 'tiger' | 'lion';
@@ -53,6 +56,13 @@ export interface User {
     becameTiger?: string; // Date when evolved to tiger
     becameLion?: string;  // Date when evolved to lion
   };
+  // Referral system fields
+  referralCode?: string; // User's unique referral code
+  referredBy?: string; // Code of user who referred this user
+  referralCount?: number; // Number of users this user has referred
+  referralRewards?: number; // Total XP earned from referrals
+  // Rewarded ad features
+  streakFreezes?: number; // Number of streak freeze tokens available
 }
 
 export interface Badge {

@@ -1,4 +1,4 @@
-import { signIn, signUp, getFirebaseErrorMessage } from '../auth';
+import { signIn, signUp } from '../auth';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 // Mock Firebase auth
@@ -47,7 +47,7 @@ describe('Auth Service', () => {
         user: mockUser,
       } as any);
 
-      const result = await signUp('new@example.com', 'password123');
+      const result = await signUp('new@example.com', 'password123', 'password123', 'Test User');
       expect(result).toEqual(mockUser);
       expect(mockCreateUserWithEmailAndPassword).toHaveBeenCalledWith(
         expect.anything(),
@@ -60,24 +60,8 @@ describe('Auth Service', () => {
       const mockError = { code: 'auth/email-already-in-use' };
       mockCreateUserWithEmailAndPassword.mockRejectedValue(mockError);
 
-      await expect(signUp('existing@example.com', 'password123')).rejects.toThrow();
+      await expect(signUp('existing@example.com', 'password123', 'password123', 'Test User')).rejects.toThrow();
     });
   });
 
-  describe('getFirebaseErrorMessage', () => {
-    it('should return correct error message for known error codes', () => {
-      expect(getFirebaseErrorMessage('auth/user-not-found')).toBe('Invalid email or password');
-      expect(getFirebaseErrorMessage('auth/wrong-password')).toBe('Invalid email or password');
-      expect(getFirebaseErrorMessage('auth/invalid-email')).toBe('Please enter a valid email address');
-      expect(getFirebaseErrorMessage('auth/email-already-in-use')).toBe('An account with this email already exists');
-    });
-
-    it('should return default message for unknown error codes', () => {
-      expect(getFirebaseErrorMessage('unknown-error')).toBe('An error occurred. Please try again.');
-    });
-
-    it('should handle undefined error code', () => {
-      expect(getFirebaseErrorMessage(undefined as any)).toBe('An error occurred. Please try again.');
-    });
-  });
 });

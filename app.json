@@ -7,16 +7,8 @@
     "icon": "./assets/images/icon.png",
     "scheme": "byesmokev00",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "description": "Smart AI-powered quit smoking coach with personalized guidance, progress tracking, and community support to help you become smoke-free.",
-    "keywords": [
-      "quit smoking",
-      "health",
-      "wellness",
-      "AI coach",
-      "smoking cessation",
-      "habit tracker"
-    ],
     "primaryColor": "#F99546",
     "ios": {
       "supportsTablet": true,
@@ -53,9 +45,6 @@
         "ACCESS_FINE_LOCATION"
       ]
     },
-    "privacy": "public",
-    "privacyPolicyUrl": "https://zaynstudio.app/byesmokeai/privacy-policy",
-    "category": "HEALTH_AND_FITNESS",
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -80,8 +69,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-9522080569647318~1234567890",
-          "iosAppId": "ca-app-pub-9522080569647318~0987654321"
+          "androidAppId": "ca-app-pub-1627952637319380~9785170226",
+          "iosAppId": "ca-app-pub-1627952637319380~5193561129"
         }
       ],
       "expo-router"

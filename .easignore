@@ -1,11 +1,52 @@
-# EAS ignore file
-node_modules/
+# EAS ignore file - Exclude files that cause permission errors
+
+# Version control
 .git/
+.github/
+.husky/
+
+# Dependencies
+node_modules/
+
+# Build outputs
 .expo/
 dist/
-.DS_Store
-*.log
+coverage/
+android/build/
+ios/build/
+
+# Environment files (using EAS environment variables instead)
 .env.local
 .env.development
 .env.test
-.env.production
+
+# IDE and OS files
+.vscode/
+.claude/
+.DS_Store
+*.log
+
+# Test files
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.test.jsx
+
+# Backup and old files
+*.backup
+*_old.png
+*_def.png
+
+# Documentation and tasks (not needed for builds)
+tasks/
+app-store/
+COST-OPTIMIZATION.md
+PRODUCTION-READY.md
+README.md
+*.md
+
+# Scripts not needed for builds
+scripts/
+setup-production-env.bat
+setup-production-env.sh

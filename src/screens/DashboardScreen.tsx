@@ -265,6 +265,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
   const [showPremiumMotivation, setShowPremiumMotivation] = useState(false);
   // 🎯 REMOVED: showPremiumMissions state - no longer needed since all users get 3 missions by default
   const [randomMissionsGenerated, setRandomMissionsGenerated] = useState<Mission[]>([]);
+
+  // Bonus rewards state (daily rewards from ads)
+  const [bonusRewardsUnlocked, setBonusRewardsUnlocked] = useState({
+    xpBoost: false,
+    communityRankings: false,
+    streakFreeze: false
+  });
+  const [lastRewardDate, setLastRewardDate] = useState<string>('');
   
   // Craving modal state - now handled in navigation
   
@@ -1675,6 +1683,313 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
 
   // 🎯 REMOVED: handleWatchAdForMissions function - no longer needed since all users get 3 missions by default
 
+  // Reset bonus rewards daily and check AsyncStorage for community rankings
+  useEffect(() => {
+    const checkAndResetRewards = async () => {
+      // Use local timezone instead of UTC
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const today = `${year}-${month}-${day}`;
+
+      try {
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+
+        // Load last reward date from AsyncStorage
+        const storedDate = await AsyncStorage.default.getItem('lastBonusRewardDate');
+
+        if (storedDate !== today) {
+          // New day - reset rewards
+          setBonusRewardsUnlocked(prev => ({
+            ...prev,
+            xpBoost: false,
+            streakFreeze: false
+          }));
+          setLastRewardDate(today);
+
+          // Save new date to AsyncStorage
+          await AsyncStorage.default.setItem('lastBonusRewardDate', today);
+        } else {
+          // Same day - restore date and unlock status from AsyncStorage
+          setLastRewardDate(today);
+
+          // Restore XP Boost unlock status
+          const xpBoostData = await AsyncStorage.default.getItem('xpBoostUnlocked');
+          if (xpBoostData) {
+            const { date, unlocked } = JSON.parse(xpBoostData);
+            if (date === today && unlocked) {
+              setBonusRewardsUnlocked(prev => ({ ...prev, xpBoost: true }));
+            }
+          }
+
+          // Restore Streak Freeze unlock status
+          const streakFreezeData = await AsyncStorage.default.getItem('streakFreezeUnlocked');
+          if (streakFreezeData) {
+            const { date, unlocked } = JSON.parse(streakFreezeData);
+            if (date === today && unlocked) {
+              setBonusRewardsUnlocked(prev => ({ ...prev, streakFreeze: true }));
+            }
+          }
+        }
+
+        // Check AsyncStorage for community rankings unlock status
+        const unlockData = await AsyncStorage.default.getItem('communityRankingsUnlocked');
+        if (unlockData) {
+          const { date, unlocked } = JSON.parse(unlockData);
+          if (date === today && unlocked) {
+            setBonusRewardsUnlocked(prev => ({ ...prev, communityRankings: true }));
+          }
+        }
+      } catch (error) {
+        debugLog.error('Error checking bonus rewards status:', error);
+      }
+    };
+
+    checkAndResetRewards();
+  }, []);
+
+  // Handler for XP Boost reward
+  const handleXPBoostReward = useCallback(async () => {
+    try {
+      if (!user) return;
+
+      // Check if already claimed today
+      if (bonusRewardsUnlocked.xpBoost) {
+        showCustomAlert(
+          language === 'en' ? 'Already Claimed' : 'Sudah Diklaim',
+          language === 'en'
+            ? 'You already claimed this reward today! Come back tomorrow.'
+            : 'Anda sudah mengklaim hadiah ini hari ini! Kembali besok.',
+          'info'
+        );
+        return;
+      }
+
+      // Check if ad is available
+      if (!canShowRewardedAd()) {
+        showCustomAlert(
+          language === 'en' ? 'Ad Not Available' : 'Iklan Tidak Tersedia',
+          language === 'en'
+            ? 'Please try again in a few moments.'
+            : 'Silakan coba lagi dalam beberapa saat.',
+          'warning'
+        );
+        return;
+      }
+
+      // Show rewarded ad
+      const rewarded = await showRewardedAd('xp_boost');
+
+      if (rewarded) {
+        // Grant +50 XP bonus
+        const newXP = user.xp + 50;
+        const updatedUser = { ...user, xp: newXP };
+        setUser(updatedUser);
+
+        // Update Firebase
+        if (auth.currentUser) {
+          OptimizedUserOperations.updateUser(user.id, { xp: newXP });
+        } else {
+          await demoUpdateUser(user.id, { xp: newXP });
+        }
+
+        // Mark as claimed and persist to AsyncStorage
+        setBonusRewardsUnlocked(prev => ({ ...prev, xpBoost: true }));
+
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        await AsyncStorage.default.setItem('xpBoostUnlocked', JSON.stringify({ date: today, unlocked: true }));
+
+        showCustomAlert(
+          language === 'en' ? '⚡ XP Boosted!' : '⚡ XP Meningkat!',
+          language === 'en'
+            ? '🎉 You earned +50 XP! Keep up the great work!'
+            : '🎉 Anda mendapat +50 XP! Terus pertahankan!',
+          'success'
+        );
+      } else {
+        showCustomAlert(
+          language === 'en' ? 'Ad Incomplete' : 'Iklan Tidak Selesai',
+          language === 'en'
+            ? 'Please watch the full ad to earn XP.'
+            : 'Silakan tonton iklan lengkap untuk mendapat XP.',
+          'info'
+        );
+      }
+    } catch (error) {
+      debugLog.error('Error showing XP boost ad:', error);
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en'
+          ? 'Unable to show ad. Please try again later.'
+          : 'Tidak dapat menampilkan iklan. Silakan coba lagi nanti.',
+        'error'
+      );
+    }
+  }, [user, bonusRewardsUnlocked.xpBoost, language, showCustomAlert]);
+
+  // Handler for Community Rankings reward
+  const handleCommunityRankingsReward = useCallback(async () => {
+    try {
+      // Check if already unlocked today
+      if (bonusRewardsUnlocked.communityRankings) {
+        // Navigate to achievement screen's community stats tab
+        if (navigation) {
+          navigation.navigate('BadgeStats', { initialTab: 1 });
+        }
+        return;
+      }
+
+      // Check if ad is available
+      if (!canShowRewardedAd()) {
+        showCustomAlert(
+          language === 'en' ? 'Ad Not Available' : 'Iklan Tidak Tersedia',
+          language === 'en'
+            ? 'Please try again in a few moments.'
+            : 'Silakan coba lagi dalam beberapa saat.',
+          'warning'
+        );
+        return;
+      }
+
+      // Show rewarded ad
+      const rewarded = await showRewardedAd('community_rankings');
+
+      if (rewarded) {
+        // Mark as unlocked
+        setBonusRewardsUnlocked(prev => ({ ...prev, communityRankings: true }));
+
+        // Save unlock status to AsyncStorage so it persists across components
+        try {
+          const AsyncStorage = await import('@react-native-async-storage/async-storage');
+          const today = new Date().toISOString().split('T')[0];
+          await AsyncStorage.default.setItem('communityRankingsUnlocked', JSON.stringify({
+            date: today,
+            unlocked: true
+          }));
+          debugLog.log('✅ Community rankings unlocked and saved to AsyncStorage');
+        } catch (error) {
+          debugLog.error('Error saving unlock status:', error);
+        }
+
+        showCustomAlert(
+          language === 'en' ? '🏆 Rankings Unlocked!' : '🏆 Peringkat Terbuka!',
+          language === 'en'
+            ? 'See how you compare to the community!'
+            : 'Lihat bagaimana Anda dibandingkan dengan komunitas!',
+          'success'
+        );
+
+        // Navigate to achievements screen's community tab after short delay
+        setTimeout(() => {
+          if (navigation) {
+            navigation.navigate('BadgeStats', { initialTab: 1 });
+          }
+        }, 1500);
+      } else {
+        showCustomAlert(
+          language === 'en' ? 'Ad Incomplete' : 'Iklan Tidak Selesai',
+          language === 'en'
+            ? 'Please watch the full ad to unlock rankings.'
+            : 'Silakan tonton iklan lengkap untuk membuka peringkat.',
+          'info'
+        );
+      }
+    } catch (error) {
+      debugLog.error('Error showing community rankings ad:', error);
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en'
+          ? 'Unable to show ad. Please try again later.'
+          : 'Tidak dapat menampilkan iklan. Silakan coba lagi nanti.',
+        'error'
+      );
+    }
+  }, [bonusRewardsUnlocked.communityRankings, language, showCustomAlert, navigation]);
+
+  // Handler for Streak Freeze reward
+  const handleStreakFreezeReward = useCallback(async () => {
+    try {
+      if (!user) return;
+
+      // Check if already claimed today
+      if (bonusRewardsUnlocked.streakFreeze) {
+        showCustomAlert(
+          language === 'en' ? 'Already Claimed' : 'Sudah Diklaim',
+          language === 'en'
+            ? 'You already have streak protection today!'
+            : 'Anda sudah memiliki proteksi streak hari ini!',
+          'info'
+        );
+        return;
+      }
+
+      // Check if ad is available
+      if (!canShowRewardedAd()) {
+        showCustomAlert(
+          language === 'en' ? 'Ad Not Available' : 'Iklan Tidak Tersedia',
+          language === 'en'
+            ? 'Please try again in a few moments.'
+            : 'Silakan coba lagi dalam beberapa saat.',
+          'warning'
+        );
+        return;
+      }
+
+      // Show rewarded ad
+      const rewarded = await showRewardedAd('streak_freeze');
+
+      if (rewarded) {
+        // Grant streak freeze token
+        const streakFreezes = (user.streakFreezes || 0) + 1;
+        const updatedUser = { ...user, streakFreezes };
+        setUser(updatedUser);
+
+        // Update Firebase
+        if (auth.currentUser) {
+          OptimizedUserOperations.updateUser(user.id, { streakFreezes });
+        } else {
+          await demoUpdateUser(user.id, { streakFreezes });
+        }
+
+        // Mark as claimed and persist to AsyncStorage
+        setBonusRewardsUnlocked(prev => ({ ...prev, streakFreeze: true }));
+
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        await AsyncStorage.default.setItem('streakFreezeUnlocked', JSON.stringify({ date: today, unlocked: true }));
+
+        showCustomAlert(
+          language === 'en' ? '🛡️ Streak Protected!' : '🛡️ Streak Terlindungi!',
+          language === 'en'
+            ? '✨ Your streak is now protected! If you miss a day, your streak will be saved.'
+            : '✨ Streak Anda sekarang terlindungi! Jika Anda melewatkan satu hari, streak Anda akan aman.',
+          'success'
+        );
+      } else {
+        showCustomAlert(
+          language === 'en' ? 'Ad Incomplete' : 'Iklan Tidak Selesai',
+          language === 'en'
+            ? 'Please watch the full ad to get streak protection.'
+            : 'Silakan tonton iklan lengkap untuk mendapat proteksi streak.',
+          'info'
+        );
+      }
+    } catch (error) {
+      debugLog.error('Error showing streak freeze ad:', error);
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en'
+          ? 'Unable to show ad. Please try again later.'
+          : 'Tidak dapat menampilkan iklan. Silakan coba lagi nanti.',
+        'error'
+      );
+    }
+  }, [user, bonusRewardsUnlocked.streakFreeze, language, showCustomAlert]);
+
 
 
 
@@ -1710,74 +2025,19 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
     );
   }
 
-  // SKELETON: Show skeleton dashboard instead of loading screen for better UX
+  // LOADING: Show clean loading screen with Lungcat icon
   if (!user) {
     return (
-      <ErrorBoundary>
-        <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-          <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
-            <View style={styles.headerContent}>
-              <View style={styles.headerTextContainer}>
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 150, height: 24 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 120, height: 18, marginTop: 8 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 180, height: 16, marginTop: 4 }]} />
-              </View>
-            </View>
-          </LinearGradient>
-
-          {/* Skeleton Level Card */}
-          <View style={[styles.levelCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.levelTopRow}>
-              <View style={[styles.skeletonCircle, { backgroundColor: colors.lightGray, width: 24, height: 24 }]} />
-              <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 100, height: 20 }]} />
-              <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 60, height: 20 }]} />
-            </View>
-            <View style={styles.levelProgressRow}>
-              <View style={[styles.levelProgressBar, { backgroundColor: colors.lightGray, height: 8 }]} />
-            </View>
-          </View>
-
-          {/* Skeleton Stats Card */}
-          <View style={[styles.statsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <View style={[styles.skeletonCircle, { backgroundColor: colors.lightGray, width: 40, height: 40 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 40, height: 24, marginTop: 8 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 60, height: 16, marginTop: 4 }]} />
-              </View>
-              <View style={styles.statItem}>
-                <View style={[styles.skeletonCircle, { backgroundColor: colors.lightGray, width: 40, height: 40 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 50, height: 24, marginTop: 8 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 70, height: 16, marginTop: 4 }]} />
-              </View>
-              <View style={styles.statItem}>
-                <View style={[styles.skeletonCircle, { backgroundColor: colors.lightGray, width: 40, height: 40 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 80, height: 24, marginTop: 8 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 60, height: 16, marginTop: 4 }]} />
-              </View>
-            </View>
-          </View>
-
-          {/* Skeleton Motivation Card */}
-          <View style={[styles.motivationCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 150, height: 20, marginBottom: 12 }]} />
-            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: '100%', height: 16, marginBottom: 8 }]} />
-            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: '80%', height: 16, marginBottom: 8 }]} />
-            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: '60%', height: 16 }]} />
-          </View>
-
-          {/* Skeleton Daily Missions */}
-          <View style={[styles.missionsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={[styles.skeletonText, { backgroundColor: colors.lightGray, width: 120, height: 20, marginBottom: 16 }]} />
-            {[1, 2].map(i => (
-              <View key={i} style={[styles.missionItem, { backgroundColor: colors.lightGray, marginBottom: 12, padding: 16 }]}>
-                <View style={[styles.skeletonText, { backgroundColor: colors.background, width: '70%', height: 16, marginBottom: 8 }]} />
-                <View style={[styles.skeletonText, { backgroundColor: colors.background, width: '50%', height: 14 }]} />
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      </ErrorBoundary>
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Image
+          source={require('../../assets/images/lungcat.png')}
+          style={{ width: 80, height: 80, marginBottom: 16, opacity: 0.8 }}
+          resizeMode="contain"
+        />
+        <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '500' }}>
+          {language === 'en' ? 'Loading...' : 'Memuat...'}
+        </Text>
+      </View>
     );
   }
 
@@ -1887,6 +2147,120 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
           </View>
         </View>
       </View>
+
+      {/* Bonus Rewards Card - Daily Ad Rewards */}
+      {!user.isPremium && (
+        <View style={[styles.bonusRewardsCard, { backgroundColor: colors.surface }]}>
+          <LinearGradient
+            colors={[colors.accent + '15', colors.secondary + '10']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.bonusRewardsGradient}
+          >
+            {/* Header */}
+            <View style={styles.bonusRewardsHeader}>
+              <MaterialIcons name="card-giftcard" size={20} color={colors.accent} />
+              <Text style={[styles.bonusRewardsTitle, { color: colors.textPrimary }]}>
+                {language === 'en' ? 'Daily Bonus Rewards' : 'Hadiah Bonus Harian'}
+              </Text>
+            </View>
+
+            {/* Reward Tiles */}
+            <View style={styles.bonusRewardsTiles}>
+              {/* XP Boost Tile */}
+              <TouchableOpacity
+                style={[
+                  styles.bonusRewardTile,
+                  { backgroundColor: colors.card },
+                  bonusRewardsUnlocked.xpBoost && styles.bonusRewardTileClaimed
+                ]}
+                onPress={handleXPBoostReward}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.bonusRewardIcon, { backgroundColor: colors.primary + '20' }]}>
+                  <MaterialIcons
+                    name={bonusRewardsUnlocked.xpBoost ? "check-circle" : "bolt"}
+                    size={24}
+                    color={bonusRewardsUnlocked.xpBoost ? colors.success : colors.primary}
+                  />
+                </View>
+                <Text style={[styles.bonusRewardLabel, { color: colors.textPrimary }]} numberOfLines={2}>
+                  {language === 'en' ? '+50 XP\nBoost' : '+50 XP\nBonus'}
+                </Text>
+                {!bonusRewardsUnlocked.xpBoost && (
+                  <View style={styles.bonusRewardAdBadge}>
+                    <MaterialIcons name="play-circle-filled" size={14} color={colors.white} />
+                    <Text style={styles.bonusRewardAdText}>{language === 'en' ? 'Ad' : 'Iklan'}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Community Rankings Tile */}
+              <TouchableOpacity
+                style={[
+                  styles.bonusRewardTile,
+                  { backgroundColor: colors.card },
+                  bonusRewardsUnlocked.communityRankings && styles.bonusRewardTileClaimed
+                ]}
+                onPress={handleCommunityRankingsReward}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.bonusRewardIcon, { backgroundColor: colors.secondary + '20' }]}>
+                  <MaterialIcons
+                    name={bonusRewardsUnlocked.communityRankings ? "check-circle" : "emoji-events"}
+                    size={24}
+                    color={bonusRewardsUnlocked.communityRankings ? colors.success : colors.secondary}
+                  />
+                </View>
+                <Text style={[styles.bonusRewardLabel, { color: colors.textPrimary }]} numberOfLines={2}>
+                  {language === 'en' ? 'See Your\nRank' : 'Lihat\nPeringkat'}
+                </Text>
+                {!bonusRewardsUnlocked.communityRankings && (
+                  <View style={styles.bonusRewardAdBadge}>
+                    <MaterialIcons name="play-circle-filled" size={14} color={colors.white} />
+                    <Text style={styles.bonusRewardAdText}>{language === 'en' ? 'Ad' : 'Iklan'}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Streak Freeze Tile */}
+              <TouchableOpacity
+                style={[
+                  styles.bonusRewardTile,
+                  { backgroundColor: colors.card },
+                  bonusRewardsUnlocked.streakFreeze && styles.bonusRewardTileClaimed
+                ]}
+                onPress={handleStreakFreezeReward}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.bonusRewardIcon, { backgroundColor: colors.info + '20' }]}>
+                  <MaterialIcons
+                    name={bonusRewardsUnlocked.streakFreeze ? "check-circle" : "ac-unit"}
+                    size={24}
+                    color={bonusRewardsUnlocked.streakFreeze ? colors.success : colors.info}
+                  />
+                </View>
+                <Text style={[styles.bonusRewardLabel, { color: colors.textPrimary }]} numberOfLines={2}>
+                  {language === 'en' ? 'Streak\nFreeze' : 'Bekukan\nStreak'}
+                </Text>
+                {!bonusRewardsUnlocked.streakFreeze && (
+                  <View style={styles.bonusRewardAdBadge}>
+                    <MaterialIcons name="play-circle-filled" size={14} color={colors.white} />
+                    <Text style={styles.bonusRewardAdText}>{language === 'en' ? 'Ad' : 'Iklan'}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Footer hint */}
+            <Text style={[styles.bonusRewardsHint, { color: colors.textSecondary }]}>
+              {language === 'en'
+                ? '✨ Watch a short ad to unlock • Resets daily'
+                : '✨ Tonton iklan singkat untuk membuka • Reset harian'}
+            </Text>
+          </LinearGradient>
+        </View>
+      )}
 
       {/* Lungcat Pet Widget */}
       <TouchableOpacity 
@@ -2585,6 +2959,100 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  // Bonus Rewards Card Styles
+  bonusRewardsCard: {
+    borderRadius: SIZES.buttonRadius || 16,
+    marginHorizontal: SIZES.screenPadding,
+    marginTop: 4,
+    marginBottom: 4,
+    overflow: 'hidden',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  bonusRewardsGradient: {
+    padding: SIZES.sm,
+  },
+  bonusRewardsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SIZES.sm,
+    gap: 8,
+  },
+  bonusRewardsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  bonusRewardsTiles: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 0,
+  },
+  bonusRewardTile: {
+    flex: 1,
+    minHeight: 130,
+    borderRadius: SIZES.buttonRadius || 12,
+    paddingHorizontal: SIZES.sm,
+    paddingTop: 12,
+    paddingBottom: 40,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    position: 'relative',
+  },
+  bonusRewardTileClaimed: {
+    opacity: 0.6,
+  },
+  bonusRewardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  bonusRewardLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 14,
+    color: COLORS.textPrimary,
+    paddingHorizontal: 4,
+  },
+  bonusRewardAdBadge: {
+    position: 'absolute',
+    bottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 3,
+  },
+  bonusRewardAdText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+  bonusRewardsHint: {
+    fontSize: 11,
+    textAlign: 'center',
+    color: COLORS.textSecondary,
+    marginTop: SIZES.xs,
+    fontStyle: 'italic',
+  },
+
   // Bento-specific styles
   bentoStatsContent: {
     flex: 1,
@@ -2771,7 +3239,7 @@ const styles = StyleSheet.create({
   // Lungcat Widget styles
   lungcatWidget: {
     marginHorizontal: SIZES.screenPadding,
-    marginTop: SIZES.xs / 2,
+    marginTop: 4,
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.cardPadding,
     borderRadius: SIZES.cardRadius,

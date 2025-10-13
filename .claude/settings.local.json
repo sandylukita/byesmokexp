@@ -119,7 +119,12 @@
       "Bash(del clear-today-xp.js)",
       "Bash(eas:*)",
       "Bash(sort:*)",
-      "Bash(del compress-animations.js)"
+      "Bash(del compress-animations.js)",
+      "Bash(del test-demo-auth.js)",
+      "Bash(del nul)",
+      "Bash(git commit:*)",
+      "Bash(npm view:*)",
+      "Bash(del test-lottie.js)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

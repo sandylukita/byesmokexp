@@ -131,18 +131,18 @@ ByeSmoke AI ("we," "our," or "us") is committed to protecting your privacy. This
 ## Contact Information
 
 ### Data Controller
-**Zayn Studio**  
-Email: support@zaynstudio.app  
+**Zayn Studio**
+Email: sandy@zaynstudio.app
 Website: https://zaynstudio.app
 
 ### Questions or Concerns
 If you have questions about this Privacy Policy or our privacy practices, please contact us at:
-- Email: privacy@zaynstudio.app
+- Email: sandy@zaynstudio.app
 - Subject Line: "ByeSmoke AI Privacy Inquiry"
 
 ### Data Protection Requests
 For data access, correction, or deletion requests:
-- Email: privacy@zaynstudio.app
+- Email: sandy@zaynstudio.app
 - Include: Your registered email address and specific request
 
 ---

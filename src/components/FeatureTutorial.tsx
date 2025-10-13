@@ -164,7 +164,7 @@ const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
         <Animated.View 
           style={[
             styles.tutorialContainer, 
-            { backgroundColor: colors.cardBackground },
+            { backgroundColor: colors.surface },
             { opacity: fadeAnim }
           ]}
         >
@@ -297,14 +297,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 16,
-    fontFamily: TYPOGRAPHY.bold,
+    fontFamily: 'System',
   },
   description: {
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
-    fontFamily: TYPOGRAPHY.regular,
+    fontFamily: 'System',
   },
   actionButton: {
     paddingHorizontal: 24,
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: TYPOGRAPHY.semibold,
+    fontFamily: 'System',
   },
   navigationContainer: {
     flexDirection: 'row',
@@ -340,12 +340,12 @@ const styles = StyleSheet.create({
   navButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    fontFamily: TYPOGRAPHY.medium,
+    fontFamily: 'System',
   },
   nextButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: TYPOGRAPHY.semibold,
+    fontFamily: 'System',
   },
 });
 

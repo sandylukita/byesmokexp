@@ -30,8 +30,8 @@ export const ENV_CONFIG = {
 };
 
 // Security validation functions
-export const isValidApiKey = (key: string): boolean => {
-  return key && key.length > 20 && !key.includes('your_') && !key.includes('xxxxxxxx');
+export const isValidApiKey = (key: string | undefined): boolean => {
+  return Boolean(key && key.length > 20 && !key.includes('your_') && !key.includes('xxxxxxxx'));
 };
 
 export const validateEnvironmentConfig = (): void => {
@@ -97,7 +97,7 @@ const getEnvironment = (): Environment => {
   }
   
   // Check if this is a staging build
-  const releaseChannel = Constants.expoConfig?.releaseChannel;
+  const releaseChannel = (Constants.expoConfig as any)?.releaseChannel;
   if (releaseChannel === 'staging') {
     return 'staging';
   }

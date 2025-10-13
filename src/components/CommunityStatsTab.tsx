@@ -52,7 +52,25 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
 
   useEffect(() => {
     loadCommunityData();
+    checkUnlockStatus();
   }, []);
+
+  // Check if community stats were unlocked today
+  const checkUnlockStatus = async () => {
+    try {
+      const AsyncStorage = await import('@react-native-async-storage/async-storage');
+      const unlockData = await AsyncStorage.default.getItem('communityRankingsUnlocked');
+      if (unlockData) {
+        const { date, unlocked } = JSON.parse(unlockData);
+        const today = new Date().toISOString().split('T')[0];
+        if (date === today && unlocked) {
+          setShowUnlockedStats(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking unlock status:', error);
+    }
+  };
 
   const showCustomAlert = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') => {
     setCustomAlert({
@@ -87,10 +105,22 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
       if (rewarded) {
         // User watched the ad and earned reward - unlock community stats
         setShowUnlockedStats(true);
-        
+
+        // Save unlock status to AsyncStorage with today's date
+        try {
+          const AsyncStorage = await import('@react-native-async-storage/async-storage');
+          const today = new Date().toISOString().split('T')[0];
+          await AsyncStorage.default.setItem('communityRankingsUnlocked', JSON.stringify({
+            date: today,
+            unlocked: true
+          }));
+        } catch (error) {
+          console.error('Error saving unlock status:', error);
+        }
+
         showCustomAlert(
           language === 'en' ? 'Stats Unlocked!' : 'Statistik Terbuka!',
-          language === 'en' 
+          language === 'en'
             ? 'You can now see detailed community statistics!'
             : 'Sekarang Anda dapat melihat statistik komunitas lengkap!',
           'success'

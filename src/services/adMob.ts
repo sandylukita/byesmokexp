@@ -116,13 +116,21 @@ class AdMobService {
 
       this.interstitialAd.addAdEventListener(AdEventType.ERROR, (error) => {
         this.isAdLoaded = false;
+
+        // Suppress internal-error in development (expected with test ads)
+        const isInternalError = error?.message?.includes('internal-error');
+        if (isInternalError && __DEV__) {
+          log.debug('🎯 AdMob internal error (expected in dev mode, will work in production)');
+          return; // Don't track or retry internal errors in dev
+        }
+
         log.error('❌ Interstitial ad error:', error);
-        
+
         // Handle network errors with retry logic
         if (this.isNetworkError(error) && this.interstitialRetryCount < this.MAX_RETRY_ATTEMPTS) {
           this.interstitialRetryCount++;
           log.info(`🔄 Retrying interstitial ad load (attempt ${this.interstitialRetryCount}/${this.MAX_RETRY_ATTEMPTS})`);
-          
+
           // Retry after delay
           setTimeout(() => {
             this.createInterstitialAd();
@@ -131,12 +139,12 @@ class AdMobService {
           // Reset retry count after max attempts or non-network errors
           this.interstitialRetryCount = 0;
         }
-        
+
         errorTracker.trackError({
           error: new Error(`Interstitial ad error: ${error.message}`),
           context: 'interstitial_ad_error',
-          additionalData: { 
-            error, 
+          additionalData: {
+            error,
             retryCount: this.interstitialRetryCount,
             isNetworkError: this.isNetworkError(error)
           },
@@ -202,13 +210,21 @@ class AdMobService {
 
       this.rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
         this.isRewardedAdLoaded = false;
+
+        // Suppress internal-error in development (expected with test ads)
+        const isInternalError = error?.message?.includes('internal-error');
+        if (isInternalError && __DEV__) {
+          log.debug('🎯 AdMob internal error (expected in dev mode, will work in production)');
+          return; // Don't track or retry internal errors in dev
+        }
+
         log.error('❌ Rewarded ad error:', error);
-        
+
         // Handle network errors with retry logic
         if (this.isNetworkError(error) && this.rewardedRetryCount < this.MAX_RETRY_ATTEMPTS) {
           this.rewardedRetryCount++;
           log.info(`🔄 Retrying rewarded ad load (attempt ${this.rewardedRetryCount}/${this.MAX_RETRY_ATTEMPTS})`);
-          
+
           // Retry after delay
           setTimeout(() => {
             this.createRewardedAd();
@@ -217,12 +233,12 @@ class AdMobService {
           // Reset retry count after max attempts or non-network errors
           this.rewardedRetryCount = 0;
         }
-        
+
         errorTracker.trackError({
           error: new Error(`Rewarded ad error: ${error.message}`),
           context: 'rewarded_ad_error',
-          additionalData: { 
-            error, 
+          additionalData: {
+            error,
             retryCount: this.rewardedRetryCount,
             isNetworkError: this.isNetworkError(error)
           },
