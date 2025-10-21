@@ -24,6 +24,7 @@ interface OnboardingScreenProps {
 }
 
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
+  console.log('🎯 OnboardingScreen RENDERED');
   const [currentStep, setCurrentStep] = useState(0);
   const [quitDate, setQuitDate] = useState(new Date());
   const [cigarettesPerDay, setCigarettesPerDay] = useState('');
@@ -78,6 +79,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
       component: 'completion'
     }
   ];
+
+  console.log('🎯 OnboardingScreen state:', { currentStep, totalSteps: steps.length });
 
   const validateCurrentStep = () => {
     const step = steps[currentStep];
@@ -255,13 +258,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
         );
       case 'years':
         return (
-          <View style={[styles.stepContent, { 
-            marginTop: focusedInput === 'years' ? 4 : 8 
-          }]}>
-            <View style={[styles.inputContainer, { 
-              marginTop: focusedInput === 'years' ? 8 : 12, 
-              marginBottom: focusedInput === 'years' ? 8 : 16 
-            }]}>
+          <View style={styles.stepContent}>
+            <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
                 placeholder={focusedInput === 'years' || smokingYears ? '' : ''}
@@ -277,13 +275,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 <Text style={styles.placeholderText}>5</Text>
               )}
             </View>
-            <Text style={[styles.inputLabel, { 
-              marginTop: 0, 
-              marginBottom: focusedInput === 'years' ? 4 : 6 
-            }]}>tahun *</Text>
-            <Text style={[styles.requiredText, { 
-              marginTop: focusedInput === 'years' ? 1 : 2 
-            }]}>Wajib diisi</Text>
+            <Text style={styles.inputLabel}>tahun *</Text>
+            <Text style={styles.requiredText}>Wajib diisi</Text>
           </View>
         );
       case 'reasons':
@@ -411,13 +404,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
         );
       case 'cigarettes':
         return (
-          <View style={[styles.stepContent, { 
-            marginTop: focusedInput === 'cigarettes' ? 4 : 8 
-          }]}>
-            <View style={[styles.inputContainer, { 
-              marginTop: focusedInput === 'cigarettes' ? 8 : 12, 
-              marginBottom: focusedInput === 'cigarettes' ? 8 : 16 
-            }]}>
+          <View style={styles.stepContent}>
+            <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
                 placeholder={focusedInput === 'cigarettes' || cigarettesPerDay ? '' : ''}
@@ -433,24 +421,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 <Text style={styles.placeholderText}>12</Text>
               )}
             </View>
-            <Text style={[styles.inputLabel, { 
-              marginTop: 0, 
-              marginBottom: focusedInput === 'cigarettes' ? 4 : 6 
-            }]}>batang per hari *</Text>
-            <Text style={[styles.requiredText, { 
-              marginTop: focusedInput === 'cigarettes' ? 1 : 2 
-            }]}>Wajib diisi</Text>
+            <Text style={styles.inputLabel}>batang per hari *</Text>
+            <Text style={styles.requiredText}>Wajib diisi</Text>
           </View>
         );
       case 'price':
         return (
-          <View style={[styles.stepContent, { 
-            marginTop: focusedInput === 'price' ? 4 : 8 
-          }]}>
-            <View style={[styles.priceContainer, { 
-              marginTop: focusedInput === 'price' ? 8 : 12, 
-              marginBottom: focusedInput === 'price' ? 8 : 16 
-            }]}>
+          <View style={styles.stepContent}>
+            <View style={styles.priceContainer}>
               <Text style={styles.currencySymbol}>Rp</Text>
               <View style={styles.priceInputContainer}>
                 <TextInput
@@ -469,13 +447,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 )}
               </View>
             </View>
-            <Text style={[styles.inputLabel, { 
-              marginTop: 0, 
-              marginBottom: focusedInput === 'price' ? 4 : 6 
-            }]}>per bungkus *</Text>
-            <Text style={[styles.requiredText, { 
-              marginTop: focusedInput === 'price' ? 1 : 2 
-            }]}>Wajib diisi</Text>
+            <Text style={styles.inputLabel}>per bungkus *</Text>
+            <Text style={styles.requiredText}>Wajib diisi</Text>
           </View>
         );
       default:
@@ -614,7 +587,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyLargeWhite,
     opacity: 0.9,
     textAlign: 'center',
-    marginBottom: SIZES.spacingXxl + 10,
+    marginBottom: 24,
   },
   stepContent: {
     alignItems: 'center',
@@ -622,21 +595,21 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 72,
-    marginBottom: SIZES.spacingLg,
+    marginBottom: SIZES.lg,
   },
   welcomeText: {
     ...TYPOGRAPHY.bodyLargeWhite,
     opacity: 0.9,
     textAlign: 'center',
     lineHeight: 28,
-    paddingHorizontal: SIZES.spacingLg,
+    paddingHorizontal: SIZES.lg,
   },
   reasonsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginBottom: SIZES.spacingMd,
-    paddingHorizontal: SIZES.spacingMd,
+    marginBottom: SIZES.md,
+    paddingHorizontal: SIZES.md,
   },
   reasonButton: {
     backgroundColor: COLORS.neutral,
@@ -677,7 +650,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: COLORS.white,
     opacity: 0.7,
-    marginTop: SIZES.spacingSm,
+    marginTop: 4,
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -685,17 +658,17 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SIZES.spacingSm,
+    marginTop: 8,
+    marginBottom: 16,
   },
   placeholderText: {
     position: 'absolute',
-    fontSize: 20,
+    fontSize: 32,
     fontWeight: '400',
     color: COLORS.gray,
     opacity: 0.6,
     textAlign: 'center',
     pointerEvents: 'none',
-    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
   },
   priceInputContainer: {
     position: 'relative',
@@ -705,13 +678,12 @@ const styles = StyleSheet.create({
   },
   pricePlaceholderText: {
     position: 'absolute',
-    fontSize: 20,
+    fontSize: 32,
     fontWeight: '400',
     color: COLORS.gray,
     opacity: 0.6,
     textAlign: 'center',
     pointerEvents: 'none',
-    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
   },
   loadingText: {
     fontSize: 16,
@@ -822,7 +794,7 @@ const styles = StyleSheet.create({
   dateText: {
     ...TYPOGRAPHY.h4White,
     textAlign: 'center',
-    marginBottom: SIZES.spacingMd,
+    marginBottom: SIZES.md,
   },
   dateSubtext: {
     ...TYPOGRAPHY.bodyMediumWhite,
@@ -832,18 +804,19 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    padding: SIZES.spacingLg,
-    fontSize: 20,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    fontSize: 32,
     fontWeight: '700',
     color: COLORS.textPrimary,
     textAlign: 'center',
-    minWidth: 120,
-    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
+    minWidth: 100,
   },
   inputLabel: {
     ...TYPOGRAPHY.bodyLargeWhite,
     opacity: 0.9,
-    marginTop: SIZES.spacingLg,
+    marginTop: 8,
+    marginBottom: 8,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -852,20 +825,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: SIZES.lg,
     paddingVertical: SIZES.md,
+    marginTop: 8,
+    marginBottom: 16,
   },
   currencySymbol: {
     fontSize: 28,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    marginRight: SIZES.spacingSm,
+    marginRight: SIZES.sm,
   },
   priceInput: {
-    fontSize: 20,
+    fontSize: 32,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    minWidth: 150,
+    minWidth: 180,
     textAlign: 'center',
-    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
   },
   fixedFooter: {
     position: 'absolute',

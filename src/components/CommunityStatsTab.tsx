@@ -31,11 +31,13 @@ const { width } = Dimensions.get('window');
 interface CommunityStatsTabProps {
   user: User;
   onUpgradePress?: () => void;
+  isFocused?: boolean; // Add isFocused prop to trigger re-checks
 }
 
 export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
   user,
   onUpgradePress,
+  isFocused,
 }) => {
   const { colors } = useTheme();
   const { t, language } = useTranslation();
@@ -53,16 +55,17 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
   useEffect(() => {
     loadCommunityData();
     checkUnlockStatus();
-  }, []);
+  }, [user.id, isFocused]); // Re-check when user changes or tab becomes focused
 
   // Check if community stats were unlocked today
   const checkUnlockStatus = async () => {
     try {
       const AsyncStorage = await import('@react-native-async-storage/async-storage');
-      const unlockData = await AsyncStorage.default.getItem('communityRankingsUnlocked');
+      const unlockData = await AsyncStorage.default.getItem(`communityRankingsUnlocked_${user.id}`);
       if (unlockData) {
         const { date, unlocked } = JSON.parse(unlockData);
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         if (date === today && unlocked) {
           setShowUnlockedStats(true);
         }
@@ -109,8 +112,9 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
         // Save unlock status to AsyncStorage with today's date
         try {
           const AsyncStorage = await import('@react-native-async-storage/async-storage');
-          const today = new Date().toISOString().split('T')[0];
-          await AsyncStorage.default.setItem('communityRankingsUnlocked', JSON.stringify({
+          const now = new Date();
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          await AsyncStorage.default.setItem(`communityRankingsUnlocked_${user.id}`, JSON.stringify({
             date: today,
             unlocked: true
           }));

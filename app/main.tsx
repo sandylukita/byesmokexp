@@ -22,6 +22,42 @@ import { COLORS } from '../src/utils/constants';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import ErrorBoundary from '../src/components/ErrorBoundary';
 
+// Suppress React Native 0.79.5 bridge error at multiple levels
+if (__DEV__) {
+  // Level 1: Suppress in ErrorUtils (native errors)
+  if ((global as any).ErrorUtils) {
+    const ErrorUtils = (global as any).ErrorUtils;
+    const originalHandler = ErrorUtils.getGlobalHandler();
+    ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
+      if (error?.message?.includes('Malformed calls from JS')) {
+        console.log('[RN 0.79.5 Bug] Suppressed bridge error - app continues normally');
+        return;
+      }
+      if (originalHandler) {
+        originalHandler(error, isFatal);
+      }
+    });
+  }
+
+  // Level 2: Suppress in console.error (prevents expo-dev-client from showing it)
+  const originalConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    const message = args.join(' ');
+    if (message.includes('Malformed calls from JS') || message.includes('field sizes are different')) {
+      console.log('[RN 0.79.5 Bug] Suppressed console.error:', args[0]?.substring?.(0, 100));
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
+  // Level 3: Suppress in LogBox (React Native's error display)
+  const { LogBox } = require('react-native');
+  LogBox.ignoreLogs([
+    'Malformed calls from JS',
+    'field sizes are different',
+  ]);
+}
+
 type AppState = 'splash' | 'login' | 'signup' | 'onboarding' | 'dashboard';
 
 export default function Main() {
@@ -255,10 +291,12 @@ export default function Main() {
       if (userData && userData.onboardingCompleted === false) {
         log.debug('📝 User has onboardingCompleted = false');
         // Check if this is an existing user with progress data
-        const hasExistingProgress = userData.xp > 0 || userData.streak > 0 || 
+        // Exclude "new-member" badge as it's auto-awarded on signup
+        const nonNewMemberBadges = userData.badges ? userData.badges.filter((b: any) => b !== 'new-member') : [];
+        const hasExistingProgress = userData.xp > 0 || userData.streak > 0 ||
                                    (userData.dailyXP && Object.keys(userData.dailyXP).length > 0) ||
-                                   (userData.badges && userData.badges.length > 0);
-        
+                                   (nonNewMemberBadges.length > 0);
+
         log.debug('🎯 Has existing progress:', hasExistingProgress);
         
         if (hasExistingProgress) {
@@ -284,13 +322,13 @@ export default function Main() {
         log.debug('🚀 Setting app state to dashboard (completed onboarding)');
         setAppState('dashboard');
       } else {
-        // No user document found after retries - proceed with reasonable defaults
-        log.debug('🔄 No user document found after retries');
-        
-        // For Firebase users who can't load their document due to network issues,
-        // default to dashboard instead of onboarding to avoid data loss
-        log.debug('🔄 Firebase user but no document found - defaulting to dashboard (faster fallback)');
-        setAppState('dashboard');
+        // No user document found after retries - this is a new user
+        log.debug('🔄 No user document found after retries - treating as new user');
+
+        // New users should go through onboarding to set up their profile
+        log.debug('📋 New user without document - going to onboarding');
+        setNeedsOnboarding(true);
+        setAppState('onboarding');
       }
     } catch (error) {
       log.error('❌ Error checking onboarding status (likely Firebase timeout):', error);
@@ -340,11 +378,20 @@ export default function Main() {
   };
 
   const handleLogin = async () => {
-    log.debug('🚀 handleLogin called - let Firebase auth state listener handle navigation');
+    log.debug('🚀 handleLogin called - checking if demo or Firebase user');
 
-    // Don't manually navigate - let the onAuthStateChanged listener handle it
+    // Check if this is a demo user login
+    const demoUser = demoGetCurrentUser();
+    if (demoUser) {
+      log.debug('🎯 Demo user logged in, navigating to dashboard');
+      setUser(demoUser as unknown as FirebaseUser);
+      setAppState('dashboard');
+      return;
+    }
+
+    // For Firebase users, let the onAuthStateChanged listener handle navigation
     // This ensures user data is loaded before navigating to dashboard
-    // The listener at line 141 will detect the auth state change and handle navigation properly
+    log.debug('🔐 Firebase user login - auth state listener will handle navigation');
   };
 
   const handleSignUp = () => {

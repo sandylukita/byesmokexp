@@ -551,9 +551,10 @@ const BadgeStatisticsScreen: React.FC = () => {
       ) : (
         // Community Tab - Lazy Loaded (OPTIMIZED: Always show skeleton user)
         communityTabLoaded ? (
-          <CommunityStatsTab 
-            user={user} 
+          <CommunityStatsTab
+            user={user}
             onUpgradePress={handleNavigateToSubscription}
+            isFocused={activeTab === 'community'}
           />
         ) : (
           // Show placeholder while community tab hasn't been accessed yet

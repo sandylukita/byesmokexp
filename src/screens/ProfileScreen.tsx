@@ -436,9 +436,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
   };
 
   const handleRateApp = () => {
-    const appStoreUrl = Platform.OS === 'ios' 
-      ? 'https://apps.apple.com/app/byesmoke/id123456789' // Replace with actual App Store ID
-      : 'https://play.google.com/store/apps/details?id=com.zaynstudio.byesmoke'; // Replace with actual package name
+    const appStoreUrl = Platform.OS === 'ios'
+      ? 'https://apps.apple.com/app/byesmoke-ai-smart-quit-coach/id123456789' // TODO: Replace with actual App Store ID after iOS submission
+      : 'https://play.google.com/store/apps/details?id=com.zaynstudio.byesmoke';
     
     Linking.openURL(appStoreUrl).catch(err => {
       console.error('Failed to open app store:', err);

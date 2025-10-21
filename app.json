@@ -12,7 +12,7 @@
     "primaryColor": "#F99546",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zaynstudio.byesmokev00",
+      "bundleIdentifier": "com.zaynstudio.byesmoke",
       "buildNumber": "1.0.0",
       "config": {
         "usesNonExemptEncryption": false
@@ -32,7 +32,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.zaynstudio.byesmokev00",
+      "package": "com.zaynstudio.byesmoke",
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",

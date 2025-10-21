@@ -8,7 +8,6 @@ import { log } from '../config/environment';
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
     ActivityIndicator,
-    Animated,
     Dimensions,
     Image,
     ScrollView,
@@ -132,10 +131,11 @@ const MotivationContent = React.memo(({
   return <Text style={textStyle}>{content}</Text>;
 }, (prevProps, nextProps) => {
   // Custom comparison: only re-render if these specific props have actually changed
-  const shouldNotRerender = 
+  const shouldNotRerender =
     prevProps.isLoading === nextProps.isLoading &&
     prevProps.motivation === nextProps.motivation &&
-    prevProps.language === nextProps.language;
+    prevProps.language === nextProps.language &&
+    prevProps.textStyle.color === nextProps.textStyle.color;
   
   if (!shouldNotRerender) {
     // Removed performance-impacting console.log
@@ -155,91 +155,19 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
   const [adUnlockedMissions, setAdUnlockedMissions] = useState<Mission[]>([]);
   const [isAdUnlockLoading, setIsAdUnlockLoading] = useState(false);
-  
+
+  // Refs for scrolling to sections
+  const scrollViewRef = useRef<ScrollView>(null);
+  const missionsCardRef = useRef<View>(null);
+  const motivationCardRef = useRef<View>(null);
+
   // AdMob hook for showing ads after check-in
   const { showAdAfterDelay } = useDelayedInterstitialAd(user, 2000); // 2 second delay
   const [isLocallyUpdating, setIsLocallyUpdating] = useState(false);
   const [lastCheckInSessionId, setLastCheckInSessionId] = useState<string>(''); // Prevent duplicate check-ins
 
   // Shake animation for lungcat
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
-
-  // Shimmer animation for lungcat circle
-  const shimmerAnimation = useRef(new Animated.Value(0)).current;
-
-  // Function to trigger buzzing animation
-  const triggerBuzz = useCallback(() => {
-    Animated.sequence([
-      Animated.timing(shakeAnimation, {
-        toValue: 2,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: -2,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: 2,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: -2,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: 2,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: -2,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: 0,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [shakeAnimation]);
-
-  // Start buzzing animation on component mount and repeat every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      triggerBuzz();
-    }, 3000);
-
-    // Initial buzz after 1 second
-    const timeout = setTimeout(() => {
-      triggerBuzz();
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [triggerBuzz]);
-
-  // Start shimmer animation (continuous loop)
-  useEffect(() => {
-    const startShimmer = () => {
-      shimmerAnimation.setValue(0);
-      Animated.timing(shimmerAnimation, {
-        toValue: 1,
-        duration: 2000,
-        useNativeDriver: true,
-      }).start(() => {
-        setTimeout(startShimmer, 1000); // Wait 1 second before next shimmer
-      });
-    };
-
-    startShimmer();
-  }, [shimmerAnimation]);
+  // Animations removed for better performance (was causing 501 pending callbacks leak)
 
   const [dailyMotivation, setDailyMotivation] = useState<string>('');
   const [isLoadingMotivation, setIsLoadingMotivation] = useState<boolean>(false);
@@ -270,8 +198,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
   const [bonusRewardsUnlocked, setBonusRewardsUnlocked] = useState({
     xpBoost: false,
     communityRankings: false,
-    streakFreeze: false
+    streakFreeze: false,
+    moreMissions: false,
+    aiMotivation: false
   });
+  const [showMoreRewards, setShowMoreRewards] = useState(false);
   const [lastRewardDate, setLastRewardDate] = useState<string>('');
   
   // Craving modal state - now handled in navigation
@@ -332,7 +263,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
   const cacheDailyMotivation = async (user: User, motivation: string) => {
     if (!user.isPremium) return;
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    // Use local time for consistency with reset logic
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     
     try {
       // Update local state immediately
@@ -1685,6 +1618,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
 
   // Reset bonus rewards daily and check AsyncStorage for community rankings
   useEffect(() => {
+    // Early return if no user loaded yet
+    if (!user || user.id === 'loading') return;
+
     const checkAndResetRewards = async () => {
       // Use local timezone instead of UTC
       const now = new Date();
@@ -1696,26 +1632,29 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       try {
         const AsyncStorage = await import('@react-native-async-storage/async-storage');
 
-        // Load last reward date from AsyncStorage
-        const storedDate = await AsyncStorage.default.getItem('lastBonusRewardDate');
+        // Load last reward date from AsyncStorage (USER-SPECIFIC)
+        const storedDate = await AsyncStorage.default.getItem(`lastBonusRewardDate_${user.id}`);
 
         if (storedDate !== today) {
           // New day - reset rewards
           setBonusRewardsUnlocked(prev => ({
             ...prev,
             xpBoost: false,
-            streakFreeze: false
+            streakFreeze: false,
+            communityRankings: false,
+            moreMissions: false,
+            aiMotivation: false
           }));
           setLastRewardDate(today);
 
-          // Save new date to AsyncStorage
-          await AsyncStorage.default.setItem('lastBonusRewardDate', today);
+          // Save new date to AsyncStorage (USER-SPECIFIC)
+          await AsyncStorage.default.setItem(`lastBonusRewardDate_${user.id}`, today);
         } else {
           // Same day - restore date and unlock status from AsyncStorage
           setLastRewardDate(today);
 
-          // Restore XP Boost unlock status
-          const xpBoostData = await AsyncStorage.default.getItem('xpBoostUnlocked');
+          // Restore XP Boost unlock status (USER-SPECIFIC)
+          const xpBoostData = await AsyncStorage.default.getItem(`xpBoostUnlocked_${user.id}`);
           if (xpBoostData) {
             const { date, unlocked } = JSON.parse(xpBoostData);
             if (date === today && unlocked) {
@@ -1723,8 +1662,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
             }
           }
 
-          // Restore Streak Freeze unlock status
-          const streakFreezeData = await AsyncStorage.default.getItem('streakFreezeUnlocked');
+          // Restore Streak Freeze unlock status (USER-SPECIFIC)
+          const streakFreezeData = await AsyncStorage.default.getItem(`streakFreezeUnlocked_${user.id}`);
           if (streakFreezeData) {
             const { date, unlocked } = JSON.parse(streakFreezeData);
             if (date === today && unlocked) {
@@ -1733,12 +1672,34 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
           }
         }
 
-        // Check AsyncStorage for community rankings unlock status
-        const unlockData = await AsyncStorage.default.getItem('communityRankingsUnlocked');
+        // Check AsyncStorage for community rankings unlock status (USER-SPECIFIC)
+        const unlockData = await AsyncStorage.default.getItem(`communityRankingsUnlocked_${user.id}`);
         if (unlockData) {
           const { date, unlocked } = JSON.parse(unlockData);
           if (date === today && unlocked) {
             setBonusRewardsUnlocked(prev => ({ ...prev, communityRankings: true }));
+          }
+        }
+
+        // Restore More Missions unlock status (USER-SPECIFIC)
+        const moreMissionsData = await AsyncStorage.default.getItem(`moreMissionsUnlocked_${user.id}`);
+        if (moreMissionsData) {
+          const { date, unlocked } = JSON.parse(moreMissionsData);
+          if (date === today && unlocked) {
+            setBonusRewardsUnlocked(prev => ({ ...prev, moreMissions: true }));
+            // Also unlock the actual missions
+            setAdUnlockedMissions(['unlocked']);
+          }
+        }
+
+        // Restore AI Motivation unlock status (USER-SPECIFIC)
+        const aiMotivationData = await AsyncStorage.default.getItem(`aiMotivationUnlocked_${user.id}`);
+        if (aiMotivationData) {
+          const { date, unlocked } = JSON.parse(aiMotivationData);
+          if (date === today && unlocked) {
+            setBonusRewardsUnlocked(prev => ({ ...prev, aiMotivation: true }));
+            // Also show the premium motivation
+            setShowPremiumMotivation(true);
           }
         }
       } catch (error) {
@@ -1747,7 +1708,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
     };
 
     checkAndResetRewards();
-  }, []);
+  }, [user?.id]);
 
   // Handler for XP Boost reward
   const handleXPBoostReward = useCallback(async () => {
@@ -1800,7 +1761,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
         const AsyncStorage = await import('@react-native-async-storage/async-storage');
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        await AsyncStorage.default.setItem('xpBoostUnlocked', JSON.stringify({ date: today, unlocked: true }));
+        await AsyncStorage.default.setItem(`xpBoostUnlocked_${user.id}`, JSON.stringify({ date: today, unlocked: true }));
 
         showCustomAlert(
           language === 'en' ? '⚡ XP Boosted!' : '⚡ XP Meningkat!',
@@ -1864,8 +1825,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
         // Save unlock status to AsyncStorage so it persists across components
         try {
           const AsyncStorage = await import('@react-native-async-storage/async-storage');
-          const today = new Date().toISOString().split('T')[0];
-          await AsyncStorage.default.setItem('communityRankingsUnlocked', JSON.stringify({
+          const now = new Date();
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          await AsyncStorage.default.setItem(`communityRankingsUnlocked_${user.id}`, JSON.stringify({
             date: today,
             unlocked: true
           }));
@@ -1960,7 +1922,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
         const AsyncStorage = await import('@react-native-async-storage/async-storage');
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        await AsyncStorage.default.setItem('streakFreezeUnlocked', JSON.stringify({ date: today, unlocked: true }));
+        await AsyncStorage.default.setItem(`streakFreezeUnlocked_${user.id}`, JSON.stringify({ date: today, unlocked: true }));
 
         showCustomAlert(
           language === 'en' ? '🛡️ Streak Protected!' : '🛡️ Streak Terlindungi!',
@@ -1990,8 +1952,217 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
     }
   }, [user, bonusRewardsUnlocked.streakFreeze, language, showCustomAlert]);
 
+  // Handler for More Missions reward (reuses mission unlock logic)
+  const handleMoreMissionsReward = useCallback(async () => {
+    try {
+      if (!user || isAdUnlockLoading) return;
 
+      // Check if already claimed today
+      if (bonusRewardsUnlocked.moreMissions) {
+        showCustomAlert(
+          language === 'en' ? 'Already Claimed' : 'Sudah Diklaim',
+          language === 'en'
+            ? 'You already unlocked extra missions today!'
+            : 'Anda sudah membuka misi ekstra hari ini!',
+          'info'
+        );
+        return;
+      }
 
+      // Check if missions are already unlocked
+      if (adUnlockedMissions.length > 0) {
+        showCustomAlert(
+          language === 'en' ? 'Already Unlocked' : 'Sudah Terbuka',
+          language === 'en'
+            ? 'Extra missions are already unlocked!'
+            : 'Misi ekstra sudah terbuka!',
+          'info'
+        );
+        return;
+      }
+
+      setIsAdUnlockLoading(true);
+
+      // Check if rewarded ad is available
+      if (!canShowRewardedAd()) {
+        showCustomAlert(
+          language === 'en' ? 'Ad Not Available' : 'Iklan Tidak Tersedia',
+          language === 'en'
+            ? 'Ad is not ready yet. Please try again in a moment.'
+            : 'Iklan belum siap. Silakan coba lagi sebentar.',
+          'info'
+        );
+        setIsAdUnlockLoading(false);
+        return;
+      }
+
+      // Show rewarded ad
+      const rewarded = await showRewardedAd('mission_unlock');
+
+      if (rewarded) {
+        // User successfully watched the ad, unlock missions 3 & 4
+        debugLog.log('✅ Ad watched! Unlocking missions 3 & 4 via More Missions tile...');
+
+        // Set flag to indicate missions are unlocked (reuse existing logic)
+        setAdUnlockedMissions(['unlocked']); // Just use as a flag
+
+        // Mark as claimed and persist to AsyncStorage
+        setBonusRewardsUnlocked(prev => ({ ...prev, moreMissions: true }));
+
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        await AsyncStorage.default.setItem(`moreMissionsUnlocked_${user.id}`, JSON.stringify({ date: today, unlocked: true }));
+
+        showCustomAlert(
+          language === 'en' ? '🎯 Missions Unlocked!' : '🎯 Misi Terbuka!',
+          language === 'en'
+            ? '🎉 You unlocked 2 extra missions! Complete them to earn more XP!'
+            : '🎉 Anda membuka 2 misi ekstra! Selesaikan untuk mendapat lebih banyak XP!',
+          'success'
+        );
+
+        // Scroll to missions card after a short delay
+        setTimeout(() => {
+          if (missionsCardRef.current && scrollViewRef.current) {
+            missionsCardRef.current.measureLayout(
+              scrollViewRef.current as any,
+              (x, y) => {
+                scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
+              },
+              () => {
+                // Fallback if measurement fails
+                debugLog.log('Could not measure missions card position');
+              }
+            );
+          }
+        }, 500);
+      } else {
+        showCustomAlert(
+          language === 'en' ? 'Ad Incomplete' : 'Iklan Tidak Selesai',
+          language === 'en'
+            ? 'Please watch the full ad to unlock extra missions.'
+            : 'Silakan tonton iklan lengkap untuk membuka misi ekstra.',
+          'info'
+        );
+      }
+    } catch (error) {
+      debugLog.error('Error showing more missions ad:', error);
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en'
+          ? 'Unable to show ad. Please try again later.'
+          : 'Tidak dapat menampilkan iklan. Silakan coba lagi nanti.',
+        'error'
+      );
+    } finally {
+      setIsAdUnlockLoading(false);
+    }
+  }, [user, bonusRewardsUnlocked.moreMissions, adUnlockedMissions, isAdUnlockLoading, language, showCustomAlert, setAdUnlockedMissions, setIsAdUnlockLoading]);
+
+  // Handler for AI Motivation reward (reuses motivation unlock logic)
+  const handleAIMotivationReward = useCallback(async () => {
+    try {
+      if (!user) return;
+
+      // Check if already claimed today
+      if (bonusRewardsUnlocked.aiMotivation) {
+        // If already unlocked, just scroll to motivation section
+        showCustomAlert(
+          language === 'en' ? 'Already Unlocked' : 'Sudah Terbuka',
+          language === 'en'
+            ? 'Your AI motivation is already unlocked! Scrolling to it...'
+            : 'Motivasi AI Anda sudah terbuka! Scroll ke bawah...',
+          'success'
+        );
+
+        // Scroll to motivation card
+        setTimeout(() => {
+          if (motivationCardRef.current && scrollViewRef.current) {
+            motivationCardRef.current.measureLayout(
+              scrollViewRef.current as any,
+              (x, y) => {
+                scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
+              },
+              () => {
+                debugLog.log('Could not measure motivation card position');
+              }
+            );
+          }
+        }, 300);
+        return;
+      }
+
+      // Check if rewarded ad is available
+      if (!canShowRewardedAd()) {
+        showCustomAlert(
+          language === 'en' ? 'Ad Not Available' : 'Iklan Tidak Tersedia',
+          language === 'en'
+            ? 'Ad is not ready yet. Please try again in a moment.'
+            : 'Iklan belum siap. Silakan coba lagi sebentar.',
+          'info'
+        );
+        return;
+      }
+
+      // Show rewarded ad
+      const rewarded = await showRewardedAd('motivation_unlock');
+
+      if (rewarded) {
+        // User watched the ad and earned reward - unlock motivation content
+        setShowPremiumMotivation(true);
+
+        // Mark as claimed and persist to AsyncStorage
+        setBonusRewardsUnlocked(prev => ({ ...prev, aiMotivation: true }));
+
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        await AsyncStorage.default.setItem(`aiMotivationUnlocked_${user.id}`, JSON.stringify({ date: today, unlocked: true }));
+
+        showCustomAlert(
+          language === 'en' ? '🤖 AI Coach Unlocked!' : '🤖 Motivasi AI Terbuka!',
+          language === 'en'
+            ? '✨ Your personalized AI motivation is now ready! Scroll down to see it!'
+            : '✨ Motivasi AI personal Anda sudah siap! Scroll ke bawah untuk melihatnya!',
+          'success'
+        );
+
+        // Scroll to motivation card after a short delay
+        setTimeout(() => {
+          if (motivationCardRef.current && scrollViewRef.current) {
+            motivationCardRef.current.measureLayout(
+              scrollViewRef.current as any,
+              (x, y) => {
+                scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
+              },
+              () => {
+                // Fallback if measurement fails
+                debugLog.log('Could not measure motivation card position');
+              }
+            );
+          }
+        }, 500);
+      } else {
+        showCustomAlert(
+          language === 'en' ? 'Ad Incomplete' : 'Iklan Tidak Selesai',
+          language === 'en'
+            ? 'Please watch the full ad to unlock AI motivation.'
+            : 'Silakan tonton iklan lengkap untuk membuka motivasi AI.',
+          'info'
+        );
+      }
+    } catch (error) {
+      debugLog.error('Error showing AI motivation ad:', error);
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en'
+          ? 'Unable to show ad. Please try again later.'
+          : 'Tidak dapat menampilkan iklan. Silakan coba lagi nanti.',
+        'error'
+      );
+    }
+  }, [user, bonusRewardsUnlocked.aiMotivation, showCustomAlert, setShowPremiumMotivation, language]);
 
   // Calculate premium status - null-safe
   const hasActivePremium = useMemo(() => user?.isPremium || false, [user?.isPremium]);
@@ -2045,6 +2216,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
   return (
     <ErrorBoundary>
       <ScrollView
+      ref={scrollViewRef}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
@@ -2167,27 +2339,27 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
 
             {/* Reward Tiles */}
             <View style={styles.bonusRewardsTiles}>
-              {/* XP Boost Tile */}
+              {/* More Missions Tile (NEW - replaces XP Boost) */}
               <TouchableOpacity
                 style={[
                   styles.bonusRewardTile,
                   { backgroundColor: colors.card },
-                  bonusRewardsUnlocked.xpBoost && styles.bonusRewardTileClaimed
+                  bonusRewardsUnlocked.moreMissions && styles.bonusRewardTileClaimed
                 ]}
-                onPress={handleXPBoostReward}
+                onPress={handleMoreMissionsReward}
                 activeOpacity={0.7}
               >
                 <View style={[styles.bonusRewardIcon, { backgroundColor: colors.primary + '20' }]}>
                   <MaterialIcons
-                    name={bonusRewardsUnlocked.xpBoost ? "check-circle" : "bolt"}
+                    name={bonusRewardsUnlocked.moreMissions ? "check-circle" : "emoji-events"}
                     size={24}
-                    color={bonusRewardsUnlocked.xpBoost ? colors.success : colors.primary}
+                    color={bonusRewardsUnlocked.moreMissions ? colors.success : colors.primary}
                   />
                 </View>
                 <Text style={[styles.bonusRewardLabel, { color: colors.textPrimary }]} numberOfLines={2}>
-                  {language === 'en' ? '+50 XP\nBoost' : '+50 XP\nBonus'}
+                  {language === 'en' ? '+2\nMissions' : '+2 Misi\nBonus'}
                 </Text>
-                {!bonusRewardsUnlocked.xpBoost && (
+                {!bonusRewardsUnlocked.moreMissions && (
                   <View style={styles.bonusRewardAdBadge}>
                     <MaterialIcons name="play-circle-filled" size={14} color={colors.white} />
                     <Text style={styles.bonusRewardAdText}>{language === 'en' ? 'Ad' : 'Iklan'}</Text>
@@ -2223,27 +2395,27 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
                 )}
               </TouchableOpacity>
 
-              {/* Streak Freeze Tile */}
+              {/* AI Motivation Tile (NEW - replaces Streak Freeze) */}
               <TouchableOpacity
                 style={[
                   styles.bonusRewardTile,
                   { backgroundColor: colors.card },
-                  bonusRewardsUnlocked.streakFreeze && styles.bonusRewardTileClaimed
+                  bonusRewardsUnlocked.aiMotivation && styles.bonusRewardTileClaimed
                 ]}
-                onPress={handleStreakFreezeReward}
+                onPress={handleAIMotivationReward}
                 activeOpacity={0.7}
               >
-                <View style={[styles.bonusRewardIcon, { backgroundColor: colors.info + '20' }]}>
+                <View style={[styles.bonusRewardIcon, { backgroundColor: colors.accentAlt + '20' }]}>
                   <MaterialIcons
-                    name={bonusRewardsUnlocked.streakFreeze ? "check-circle" : "ac-unit"}
+                    name={bonusRewardsUnlocked.aiMotivation ? "check-circle" : "auto-awesome"}
                     size={24}
-                    color={bonusRewardsUnlocked.streakFreeze ? colors.success : colors.info}
+                    color={bonusRewardsUnlocked.aiMotivation ? colors.success : colors.accentAlt}
                   />
                 </View>
                 <Text style={[styles.bonusRewardLabel, { color: colors.textPrimary }]} numberOfLines={2}>
-                  {language === 'en' ? 'Streak\nFreeze' : 'Bekukan\nStreak'}
+                  {language === 'en' ? 'AI\nCoach' : 'Motivasi\nAI'}
                 </Text>
-                {!bonusRewardsUnlocked.streakFreeze && (
+                {!bonusRewardsUnlocked.aiMotivation && (
                   <View style={styles.bonusRewardAdBadge}>
                     <MaterialIcons name="play-circle-filled" size={14} color={colors.white} />
                     <Text style={styles.bonusRewardAdText}>{language === 'en' ? 'Ad' : 'Iklan'}</Text>
@@ -2251,6 +2423,83 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
                 )}
               </TouchableOpacity>
             </View>
+
+            {/* More Rewards Expandable Button */}
+            <TouchableOpacity
+              onPress={() => setShowMoreRewards(!showMoreRewards)}
+              style={[styles.moreRewardsButton, { backgroundColor: colors.card }]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.moreRewardsButtonText, { color: colors.textPrimary }]}>
+                {language === 'en' ? 'More Rewards' : 'Hadiah Lainnya'}
+              </Text>
+              <MaterialIcons
+                name={showMoreRewards ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {/* Expanded Section - XP Boost & Streak Freeze */}
+            {showMoreRewards && (
+              <View style={styles.expandedRewardsTiles}>
+                {/* XP Boost Tile (moved here) */}
+                <TouchableOpacity
+                  style={[
+                    styles.bonusRewardTile,
+                    { backgroundColor: colors.card },
+                    bonusRewardsUnlocked.xpBoost && styles.bonusRewardTileClaimed
+                  ]}
+                  onPress={handleXPBoostReward}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.bonusRewardIcon, { backgroundColor: colors.primary + '20' }]}>
+                    <MaterialIcons
+                      name={bonusRewardsUnlocked.xpBoost ? "check-circle" : "bolt"}
+                      size={24}
+                      color={bonusRewardsUnlocked.xpBoost ? colors.success : colors.primary}
+                    />
+                  </View>
+                  <Text style={[styles.bonusRewardLabel, { color: colors.textPrimary }]} numberOfLines={2}>
+                    {language === 'en' ? '+50 XP\nBoost' : '+50 XP\nBonus'}
+                  </Text>
+                  {!bonusRewardsUnlocked.xpBoost && (
+                    <View style={styles.bonusRewardAdBadge}>
+                      <MaterialIcons name="play-circle-filled" size={14} color={colors.white} />
+                      <Text style={styles.bonusRewardAdText}>{language === 'en' ? 'Ad' : 'Iklan'}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Streak Freeze Tile (moved here) */}
+                <TouchableOpacity
+                  style={[
+                    styles.bonusRewardTile,
+                    { backgroundColor: colors.card },
+                    bonusRewardsUnlocked.streakFreeze && styles.bonusRewardTileClaimed
+                  ]}
+                  onPress={handleStreakFreezeReward}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.bonusRewardIcon, { backgroundColor: colors.info + '20' }]}>
+                    <MaterialIcons
+                      name={bonusRewardsUnlocked.streakFreeze ? "check-circle" : "ac-unit"}
+                      size={24}
+                      color={bonusRewardsUnlocked.streakFreeze ? colors.success : colors.info}
+                    />
+                  </View>
+                  <Text style={[styles.bonusRewardLabel, { color: colors.textPrimary }]} numberOfLines={2}>
+                    {language === 'en' ? 'Streak\nFreeze' : 'Bekukan\nStreak'}
+                  </Text>
+                  {!bonusRewardsUnlocked.streakFreeze && (
+                    <View style={styles.bonusRewardAdBadge}>
+                      <MaterialIcons name="play-circle-filled" size={14} color={colors.white} />
+                      <Text style={styles.bonusRewardAdText}>{language === 'en' ? 'Ad' : 'Iklan'}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Footer hint */}
             <Text style={[styles.bonusRewardsHint, { color: colors.textSecondary }]}>
@@ -2263,7 +2512,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       )}
 
       {/* Lungcat Pet Widget */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.lungcatWidget, { backgroundColor: colors.surface }]}
         onPress={async () => {
           // Check if we can show an ad before navigating to Lungcat
@@ -2273,15 +2522,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
             // Try to show interstitial ad first (if user is not premium)
             if (!userIsPremium && canShowAd(userIsPremium)) {
               log.debug('🎯 Showing ad before Lungcat navigation');
-
-              // Show brief loading indication
-              showCustomAlert(
-                language === 'en' ? '🐱 Lungcat' : '🐱 Lungcat',
-                language === 'en'
-                  ? 'Loading... 🎮'
-                  : 'Memuat... 🎮',
-                'info'
-              );
 
               // Attempt to show ad
               const adShown = await showInterstitialAd(userIsPremium, 'lungcat_navigation');
@@ -2304,17 +2544,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
           } catch (error) {
             // Fallback if anything fails - always allow access to Lungcat
             log.error('Error in Lungcat navigation with ads:', error);
-            try {
-              navigation?.navigate('Tamagotchi');
-            } catch (navError) {
-              showCustomAlert(
-                language === 'en' ? '🐱 Lungcat' : '🐱 Lungcat',
-                language === 'en'
-                  ? 'Opening Lungcat page... 🎮'
-                  : 'Membuka halaman Lungcat... 🎮',
-                'info'
-              );
-            }
+            navigation?.navigate('Tamagotchi');
           }
         }}
         activeOpacity={0.8}
@@ -2361,24 +2591,18 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
                 resizeMode="contain"
               />
               */}
-              <Animated.View
-                style={{
-                  transform: [{ translateX: shakeAnimation }],
-                }}
-              >
-                <Image
-                  source={require('../../assets/images/lungcat.png')}
-                  style={styles.lungcatLottieView}
-                  resizeMode="contain"
-                />
-              </Animated.View>
+              <Image
+                source={require('../../assets/images/lungcat.png')}
+                style={styles.lungcatLottieView}
+                resizeMode="contain"
+              />
             </View>
           </View>
         </View>
       </TouchableOpacity>
 
       {/* Daily Missions Card */}
-      <View style={[styles.missionCardContainer, { backgroundColor: colors.surface }]}>
+      <View ref={missionsCardRef} style={[styles.missionCardContainer, { backgroundColor: colors.surface }]}>
         <LinearGradient
           colors={[colors.accent + '20', colors.accent + '10']}
           start={{ x: 0, y: 0 }}
@@ -2459,7 +2683,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       </View>
 
       {/* Personal Motivator Card */}
-      <View style={[styles.motivationCardContainer, { backgroundColor: colors.surface }]}>
+      <View ref={motivationCardRef} style={[styles.motivationCardContainer, { backgroundColor: colors.surface }]}>
         <LinearGradient
           colors={[colors.accentAlt + '20', colors.accentAlt + '10']}
           start={{ x: 0, y: 0 }}
@@ -3044,6 +3268,28 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  moreRewardsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  moreRewardsButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  expandedRewardsTiles: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 12,
+    paddingTop: 12,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.08)',
   },
   bonusRewardsHint: {
     fontSize: 11,

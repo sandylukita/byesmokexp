@@ -1,0 +1,21 @@
+# Normalize line endings and permissions for EAS builds
+* text=auto eol=lf
+
+# Ensure these files are treated as text
+*.ts text
+*.tsx text
+*.js text
+*.jsx text
+*.json text
+*.md text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ttf binary
+*.otf binary
+*.keystore binary
+*.jar binary

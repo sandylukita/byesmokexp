@@ -433,7 +433,12 @@ const ProgressScreen: React.FC = () => {
   // Memoized expensive calculations
   const daysSinceQuit = useMemo(() => user?.totalDays || 0, [user?.totalDays]);
   const moneySavedData = useMemo(() => {
-    if (!user) return { totalSaved: 0, cigarettesAvoided: 0 };
+    // Safety check: Return 0 if user data is missing or invalid
+    if (!user || !user.cigarettesPerDay || !user.cigarettePrice ||
+        user.cigarettesPerDay <= 0 || user.cigarettePrice <= 0 ||
+        isNaN(user.cigarettesPerDay) || isNaN(user.cigarettePrice)) {
+      return 0;
+    }
     return calculateMoneySaved(daysSinceQuit, user.cigarettesPerDay, user.cigarettePrice);
   }, [daysSinceQuit, user?.cigarettesPerDay, user?.cigarettePrice]);
   const cigarettesAvoided = useMemo(() => daysSinceQuit * (user?.cigarettesPerDay || 0), [daysSinceQuit, user?.cigarettesPerDay]);
@@ -939,23 +944,48 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
     </View>
   );
 
-  const renderSavingsBreakdown = () => (
-    <View style={styles.tabContent}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.progress.savings}</Text>
-      </View>
-      
-      <View style={[styles.savingsCard, { backgroundColor: colors.surface }]}>
-        <LinearGradient
-          colors={[colors.secondary, colors.secondaryDark]}
-          style={styles.savingsGradient}
-        >
-          <Text style={styles.savingsAmount}>{formatCurrency(moneySaved).replace('Rp', '').trim()}</Text>
-          <Text style={styles.savingsLabel}>{t.progress.totalSavings}</Text>
-        </LinearGradient>
-      </View>
+  const renderSavingsBreakdown = () => {
+    // Safety check: If no cigarette data, show message
+    if (!user.cigarettesPerDay || !user.cigarettePrice || user.cigarettesPerDay === 0 || user.cigarettePrice === 0) {
+      return (
+        <View style={styles.tabContent}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.progress.savings}</Text>
+          </View>
+          <View style={[styles.emptyStateContainer, { backgroundColor: colors.surface }]}>
+            <MaterialIcons name="account-balance-wallet" size={64} color={colors.textSecondary} />
+            <Text style={[styles.emptyStateText, { color: colors.textPrimary }]}>
+              {language === 'id'
+                ? 'Lengkapi data rokok Anda untuk melihat penghematan'
+                : 'Complete your smoking data to see savings'}
+            </Text>
+            <Text style={[styles.emptyStateSubtext, { color: colors.textSecondary }]}>
+              {language === 'id'
+                ? 'Pergi ke Profil → Edit untuk mengatur jumlah rokok dan harga'
+                : 'Go to Profile → Edit to set cigarettes per day and price'}
+            </Text>
+          </View>
+        </View>
+      );
+    }
 
-      <View style={styles.breakdownContainer}>
+    return (
+      <View style={styles.tabContent}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.progress.savings}</Text>
+        </View>
+
+        <View style={[styles.savingsCard, { backgroundColor: colors.surface }]}>
+          <LinearGradient
+            colors={[colors.secondary, colors.secondaryDark]}
+            style={styles.savingsGradient}
+          >
+            <Text style={styles.savingsAmount}>{formatCurrency(moneySavedData).replace('Rp', '').trim()}</Text>
+            <Text style={styles.savingsLabel}>{t.progress.totalSavings}</Text>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.breakdownContainer}>
         <View style={[styles.breakdownItem, { backgroundColor: colors.surface }]}>
           <View style={styles.breakdownRow}>
             <View style={[styles.breakdownIconContainer, { backgroundColor: colors.primary + '20' }]}>
@@ -1015,35 +1045,36 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
                 <Text style={styles.investmentEmoji}>📱</Text>
               </View>
               <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
-                {Math.floor(moneySaved / 3000000)}
+                {Math.floor(moneySavedData / 3000000)}
               </Text>
               <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Smartphone</Text>
             </View>
-            
+
             <View style={[styles.investmentItemCard, { backgroundColor: colors.surface }]}>
               <View style={styles.investmentIconContainer}>
                 <Text style={styles.investmentEmoji}>🍕</Text>
               </View>
               <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
-                {Math.floor(moneySaved / 50000)}
+                {Math.floor(moneySavedData / 50000)}
               </Text>
               <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Pizza Keluarga</Text>
             </View>
-            
+
             <View style={[styles.investmentItemCard, { backgroundColor: colors.surface }]}>
               <View style={styles.investmentIconContainer}>
                 <Text style={styles.investmentEmoji}>⛽</Text>
               </View>
               <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
-                {Math.floor(moneySaved / 15000)}
+                {Math.floor(moneySavedData / 15000)}
               </Text>
               <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Liter Bensin</Text>
             </View>
           </View>
         </LinearGradient>
       </View>
-    </View>
-  );
+      </View>
+    );
+  };
 
   const renderStatistics = () => (
     <View style={styles.tabContent}>

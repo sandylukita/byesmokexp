@@ -18,17 +18,16 @@ export const TYPOGRAPHY = {
   h3: getTextStyle('h3'),
   h4: getTextStyle('h4'),
   h5: getTextStyle('h5'),
-  
+
   // Body text
   bodyLarge: getTextStyle('bodyLarge'),
   bodyMedium: getTextStyle('bodyMedium'),
   bodySmall: getTextStyle('bodySmall'),
-  
+
   // Special text
   caption: getTextStyle('caption'),
   button: getTextStyle('button'),
-  buttonMedium: getTextStyle('button'),
-  
+
   // Colored variants
   displayWhite: {
     ...getTextStyle('display'),
@@ -70,7 +69,7 @@ export const TYPOGRAPHY = {
     ...getTextStyle('caption'),
     color: COLORS.white,
   },
-  
+
   // Primary color variants
   h1Primary: {
     ...getTextStyle('h1'),
@@ -84,7 +83,7 @@ export const TYPOGRAPHY = {
     ...getTextStyle('bodyLarge'),
     color: COLORS.primary,
   },
-  
+
   // Secondary text
   bodyMediumSecondary: {
     ...getTextStyle('bodyMedium'),
@@ -98,7 +97,7 @@ export const TYPOGRAPHY = {
     ...getTextStyle('caption'),
     color: COLORS.textSecondary,
   },
-  
+
   // Success/Error states
   bodyMediumSuccess: {
     ...getTextStyle('bodyMedium'),
@@ -144,4 +143,4 @@ export const createTextStyle = (
     ...getTextStyle(baseStyle),
     ...overrides,
   };
-}; 
+};

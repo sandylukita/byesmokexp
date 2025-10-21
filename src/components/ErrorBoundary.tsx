@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Props {
   children: ReactNode;
@@ -14,6 +15,7 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: any;
+  language: 'id' | 'en';
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -23,10 +25,24 @@ class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      language: 'id', // Default to Indonesian
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  async loadLanguagePreference() {
+    // Load user's language preference only when needed (when error occurs)
+    try {
+      const savedLanguage = await AsyncStorage.getItem('user_language');
+      if (savedLanguage === 'en' || savedLanguage === 'id') {
+        this.setState({ language: savedLanguage });
+      }
+    } catch (error) {
+      // If we can't load language, use default (Indonesian)
+      console.log('Could not load language preference:', error);
+    }
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<State> {
     // Update state to show the error UI
     return {
       hasError: true,
@@ -39,12 +55,15 @@ class ErrorBoundary extends Component<Props, State> {
     // Log error details
     console.error('🚨 ErrorBoundary caught an error:', error);
     console.error('🚨 Error Info:', errorInfo);
-    
+
     // Update state with error info
     this.setState({
       error,
       errorInfo,
     });
+
+    // Load language preference now that an error has occurred
+    this.loadLanguagePreference();
 
     // Call custom error handler if provided
     if (this.props.onError) {
@@ -64,6 +83,24 @@ class ErrorBoundary extends Component<Props, State> {
     });
   };
 
+  getErrorMessages = () => {
+    const { language } = this.state;
+
+    if (language === 'en') {
+      return {
+        title: 'Oops! Something went wrong',
+        message: 'The app encountered an unexpected problem. Don\'t worry, your data is safe.',
+        retryButton: 'Try Again',
+      };
+    }
+
+    return {
+      title: 'Oops! Terjadi Kesalahan',
+      message: 'Aplikasi mengalami masalah yang tidak terduga. Jangan khawatir, data Anda aman.',
+      retryButton: 'Coba Lagi',
+    };
+  };
+
   render() {
     if (this.state.hasError) {
       // Custom fallback component if provided
@@ -72,35 +109,37 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       // Default error UI
+      const messages = this.getErrorMessages();
+
       return (
         <View style={styles.container}>
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.errorContainer}>
-              <MaterialIcons 
-                name="error-outline" 
-                size={64} 
-                color={COLORS.error} 
+              <MaterialIcons
+                name="error-outline"
+                size={64}
+                color={COLORS.error}
                 style={styles.errorIcon}
               />
-              
+
               <Text style={styles.title}>
-                Oops! Terjadi Kesalahan
+                {messages.title}
               </Text>
-              
+
               <Text style={styles.message}>
-                Aplikasi mengalami masalah yang tidak terduga. Jangan khawatir, data Anda aman.
+                {messages.message}
               </Text>
 
               <View style={styles.buttonContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.retryButton}
                   onPress={this.handleRetry}
                 >
                   <MaterialIcons name="refresh" size={20} color={COLORS.white} />
-                  <Text style={styles.retryButtonText}>Coba Lagi</Text>
+                  <Text style={styles.retryButtonText}>{messages.retryButton}</Text>
                 </TouchableOpacity>
               </View>
 

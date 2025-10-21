@@ -12,12 +12,13 @@ import {
 } from 'react-native';
 import { signUp } from '../services/auth';
 import { COLORS } from '../utils/constants';
-import SignUpStepOne from '../components/SignUpStepOne';
-import SignUpStepTwo from '../components/SignUpStepTwo';
-import SignUpStepThree from '../components/SignUpStepThree';
+import SignUpStepOne from '../components/SignUpStepOneSimple';
+import SignUpStepTwo from '../components/SignUpStepTwoSimple';
+import SignUpStepThree from '../components/SignUpStepThreeSimple';
 import SignUpSuccess from '../components/SignUpSuccess';
 import ProgressBar from '../components/ProgressBar';
 import { CustomConfirmDialog } from '../components/CustomConfirmDialog';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface SignUpScreenProps {
   onSignUp: () => void;
@@ -25,6 +26,7 @@ interface SignUpScreenProps {
 }
 
 const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
+  const { language } = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -71,6 +73,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
             name={name}
             onNameChange={setName}
             onNext={handleNext}
+            language={language}
           />
         );
       case 2:
@@ -80,6 +83,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
             onEmailChange={setEmail}
             onNext={handleNext}
             onBack={handleBack}
+            language={language}
           />
         );
       case 3:
@@ -92,6 +96,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
             onNext={handleSignUp}
             onBack={handleBack}
             loading={loading}
+            language={language}
           />
         );
       case 4:
