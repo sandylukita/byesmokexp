@@ -66,13 +66,36 @@ export const isOnboardingComplete = (user: any): boolean => {
          user.cigarettePrice > 0;
 };
 
-export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+export const formatCurrency = (amount: number, language?: 'en' | 'id'): string => {
+  // Use provided language or detect from device
+  const userLanguage = language || (typeof navigator !== 'undefined' && navigator.language?.startsWith('id') ? 'id' : 'en');
+
+  if (userLanguage === 'id') {
+    // Indonesian users: show IDR
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } else {
+    // Non-Indonesian users: show USD
+    // Convert IDR to USD (approximate rate: 1 USD = 15,700 IDR)
+    const amountInUSD = amount / 15700;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amountInUSD);
+  }
+};
+
+export const formatCurrencyValue = (amount: number, language?: 'en' | 'id'): string => {
+  // Returns just the numeric value without currency symbol
+  const formatted = formatCurrency(amount, language);
+  // Remove currency symbols: Rp, $, etc.
+  return formatted.replace(/^[^\d\s-]+\s*/, '').replace(/\s*[^\d\s,\.]+$/, '').trim();
 };
 
 export const formatNumber = (number: number): string => {

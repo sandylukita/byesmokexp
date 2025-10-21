@@ -746,7 +746,7 @@ const ProgressScreen: React.FC = () => {
           : `🎉 ${daysSinceQuit} hari bebas rokok! Saya sedang dalam perjalanan menuju hidup yang lebih sehat bersama ByeSmoke AI. Ikuti saya! 💪 #BebasRokok #HidupSehat`;
         break;
       case 'money':
-        const savings = formatCurrency(moneySaved).replace('Rp', '').trim();
+        const savings = formatCurrency(moneySaved, language);
         message = language === 'en'
           ? `💰 I've saved ${savings} by quitting smoking! That's the power of saying no to cigarettes. Thanks ByeSmoke AI! 🚭 #MoneySaved #QuitSmoking`
           : `💰 Saya sudah menghemat ${savings} dengan berhenti merokok! Itulah kekuatan mengatakan tidak pada rokok. Terima kasih ByeSmoke AI! 🚭 #HematUang #BerhentiMerokok`;
@@ -799,7 +799,7 @@ const ProgressScreen: React.FC = () => {
     const moneySaved = moneySavedData;
     const currentStreak = user.longestStreak || user.streak || 0;
     const missionsCompleted = user.completedMissions?.length || 0;
-    const savings = formatCurrency(moneySaved).replace('Rp', '').trim();
+    const savings = formatCurrency(moneySaved, language);
 
     // Get community comparison for enhanced sharing (cached)
     let communityRankText = '';
@@ -980,7 +980,7 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
             colors={[colors.secondary, colors.secondaryDark]}
             style={styles.savingsGradient}
           >
-            <Text style={styles.savingsAmount}>{formatCurrency(moneySavedData).replace('Rp', '').trim()}</Text>
+            <Text style={styles.savingsAmount}>{formatCurrency(moneySavedData, language)}</Text>
             <Text style={styles.savingsLabel}>{t.progress.totalSavings}</Text>
           </LinearGradient>
         </View>
@@ -994,7 +994,7 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
             <View style={styles.breakdownTextContainer}>
               <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>{t.progress.perDay}</Text>
               <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
-                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20)).replace('Rp', '').trim()}
+                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20), language)}
               </Text>
             </View>
           </View>
@@ -1008,7 +1008,7 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
             <View style={styles.breakdownTextContainer}>
               <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>{t.progress.perWeek}</Text>
               <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
-                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 7).replace('Rp', '').trim()}
+                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 7, language)}
               </Text>
             </View>
           </View>
@@ -1022,7 +1022,7 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
             <View style={styles.breakdownTextContainer}>
               <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>{t.progress.perMonth}</Text>
               <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
-                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 30).replace('Rp', '').trim()}
+                {formatCurrency(user.cigarettePrice * (user.cigarettesPerDay / 20) * 30, language)}
               </Text>
             </View>
           </View>

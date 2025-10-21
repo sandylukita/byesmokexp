@@ -2314,7 +2314,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
             <View style={[styles.statCircleIcon, { backgroundColor: 'rgba(39, 174, 96, 0.15)' }]}>
               <MaterialIcons name="savings" size={24} color={colors.secondary} />
             </View>
-            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(moneySaved).replace('Rp', '').trim()}</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(moneySaved, language as 'en' | 'id')}</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.dashboard.moneySaved}</Text>
           </View>
         </View>
