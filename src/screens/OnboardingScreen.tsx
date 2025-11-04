@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doc, updateDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import {
-    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -13,11 +12,13 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { CustomAlert } from '../components/CustomAlert';
 import { auth, db } from '../services/firebase';
 import { demoGetCurrentUser, demoUpdateOnboardingData } from '../services/demoAuth';
 import { COLORS, SIZES } from '../utils/constants';
 import { generatePersonalizedGreeting } from '../utils/helpers';
 import { TYPOGRAPHY } from '../utils/typography';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -25,6 +26,7 @@ interface OnboardingScreenProps {
 
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   console.log('🎯 OnboardingScreen RENDERED');
+  const { language } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [quitDate, setQuitDate] = useState(new Date());
   const [cigarettesPerDay, setCigarettesPerDay] = useState('');
@@ -36,46 +38,57 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [personalizedGreeting, setPersonalizedGreeting] = useState<any>(null);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'info' | 'warning' | 'error'>('warning');
+
+  const showAlert = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'warning') => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
 
   const steps = [
     {
-      title: 'Selamat Datang!',
-      subtitle: 'Mari mulai perjalanan bebas rokok bersama ByeSmoke AI',
+      title: language === 'en' ? 'Welcome!' : 'Selamat Datang!',
+      subtitle: language === 'en' ? 'Start your smoke-free journey with ByeSmoke AI' : 'Mari mulai perjalanan bebas rokok bersama ByeSmoke AI',
       component: 'welcome'
     },
     {
-      title: 'Berapa Lama Merokok?',
-      subtitle: 'Berapa tahun Anda sudah merokok?',
+      title: language === 'en' ? 'How Long Have You Smoked?' : 'Berapa Lama Merokok?',
+      subtitle: language === 'en' ? 'How many years have you been smoking?' : 'Berapa tahun Anda sudah merokok?',
       component: 'years'
     },
     {
-      title: 'Berapa Batang Per Hari?',
-      subtitle: 'Masukkan jumlah rokok yang biasa dikonsumsi',
+      title: language === 'en' ? 'How Many Per Day?' : 'Berapa Batang Per Hari?',
+      subtitle: language === 'en' ? 'Enter the number of cigarettes you usually consume' : 'Masukkan jumlah rokok yang biasa dikonsumsi',
       component: 'cigarettes'
     },
     {
-      title: 'Berapa Harga Per Bungkus?',
-      subtitle: 'Untuk menghitung penghematan',
+      title: language === 'en' ? "What's the Price Per Pack?" : 'Berapa Harga Per Bungkus?',
+      subtitle: language === 'en' ? 'To calculate your savings' : 'Untuk menghitung penghematan',
       component: 'price'
     },
     {
-      title: 'Mengapa Ingin Berhenti?',
-      subtitle: 'Pilih alasan utama Anda',
+      title: language === 'en' ? 'Why Quit?' : 'Mengapa Ingin Berhenti?',
+      subtitle: language === 'en' ? 'Choose your main reason' : 'Pilih alasan utama Anda',
       component: 'reasons'
     },
     {
-      title: 'Mencoba Berhenti?',
-      subtitle: 'Berapa kali Anda sudah mencoba?',
+      title: language === 'en' ? 'Previous Attempts?' : 'Mencoba Berhenti?',
+      subtitle: language === 'en' ? 'How many times have you tried?' : 'Berapa kali Anda sudah mencoba?',
       component: 'attempts'
     },
     {
-      title: 'Kapan Mulai Berhenti?',
-      subtitle: 'Pilih tanggal mulai perjalanan sehat',
+      title: language === 'en' ? 'When to Start?' : 'Kapan Mulai Berhenti?',
+      subtitle: language === 'en' ? 'Choose your healthy journey start date' : 'Pilih tanggal mulai perjalanan sehat',
       component: 'date'
     },
     {
-      title: 'Selamat!',
-      subtitle: 'Perjalanan hidup sehat Anda dimulai sekarang',
+      title: language === 'en' ? 'Congratulations!' : 'Selamat!',
+      subtitle: language === 'en' ? 'Your healthy life journey begins now' : 'Perjalanan hidup sehat Anda dimulai sekarang',
       component: 'completion'
     }
   ];
@@ -84,37 +97,57 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
 
   const validateCurrentStep = () => {
     const step = steps[currentStep];
-    
+
     switch (step.component) {
       case 'welcome':
         return true; // Welcome step doesn't need validation
       case 'years':
         if (!smokingYears || smokingYears.trim() === '') {
-          Alert.alert('Field Required', 'Silakan masukkan berapa lama Anda sudah merokok');
+          showAlert(
+            language === 'en' ? 'Field Required' : 'Field Required',
+            language === 'en' ? 'Please enter how long you have been smoking' : 'Silakan masukkan berapa lama Anda sudah merokok',
+            'warning'
+          );
           return false;
         }
         return true;
       case 'cigarettes':
         if (!cigarettesPerDay || cigarettesPerDay.trim() === '') {
-          Alert.alert('Field Required', 'Silakan masukkan jumlah rokok per hari');
+          showAlert(
+            language === 'en' ? 'Field Required' : 'Field Required',
+            language === 'en' ? 'Please enter the number of cigarettes per day' : 'Silakan masukkan jumlah rokok per hari',
+            'warning'
+          );
           return false;
         }
         return true;
       case 'price':
         if (!cigarettePrice || cigarettePrice.trim() === '') {
-          Alert.alert('Field Required', 'Silakan masukkan harga per bungkus rokok');
+          showAlert(
+            language === 'en' ? 'Field Required' : 'Field Required',
+            language === 'en' ? 'Please enter the price per pack' : 'Silakan masukkan harga per bungkus rokok',
+            'warning'
+          );
           return false;
         }
         return true;
       case 'reasons':
         if (selectedReasons.length === 0) {
-          Alert.alert('Field Required', 'Silakan pilih minimal satu alasan untuk berhenti merokok');
+          showAlert(
+            language === 'en' ? 'Field Required' : 'Field Required',
+            language === 'en' ? 'Please select at least one reason to quit smoking' : 'Silakan pilih minimal satu alasan untuk berhenti merokok',
+            'warning'
+          );
           return false;
         }
         return true;
       case 'attempts':
         if (!previousAttempts) {
-          Alert.alert('Field Required', 'Silakan pilih berapa kali Anda sudah mencoba berhenti');
+          showAlert(
+            language === 'en' ? 'Field Required' : 'Field Required',
+            language === 'en' ? 'Please select how many times you have tried to quit' : 'Silakan pilih berapa kali Anda sudah mencoba berhenti',
+            'warning'
+          );
           return false;
         }
         return true;
@@ -133,13 +166,18 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
       if (validateCurrentStep()) {
         // Generate personalized greeting when moving to completion step
         if (currentStep === steps.length - 2) {
+          // Convert price to IDR for calculation
+          const USD_TO_IDR_RATE = 15700;
+          const priceValue = parseFloat(cigarettePrice) || 0;
+          const priceInIDR = language === 'en' ? priceValue * USD_TO_IDR_RATE : priceValue;
+
           const greeting = generatePersonalizedGreeting({
             smokingYears: parseInt(smokingYears) || 0,
             cigarettesPerDay: parseInt(cigarettesPerDay) || 0,
-            cigarettePrice: parseFloat(cigarettePrice) || 0,
+            cigarettePrice: priceInIDR,
             quitReasons: selectedReasons,
             previousAttempts: parseInt(previousAttempts) || 0
-          });
+          }, language);
           setPersonalizedGreeting(greeting);
         }
         
@@ -161,16 +199,33 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
     if (!previousAttempts) missingFields.push('Jumlah percobaan sebelumnya');
     
     if (missingFields.length > 0) {
-      Alert.alert('Data Belum Lengkap', `Silakan lengkapi: ${missingFields.join(', ')}`);
+      showAlert(
+        language === 'en' ? 'Incomplete Data' : 'Data Belum Lengkap',
+        language === 'en' ? `Please complete: ${missingFields.join(', ')}` : `Silakan lengkapi: ${missingFields.join(', ')}`,
+        'warning'
+      );
       return;
     }
 
     setLoading(true);
     try {
+      // Convert cigarette price to IDR if user is using English (USD)
+      // All prices are stored in IDR as the base currency
+      const USD_TO_IDR_RATE = 15700;
+      const priceValue = parseFloat(cigarettePrice) || 0;
+      const priceInIDR = language === 'en' ? priceValue * USD_TO_IDR_RATE : priceValue;
+
+      console.log('💰 Price conversion:', {
+        language,
+        enteredPrice: priceValue,
+        priceInIDR,
+        isUSD: language === 'en'
+      });
+
       const onboardingData = {
         quitDate: quitDate.toISOString(),
         cigarettesPerDay: parseInt(cigarettesPerDay) || 0,
-        cigarettePrice: parseFloat(cigarettePrice) || 0,
+        cigarettePrice: priceInIDR,
         smokingYears: parseInt(smokingYears) || 0,
         quitReasons: selectedReasons,
         previousAttempts: parseInt(previousAttempts) || 0,
@@ -198,7 +253,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
             onboardingCompleted: true,
             onboardingDate: new Date().toISOString(),
             cigarettesPerDay: parseInt(cigarettesPerDay) || 0,
-            cigarettePrice: parseFloat(cigarettePrice) || 0,
+            cigarettePrice: priceInIDR,
             smokingYears: parseInt(smokingYears) || 0,
             quitReasons: selectedReasons,
             previousAttempts: parseInt(previousAttempts) || 0
@@ -221,7 +276,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onComplete();
     } catch (error) {
-      Alert.alert('Error', 'Gagal menyimpan data');
+      showAlert(
+        'Error',
+        language === 'en' ? 'Failed to save data' : 'Gagal menyimpan data',
+        'error'
+      );
     } finally {
       setLoading(false);
     }
@@ -238,12 +297,12 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
     const step = steps[currentStep];
     
     const quitReasonOptions = [
-      { id: 'health', label: 'Kesehatan' },
-      { id: 'family', label: 'Keluarga' },
-      { id: 'money', label: 'Keuangan' },
-      { id: 'fitness', label: 'Kebugaran' },
-      { id: 'appearance', label: 'Penampilan' },
-      { id: 'pregnancy', label: 'Kehamilan' }
+      { id: 'health', label: language === 'en' ? 'Health' : 'Kesehatan' },
+      { id: 'family', label: language === 'en' ? 'Family' : 'Keluarga' },
+      { id: 'money', label: language === 'en' ? 'Money' : 'Keuangan' },
+      { id: 'fitness', label: language === 'en' ? 'Fitness' : 'Kebugaran' },
+      { id: 'appearance', label: language === 'en' ? 'Appearance' : 'Penampilan' },
+      { id: 'pregnancy', label: language === 'en' ? 'Pregnancy' : 'Kehamilan' }
     ];
     
     switch (step.component) {
@@ -252,7 +311,10 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
           <View style={styles.stepContent}>
             <Text style={styles.emoji}>🎉</Text>
             <Text style={styles.welcomeText}>
-              Anda telah mengambil langkah pertama menuju hidup yang lebih sehat.
+              {language === 'en'
+                ? "You've taken the first step towards a healthier life."
+                : 'Anda telah mengambil langkah pertama menuju hidup yang lebih sehat.'
+              }
             </Text>
           </View>
         );
@@ -275,8 +337,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 <Text style={styles.placeholderText}>5</Text>
               )}
             </View>
-            <Text style={styles.inputLabel}>tahun *</Text>
-            <Text style={styles.requiredText}>Wajib diisi</Text>
+            <Text style={styles.inputLabel}>{language === 'en' ? 'years *' : 'tahun *'}</Text>
+            <Text style={styles.requiredText}>{language === 'en' ? 'Required' : 'Wajib diisi'}</Text>
           </View>
         );
       case 'reasons':
@@ -307,8 +369,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.hintText}>Pilih satu atau lebih *</Text>
-            <Text style={styles.requiredText}>Wajib dipilih</Text>
+            <Text style={styles.hintText}>{language === 'en' ? 'Select one or more *' : 'Pilih satu atau lebih *'}</Text>
+            <Text style={styles.requiredText}>{language === 'en' ? 'Required' : 'Wajib dipilih'}</Text>
           </View>
         );
       case 'attempts':
@@ -328,19 +390,22 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                     styles.attemptButtonText,
                     previousAttempts === option && styles.attemptButtonTextSelected
                   ]}>
-                    {option === '0' ? '0 kali' : `${option} kali`}
+                    {language === 'en'
+                      ? (option === '0' ? '0 times' : `${option} times`)
+                      : (option === '0' ? '0 kali' : `${option} kali`)
+                    }
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.requiredText}>Wajib dipilih</Text>
+            <Text style={styles.requiredText}>{language === 'en' ? 'Required' : 'Wajib dipilih'}</Text>
           </View>
         );
       case 'date':
         return (
           <View style={styles.stepContent}>
             <Text style={styles.dateText}>
-              {quitDate.toLocaleDateString('id-ID', {
+              {quitDate.toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -348,7 +413,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
               })}
             </Text>
             <Text style={styles.dateSubtext}>
-              Hari ini adalah awal yang sempurna!
+              {language === 'en' ? 'Today is the perfect start!' : 'Hari ini adalah awal yang sempurna!'}
             </Text>
           </View>
         );
@@ -366,7 +431,10 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
             </Text>
             
             <Text style={styles.completionMessage}>
-              {personalizedGreeting?.message || 'Anda telah mengambil langkah pertama menuju hidup yang lebih sehat.'}
+              {personalizedGreeting?.message || (language === 'en'
+                ? "You've taken the first step towards a healthier life."
+                : 'Anda telah mengambil langkah pertama menuju hidup yang lebih sehat.')
+              }
             </Text>
             
             {personalizedGreeting && (
@@ -397,7 +465,10 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
               disabled={loading}
             >
               <Text style={styles.nextButtonText}>
-                {loading ? 'Menyimpan...' : 'Mulai Perjalanan Sehat'}
+                {loading
+                  ? (language === 'en' ? 'Saving...' : 'Menyimpan...')
+                  : (language === 'en' ? 'Start Healthy Journey' : 'Mulai Perjalanan Sehat')
+                }
               </Text>
             </TouchableOpacity>
           </ScrollView>
@@ -421,15 +492,17 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 <Text style={styles.placeholderText}>12</Text>
               )}
             </View>
-            <Text style={styles.inputLabel}>batang per hari *</Text>
-            <Text style={styles.requiredText}>Wajib diisi</Text>
+            <Text style={styles.inputLabel}>{language === 'en' ? 'cigarettes per day *' : 'batang per hari *'}</Text>
+            <Text style={styles.requiredText}>{language === 'en' ? 'Required' : 'Wajib diisi'}</Text>
           </View>
         );
       case 'price':
+        const currencySymbol = language === 'en' ? '$' : 'Rp';
+        const pricePlaceholder = language === 'en' ? '2' : '25000';
         return (
           <View style={styles.stepContent}>
             <View style={styles.priceContainer}>
-              <Text style={styles.currencySymbol}>Rp</Text>
+              <Text style={styles.currencySymbol}>{currencySymbol}</Text>
               <View style={styles.priceInputContainer}>
                 <TextInput
                   style={styles.priceInput}
@@ -443,12 +516,12 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                   maxLength={6}
                 />
                 {focusedInput !== 'price' && !cigarettePrice && (
-                  <Text style={styles.pricePlaceholderText}>25000</Text>
+                  <Text style={styles.pricePlaceholderText}>{pricePlaceholder}</Text>
                 )}
               </View>
             </View>
-            <Text style={styles.inputLabel}>per bungkus *</Text>
-            <Text style={styles.requiredText}>Wajib diisi</Text>
+            <Text style={styles.inputLabel}>{language === 'en' ? 'per pack *' : 'per bungkus *'}</Text>
+            <Text style={styles.requiredText}>{language === 'en' ? 'Required' : 'Wajib diisi'}</Text>
           </View>
         );
       default:
@@ -504,21 +577,24 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                   style={styles.backButton}
                   onPress={handlePrevious}
                 >
-                  <Text style={styles.backButtonText}>Kembali</Text>
+                  <Text style={styles.backButtonText}>{language === 'en' ? 'Back' : 'Kembali'}</Text>
                 </TouchableOpacity>
               )}
-              
+
               <TouchableOpacity
                 style={[styles.nextButton, loading && styles.buttonDisabled]}
                 onPress={handleNext}
                 disabled={loading}
               >
                 <Text style={styles.nextButtonText}>
-                  {currentStep === steps.length - 1 
-                    ? (loading ? 'Menyimpan...' : 'Mulai Perjalanan Sehat') 
+                  {currentStep === steps.length - 1
+                    ? (loading
+                        ? (language === 'en' ? 'Saving...' : 'Menyimpan...')
+                        : (language === 'en' ? 'Start Healthy Journey' : 'Mulai Perjalanan Sehat')
+                      )
                     : currentStep === steps.length - 2
-                    ? 'Lihat Ringkasan'
-                    : 'Lanjut'
+                    ? (language === 'en' ? 'View Summary' : 'Lihat Ringkasan')
+                    : (language === 'en' ? 'Next' : 'Lanjut')
                   }
                 </Text>
               </TouchableOpacity>
@@ -526,6 +602,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
           </View>
         )}
       </LinearGradient>
+
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        type={alertType}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </View>
   );
 };

@@ -314,7 +314,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
         }
       } catch (error) {
         console.error('Error requesting notification permissions:', error);
-        showCustomAlert(t.common.error, 'Gagal meminta izin notifikasi');
+        showCustomAlert(
+          t.common.error,
+          language === 'en'
+            ? 'Failed to request notification permission'
+            : 'Gagal meminta izin notifikasi'
+        );
         return;
       }
     }

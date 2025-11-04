@@ -136,16 +136,18 @@ export const showSubscriptionOptions = (userId?: string): void => {
   }
 };
 
-export const handleSubscription = async (planId: string, userId?: string): Promise<void> => {
+export const handleSubscription = async (planId: string, userId?: string, language: 'en' | 'id' = 'id'): Promise<void> => {
   try {
     if (planId === 'trial') {
       // Handle free trial activation
       if (userId) {
-        await startFreeTrial(userId);
+        await startFreeTrial(userId, language);
       } else {
         Alert.alert(
-          'Free Trial',
-          'Untuk memulai free trial, Anda perlu login terlebih dahulu.',
+          language === 'en' ? 'Free Trial' : 'Free Trial',
+          language === 'en'
+            ? 'To start the free trial, you need to login first.'
+            : 'Untuk memulai free trial, Anda perlu login terlebih dahulu.',
           [{ text: 'OK' }]
         );
       }
@@ -311,7 +313,7 @@ export const formatSubscriptionStatus = (user: any): string => {
 };
 
 // Trial-specific functions
-export const startFreeTrial = async (userId: string): Promise<void> => {
+export const startFreeTrial = async (userId: string, language: 'en' | 'id' = 'id'): Promise<void> => {
   try {
     const now = new Date();
     const trialEndDate = new Date();
@@ -331,13 +333,20 @@ export const startFreeTrial = async (userId: string): Promise<void> => {
     await updateDoc(userDoc, trialData);
 
     Alert.alert(
-      '🎉 Trial Dimulai!',
-      'Selamat! Free trial Premium 3 hari Anda sudah aktif. Nikmati semua fitur premium secara gratis!',
-      [{ text: 'Mulai Sekarang!' }]
+      language === 'en' ? '🎉 Trial Started!' : '🎉 Trial Dimulai!',
+      language === 'en'
+        ? 'Congratulations! Your 3-day Premium free trial is now active. Enjoy all premium features for free!'
+        : 'Selamat! Free trial Premium 3 hari Anda sudah aktif. Nikmati semua fitur premium secara gratis!',
+      [{ text: language === 'en' ? 'Start Now!' : 'Mulai Sekarang!' }]
     );
   } catch (error) {
     console.error('Error starting free trial:', error);
-    Alert.alert('Error', 'Gagal memulai free trial. Silakan coba lagi.');
+    Alert.alert(
+      'Error',
+      language === 'en'
+        ? 'Failed to start free trial. Please try again.'
+        : 'Gagal memulai free trial. Silakan coba lagi.'
+    );
     throw error;
   }
 };
@@ -438,9 +447,10 @@ export const PAYMENT_METHODS = [
 ];
 
 export const processPayment = async (
-  planId: string, 
+  planId: string,
   paymentMethodId: string,
-  userId: string
+  userId: string,
+  language: 'en' | 'id' = 'id'
 ): Promise<{ success: boolean; message: string }> => {
   try {
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
@@ -450,7 +460,7 @@ export const processPayment = async (
 
     // Handle free trial separately (no payment processing needed)
     if (planId === 'trial') {
-      await startFreeTrial(userId);
+      await startFreeTrial(userId, language);
       return {
         success: true,
         message: `🎉 ${plan.name} dimulai!\n\nAnda sekarang memiliki akses penuh ke semua fitur premium selama 3 hari gratis!`,

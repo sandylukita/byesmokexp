@@ -54,7 +54,10 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setCurrentStep(4); // Go to success step
     } catch (error: any) {
-      setErrorMessage(error.message || 'Gagal membuat akun');
+      setErrorMessage(
+        error.message ||
+          (language === 'en' ? 'Failed to create account' : 'Gagal membuat akun')
+      );
       setShowErrorDialog(true);
     } finally {
       setLoading(false);
@@ -128,7 +131,9 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
           <View style={styles.loginPrompt}>
             <TouchableOpacity onPress={onLogin} style={styles.loginPromptButton}>
               <Text style={styles.loginPromptText}>
-                Sudah punya akun? Masuk sekarang
+                {language === 'en'
+                  ? 'Already have an account? Sign in now'
+                  : 'Sudah punya akun? Masuk sekarang'}
               </Text>
             </TouchableOpacity>
           </View>

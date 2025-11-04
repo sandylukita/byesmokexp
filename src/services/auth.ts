@@ -1,8 +1,8 @@
 import { auth, db } from './firebase';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   updateProfile,
   User as FirebaseUser
 } from 'firebase/auth';
@@ -10,6 +10,7 @@ import { doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { User } from '../types';
 import { checkAndAwardBadges } from './gamification';
 import { OptimizedUserOperations } from '../utils/firebaseOptimizer';
+import { getDeviceLanguage } from '../utils/translations';
 import { 
   validateSignUp, 
   validateSignIn, 
@@ -164,7 +165,7 @@ export const createUserDocument = async (user: FirebaseUser, displayName: string
     settings: {
       darkMode: false,
       notifications: true,
-      language: 'id',
+      language: getDeviceLanguage(), // Use device language instead of hardcoded 'id'
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
     }

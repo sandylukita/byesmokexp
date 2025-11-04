@@ -4,6 +4,7 @@ import { User } from '../types';
 import { generateReferralCode } from '../utils/referrals';
 import { migrateToCheckInSystem } from '../utils/helpers';
 import { log } from '../config/environment';
+import { getDeviceLanguage } from '../utils/translations';
 
 interface DemoUser extends User {
   password: string;
@@ -53,7 +54,7 @@ const DEMO_USERS: DemoUser[] = [
     settings: {
       darkMode: false,
       notifications: true,
-      language: 'id',
+      language: getDeviceLanguage(),
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
     },
@@ -91,7 +92,7 @@ const DEMO_USERS: DemoUser[] = [
     settings: {
       darkMode: false,
       notifications: true,
-      language: 'id',
+      language: getDeviceLanguage(),
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
     },
@@ -129,7 +130,7 @@ const DEMO_USERS: DemoUser[] = [
     settings: {
       darkMode: false,
       notifications: true,
-      language: 'id',
+      language: getDeviceLanguage(),
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
     },
@@ -218,7 +219,7 @@ const DEMO_USERS: DemoUser[] = [
     settings: {
       darkMode: false,
       notifications: true,
-      language: 'id',
+      language: getDeviceLanguage(),
       reminderTime: '08:00',
       leaderboardDisplayPreference: 'username'
     },
@@ -348,7 +349,7 @@ const DEMO_USERS: DemoUser[] = [
     settings: {
       darkMode: true, // Dark mode for premium user
       notifications: true,
-      language: 'id',
+      language: getDeviceLanguage(),
       reminderTime: '07:00',
       leaderboardDisplayPreference: 'displayName'
     },
@@ -474,7 +475,7 @@ export const demoSignUp = async (email: string, password: string, displayName: s
         settings: {
           darkMode: false,
           notifications: true,
-          language: 'id',
+          language: getDeviceLanguage(),
           reminderTime: '09:00',
           leaderboardDisplayPreference: 'username'
         },
@@ -629,7 +630,7 @@ export const demoCreateUserDocument = async (email: string, displayName: string,
     settings: {
       darkMode: false,
       notifications: true,
-      language: 'id',
+      language: getDeviceLanguage(),
       reminderTime: '09:00',
       leaderboardDisplayPreference: 'username'
     },

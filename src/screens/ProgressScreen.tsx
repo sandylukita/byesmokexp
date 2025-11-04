@@ -877,7 +877,7 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
   }
 
   // Use memoized calculations
-  const healthMilestones = getHealthMilestones(new Date(user.quitDate));
+  const healthMilestones = getHealthMilestones(new Date(user.quitDate), language);
 
   const renderHealthMilestones = () => (
     <View style={styles.tabContent}>
@@ -1036,8 +1036,12 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
           end={{ x: 1, y: 1 }}
           style={styles.investmentCardGradient}
         >
-          <Text style={[styles.investmentTitle, { color: colors.textPrimary }]}>Apa yang bisa kamu beli?</Text>
-          <Text style={[styles.investmentSubtitle, { color: colors.textSecondary }]}>Dengan uang yang kamu hemat</Text>
+          <Text style={[styles.investmentTitle, { color: colors.textPrimary }]}>
+            {language === 'en' ? 'What can you buy?' : 'Apa yang bisa kamu beli?'}
+          </Text>
+          <Text style={[styles.investmentSubtitle, { color: colors.textSecondary }]}>
+            {language === 'en' ? 'With the money you saved' : 'Dengan uang yang kamu hemat'}
+          </Text>
           
           <View style={styles.investmentGrid}>
             <View style={[styles.investmentItemCard, { backgroundColor: colors.surface }]}>
@@ -1047,7 +1051,9 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
               <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
                 {Math.floor(moneySavedData / 3000000)}
               </Text>
-              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Smartphone</Text>
+              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'Smartphones' : 'Smartphone'}
+              </Text>
             </View>
 
             <View style={[styles.investmentItemCard, { backgroundColor: colors.surface }]}>
@@ -1057,7 +1063,9 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
               <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
                 {Math.floor(moneySavedData / 50000)}
               </Text>
-              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Pizza Keluarga</Text>
+              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'Family Pizzas' : 'Pizza Keluarga'}
+              </Text>
             </View>
 
             <View style={[styles.investmentItemCard, { backgroundColor: colors.surface }]}>
@@ -1067,7 +1075,9 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
               <Text style={[styles.investmentNumber, { color: colors.textPrimary }]}>
                 {Math.floor(moneySavedData / 15000)}
               </Text>
-              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>Liter Bensin</Text>
+              <Text style={[styles.investmentLabel, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'Liters of Gas' : 'Liter Bensin'}
+              </Text>
             </View>
           </View>
         </LinearGradient>
@@ -1128,11 +1138,11 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
                 onPress={goToCurrentMonth}
               >
                 <Text style={[styles.monthYearText, { color: colors.textPrimary }]}>
-                  {selectedDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                  {selectedDate.toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { month: 'long', year: 'numeric' })}
                 </Text>
                 {selectedDate.getMonth() !== new Date().getMonth() || selectedDate.getFullYear() !== new Date().getFullYear() ? (
                   <Text style={[styles.currentMonthHint, { color: colors.textSecondary }]}>
-                    Tap untuk bulan ini
+                    {language === 'en' ? 'Tap for current month' : 'Tap untuk bulan ini'}
                   </Text>
                 ) : null}
               </TouchableOpacity>
@@ -1155,7 +1165,10 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
             
             {/* Day labels */}
             <View style={styles.heatmapDayLabels}>
-              {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((day) => (
+              {(language === 'en'
+                ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                : ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+              ).map((day) => (
                 <Text key={day} style={[styles.heatmapDayLabel, { color: colors.textPrimary }]}>{day}</Text>
               ))}
             </View>
@@ -1168,14 +1181,18 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
               />
             </View>
             <View style={styles.heatmapLegend}>
-              <Text style={[styles.heatmapLegendText, { color: colors.textSecondary }]}>Kurang</Text>
+              <Text style={[styles.heatmapLegendText, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'Less' : 'Kurang'}
+              </Text>
               <View style={styles.heatmapLegendDots}>
                 <View style={[styles.heatmapLegendDot, { backgroundColor: colors.border }]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapLow]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapMedium]} />
                 <View style={[styles.heatmapLegendDot, styles.heatmapHigh]} />
               </View>
-              <Text style={[styles.heatmapLegendText, { color: colors.textSecondary }]}>Aktif</Text>
+              <Text style={[styles.heatmapLegendText, { color: colors.textSecondary }]}>
+                {language === 'en' ? 'More' : 'Aktif'}
+              </Text>
             </View>
           </View>
         </LinearGradient>

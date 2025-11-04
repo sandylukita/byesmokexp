@@ -102,11 +102,57 @@ export const formatNumber = (number: number): string => {
   return new Intl.NumberFormat('id-ID').format(number);
 };
 
-export const getHealthMilestones = (quitDate: Date): HealthMilestone[] => {
+export const getHealthMilestones = (quitDate: Date, language: Language = 'id'): HealthMilestone[] => {
   const now = new Date();
   const hoursSinceQuit = Math.abs(now.getTime() - quitDate.getTime()) / (1000 * 60 * 60);
-  
-  return HEALTH_MILESTONES.map(milestone => ({
+
+  // English translations for health milestones
+  const englishMilestones = [
+    {
+      id: 'twenty-minutes',
+      title: '20 Minutes',
+      description: 'Heart rate and blood pressure return to normal',
+      timeframe: '20 minutes',
+      icon: 'favorite',
+      hours: 0.33
+    },
+    {
+      id: 'twelve-hours',
+      title: '12 Hours',
+      description: 'Carbon monoxide levels in blood normalize',
+      timeframe: '12 hours',
+      icon: 'air',
+      hours: 12
+    },
+    {
+      id: 'two-weeks',
+      title: '2 Weeks',
+      description: 'Circulation improves, lung function increases',
+      timeframe: '2 weeks',
+      icon: 'directions-run',
+      hours: 336
+    },
+    {
+      id: 'one-month',
+      title: '1 Month',
+      description: 'Coughing and shortness of breath decrease',
+      timeframe: '1 month',
+      icon: 'self-improvement',
+      hours: 720
+    },
+    {
+      id: 'one-year',
+      title: '1 Year',
+      description: 'Heart disease risk reduced by 50%',
+      timeframe: '1 year',
+      icon: 'security',
+      hours: 8760
+    }
+  ];
+
+  const milestones = language === 'en' ? englishMilestones : HEALTH_MILESTONES;
+
+  return milestones.map(milestone => ({
     ...milestone,
     isReached: hoursSinceQuit >= milestone.hours
   }));
@@ -674,7 +720,7 @@ export const generatePersonalizedGreeting = (userData: {
   cigarettePrice: number;
   quitReasons: string[];
   previousAttempts: number;
-}): {
+}, language: 'en' | 'id' = 'id'): {
   headline: string;
   message: string;
   financialHighlight: string;
@@ -704,64 +750,105 @@ export const generatePersonalizedGreeting = (userData: {
   
   // Create headline based on profile
   if (isHeavySmoker && isLongTermSmoker) {
-    headline = `${cigarettesPerDay} batang/hari selama ${smokingYears} tahun? Tubuh Anda siap untuk pemulihan yang menakjubkan!`;
+    headline = language === 'en'
+      ? `${cigarettesPerDay} cigarettes/day for ${smokingYears} years? Your body is ready for an amazing recovery!`
+      : `${cigarettesPerDay} batang/hari selama ${smokingYears} tahun? Tubuh Anda siap untuk pemulihan yang menakjubkan!`;
   } else if (isHeavySmoker) {
-    headline = `${cigarettesPerDay} batang per hari adalah masa lalu! Saatnya hidup lebih sehat.`;
+    headline = language === 'en'
+      ? `${cigarettesPerDay} cigarettes per day is in the past! Time for a healthier life.`
+      : `${cigarettesPerDay} batang per hari adalah masa lalu! Saatnya hidup lebih sehat.`;
   } else if (isLongTermSmoker) {
-    headline = `Setelah ${smokingYears} tahun, Anda akhirnya memilih jalan yang tepat!`;
+    headline = language === 'en'
+      ? `After ${smokingYears} years, you've finally chosen the right path!`
+      : `Setelah ${smokingYears} tahun, Anda akhirnya memilih jalan yang tepat!`;
   } else {
-    headline = `Keputusan terbaik telah Anda buat! Mari mulai perjalanan sehat.`;
+    headline = language === 'en'
+      ? `You've made the best decision! Let's start your healthy journey.`
+      : `Keputusan terbaik telah Anda buat! Mari mulai perjalanan sehat.`;
   }
   
   // Create main message based on primary reason
   switch (primaryReason) {
     case 'health':
       if (isLongTermSmoker) {
-        message = `Setelah ${smokingYears} tahun merokok, tubuh Anda akan mulai penyembuhan yang luar biasa. Dalam 20 menit pertama, detak jantung dan tekanan darah akan mulai normal!`;
+        message = language === 'en'
+          ? `After ${smokingYears} years of smoking, your body will begin an amazing healing process. In the first 20 minutes, your heart rate and blood pressure will start to normalize!`
+          : `Setelah ${smokingYears} tahun merokok, tubuh Anda akan mulai penyembuhan yang luar biasa. Dalam 20 menit pertama, detak jantung dan tekanan darah akan mulai normal!`;
       } else {
-        message = `Pilihan untuk kesehatan adalah investasi terbaik! Tubuh Anda akan segera merasakan perubahan positif yang mengagumkan.`;
+        message = language === 'en'
+          ? `Choosing health is the best investment! Your body will soon feel amazing positive changes.`
+          : `Pilihan untuk kesehatan adalah investasi terbaik! Tubuh Anda akan segera merasakan perubahan positif yang mengagumkan.`;
       }
       break;
     case 'family':
-      message = `Keputusan berhenti merokok untuk keluarga menunjukkan kasih sayang yang besar. Anda sedang memberikan hadiah kesehatan untuk orang-orang tercinta.`;
+      message = language === 'en'
+        ? `Quitting smoking for your family shows tremendous love. You're giving the gift of health to your loved ones.`
+        : `Keputusan berhenti merokok untuk keluarga menunjukkan kasih sayang yang besar. Anda sedang memberikan hadiah kesehatan untuk orang-orang tercinta.`;
       break;
     case 'money':
-      message = `Keputusan finansial yang cerdas! Uang yang biasa dihabiskan untuk rokok kini bisa digunakan untuk hal-hal yang lebih bermakna.`;
+      message = language === 'en'
+        ? `Smart financial decision! Money usually spent on cigarettes can now be used for more meaningful things.`
+        : `Keputusan finansial yang cerdas! Uang yang biasa dihabiskan untuk rokok kini bisa digunakan untuk hal-hal yang lebih bermakna.`;
       break;
     case 'pregnancy':
-      message = `Pilihan terbaik untuk calon buah hati! Anda sedang memberikan awal kehidupan yang sehat untuk si kecil.`;
+      message = language === 'en'
+        ? `Best choice for your baby! You're giving your little one a healthy start to life.`
+        : `Pilihan terbaik untuk calon buah hati! Anda sedang memberikan awal kehidupan yang sehat untuk si kecil.`;
       break;
     default:
-      message = `Perjalanan menuju hidup sehat dimulai dari keputusan berani seperti yang Anda buat hari ini.`;
+      message = language === 'en'
+        ? `Your journey to a healthy life begins with brave decisions like the one you made today.`
+        : `Perjalanan menuju hidup sehat dimulai dari keputusan berani seperti yang Anda buat hari ini.`;
   }
   
   // Financial highlight
   if (dailySavings > 0) {
+    const formattedDaily = formatCurrency(dailySavings, language);
+    const formattedYearly = formatCurrency(yearlySavings, language);
+
     if (yearlySavings >= 5000000) {
-      financialHighlight = `Menghemat Rp ${formatCurrency(dailySavings)}/hari = Rp ${formatCurrency(yearlySavings)}/tahun - cukup untuk liburan keluarga!`;
+      financialHighlight = language === 'en'
+        ? `Saving ${formattedDaily}/day = ${formattedYearly}/year - enough for a family vacation!`
+        : `Menghemat ${formattedDaily}/hari = ${formattedYearly}/tahun - cukup untuk liburan keluarga!`;
     } else if (yearlySavings >= 2000000) {
-      financialHighlight = `Rp ${formatCurrency(yearlySavings)}/tahun yang Anda hemat bisa untuk dana pendidikan atau investasi!`;
+      financialHighlight = language === 'en'
+        ? `${formattedYearly}/year you save could go towards education or investment!`
+        : `${formattedYearly}/tahun yang Anda hemat bisa untuk dana pendidikan atau investasi!`;
     } else {
-      financialHighlight = `Rp ${formatCurrency(dailySavings)}/hari x 365 hari = Rp ${formatCurrency(yearlySavings)} per tahun!`;
+      financialHighlight = language === 'en'
+        ? `${formattedDaily}/day x 365 days = ${formattedYearly} per year!`
+        : `${formattedDaily}/hari x 365 hari = ${formattedYearly} per tahun!`;
     }
   } else {
-    financialHighlight = "Penghematan finansial akan terasa dalam jangka panjang!";
+    financialHighlight = language === 'en'
+      ? "Financial savings will be felt in the long run!"
+      : "Penghematan finansial akan terasa dalam jangka panjang!";
   }
   
   // Health highlight based on smoking intensity
   if (isHeavySmoker) {
-    healthHighlight = "20 menit: Detak jantung normal • 12 jam: Karbon monoksida hilang • 2 minggu: Sirkulasi membaik";
+    healthHighlight = language === 'en'
+      ? "20 min: Normal heart rate • 12 hours: Carbon monoxide gone • 2 weeks: Better circulation"
+      : "20 menit: Detak jantung normal • 12 jam: Karbon monoksida hilang • 2 minggu: Sirkulasi membaik";
   } else {
-    healthHighlight = "20 menit: Tekanan darah turun • 8 jam: Oksigen naik • 24 jam: Risiko serangan jantung turun";
+    healthHighlight = language === 'en'
+      ? "20 min: Blood pressure drops • 8 hours: Oxygen rises • 24 hours: Heart attack risk decreases"
+      : "20 menit: Tekanan darah turun • 8 jam: Oksigen naik • 24 jam: Risiko serangan jantung turun";
   }
-  
+
   // Motivational note based on previous attempts
   if (previousAttempts >= 3) {
-    motivationalNote = `Percobaan ke-${previousAttempts + 1} ini berbeda! Pengalaman sebelumnya adalah pembelajaran berharga. Kali ini Anda punya ByeSmoke AI!`;
+    motivationalNote = language === 'en'
+      ? `Attempt #${previousAttempts + 1} is different! Previous experiences are valuable lessons. This time you have ByeSmoke AI!`
+      : `Percobaan ke-${previousAttempts + 1} ini berbeda! Pengalaman sebelumnya adalah pembelajaran berharga. Kali ini Anda punya ByeSmoke AI!`;
   } else if (previousAttempts > 0) {
-    motivationalNote = `Percobaan kedua sering kali lebih berhasil! Anda sudah tahu apa yang harus dihindari. Mari buat kali ini berbeda!`;
+    motivationalNote = language === 'en'
+      ? `Second attempts are often more successful! You already know what to avoid. Let's make this time different!`
+      : `Percobaan kedua sering kali lebih berhasil! Anda sudah tahu apa yang harus dihindari. Mari buat kali ini berbeda!`;
   } else {
-    motivationalNote = `Langkah pertama adalah yang tersulit, dan Anda sudah melakukannya! Percayalah pada kekuatan diri Anda.`;
+    motivationalNote = language === 'en'
+      ? `The first step is the hardest, and you've already done it! Believe in your inner strength.`
+      : `Langkah pertama adalah yang tersulit, dan Anda sudah melakukannya! Percayalah pada kekuatan diri Anda.`;
   }
   
   return {

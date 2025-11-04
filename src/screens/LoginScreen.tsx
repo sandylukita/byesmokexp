@@ -20,6 +20,7 @@ import { demoSignIn } from '../services/demoAuth';
 import { COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
 import { debugLog } from '../utils/performanceOptimizer';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -27,6 +28,7 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
+  const { language } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,36 +59,46 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
 
   const handleForgotPassword = useCallback(async () => {
     if (!email) {
-      showCustomAlert('Kesalahan', 'Silakan masukkan email Anda terlebih dahulu');
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en' ? 'Please enter your email first' : 'Silakan masukkan email Anda terlebih dahulu'
+      );
       return;
     }
 
     try {
       await sendPasswordResetEmail(auth, email);
       showCustomAlert(
-        'Berhasil',
-        'Email reset password telah dikirim ke ' + email + '. Silakan cek inbox atau folder spam Anda.',
+        language === 'en' ? 'Success' : 'Berhasil',
+        language === 'en'
+          ? `Password reset email has been sent to ${email}. Please check your inbox or spam folder.`
+          : `Email reset password telah dikirim ke ${email}. Silakan cek inbox atau folder spam Anda.`,
         'success'
       );
     } catch (error: any) {
-      let errorMessage = 'Gagal mengirim email reset password';
+      let errorMessage = language === 'en' ? 'Failed to send password reset email' : 'Gagal mengirim email reset password';
 
       // Handle specific Firebase errors
       if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Email tidak ditemukan. Silakan periksa email Anda atau daftar akun baru.';
+        errorMessage = language === 'en'
+          ? 'Email not found. Please check your email or sign up for a new account.'
+          : 'Email tidak ditemukan. Silakan periksa email Anda atau daftar akun baru.';
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Format email tidak valid';
+        errorMessage = language === 'en' ? 'Invalid email format' : 'Format email tidak valid';
       } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
+        errorMessage = language === 'en' ? 'Too many requests. Please try again later.' : 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
       }
 
-      showCustomAlert('Kesalahan', errorMessage);
+      showCustomAlert(language === 'en' ? 'Error' : 'Kesalahan', errorMessage);
     }
-  }, [email, showCustomAlert]);
+  }, [email, showCustomAlert, language]);
 
   const handleLogin = useCallback(async () => {
     if (!email || !password) {
-      showCustomAlert('Kesalahan', 'Silakan isi email dan password');
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        language === 'en' ? 'Please enter email and password' : 'Silakan isi email dan password'
+      );
       return;
     }
 
@@ -112,12 +124,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
         onLogin();
       } catch (firebaseError: any) {
         debugLog.log('Firebase auth failed:', firebaseError.message);
-        showCustomAlert('Kesalahan', firebaseError.message || 'Gagal masuk');
+        showCustomAlert(
+          language === 'en' ? 'Error' : 'Kesalahan',
+          firebaseError.message || (language === 'en' ? 'Failed to sign in' : 'Gagal masuk')
+        );
       }
     } finally {
       setLoading(false);
     }
-  }, [email, password, showCustomAlert, onLogin]);
+  }, [email, password, showCustomAlert, onLogin, language]);
 
 
   return (
@@ -143,9 +158,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
                 resizeMode="contain"
               />
               <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit={true}>
-                Selamat Datang
+                {language === 'en' ? 'Welcome' : 'Selamat Datang'}
               </Text>
-              <Text style={styles.subtitle}>Masuk ke akun ByeSmoke AI</Text>
+              <Text style={styles.subtitle}>
+                {language === 'en' ? 'Sign in to your ByeSmoke AI account' : 'Masuk ke akun ByeSmoke AI'}
+              </Text>
             </View>
 
             <View style={styles.form}>
@@ -179,21 +196,30 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
                 disabled={loading}
               >
                 <Text style={styles.buttonText}>
-                  {loading ? 'Masuk...' : 'Masuk'}
+                  {loading
+                    ? (language === 'en' ? 'Signing in...' : 'Masuk...')
+                    : (language === 'en' ? 'Sign In' : 'Masuk')
+                  }
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.forgotPasswordContainer}
                 onPress={handleForgotPassword}
               >
-                <Text style={styles.forgotPasswordText}>Lupa Password?</Text>
+                <Text style={styles.forgotPasswordText}>
+                  {language === 'en' ? 'Forgot Password?' : 'Lupa Password?'}
+                </Text>
               </TouchableOpacity>
 
               <View style={styles.footer}>
-                <Text style={styles.footerText}>Belum punya akun? </Text>
+                <Text style={styles.footerText}>
+                  {language === 'en' ? "Don't have an account? " : 'Belum punya akun? '}
+                </Text>
                 <TouchableOpacity onPress={onSignUp}>
-                  <Text style={styles.linkText}>Daftar sekarang</Text>
+                  <Text style={styles.linkText}>
+                    {language === 'en' ? 'Sign up now' : 'Daftar sekarang'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -233,7 +259,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: SIZES.lg,
+    marginBottom: SIZES.md,
   },
   logo: {
     width: 64,
@@ -253,7 +279,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    marginTop: SIZES.md,
+    marginTop: SIZES.sm,
   },
   input: {
     backgroundColor: COLORS.white,

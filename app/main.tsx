@@ -21,6 +21,7 @@ import { setSubscriptionNavigation } from '../src/services/subscription';
 import { COLORS } from '../src/utils/constants';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import ErrorBoundary from '../src/components/ErrorBoundary';
+import { isOnboardingComplete } from '../src/utils/helpers';
 
 // Suppress React Native 0.79.5 bridge error at multiple levels
 if (__DEV__) {
@@ -287,9 +288,12 @@ export default function Main() {
       }
       
       log.debug('🔍 Checking onboarding status...');
-      
-      if (userData && userData.onboardingCompleted === false) {
-        log.debug('📝 User has onboardingCompleted = false');
+
+      // Use isOnboardingComplete to check both flag AND required data
+      const onboardingComplete = userData && isOnboardingComplete(userData);
+
+      if (userData && !onboardingComplete) {
+        log.debug('📝 User has incomplete onboarding (missing flag or data)');
         // Check if this is an existing user with progress data
         // Exclude "new-member" badge as it's auto-awarded on signup
         const nonNewMemberBadges = userData.badges ? userData.badges.filter((b: any) => b !== 'new-member') : [];
@@ -298,10 +302,11 @@ export default function Main() {
                                    (nonNewMemberBadges.length > 0);
 
         log.debug('🎯 Has existing progress:', hasExistingProgress);
-        
-        if (hasExistingProgress) {
-          log.debug('✅ Existing user with progress, skipping onboarding and going to dashboard');
-          // Auto-complete onboarding for existing users to prevent data loss
+        log.debug('🎯 Missing data - cigarettesPerDay:', userData.cigarettesPerDay, 'cigarettePrice:', userData.cigarettePrice);
+
+        if (hasExistingProgress && userData.cigarettesPerDay > 0 && userData.cigarettePrice > 0) {
+          log.debug('✅ Existing user with progress AND complete data, auto-completing onboarding');
+          // Auto-complete onboarding for existing users who have the data but flag is false
           const { updateUserDocument } = await import('../src/services/auth');
           try {
             await updateUserDocument(userData.id, { onboardingCompleted: true });
@@ -313,12 +318,12 @@ export default function Main() {
             setAppState('onboarding');
           }
         } else {
-          log.debug('📋 New user, going to onboarding');
+          log.debug('📋 User needs onboarding (missing cigarettesPerDay or cigarettePrice)');
           setNeedsOnboarding(true);
           setAppState('onboarding');
         }
-      } else if (userData && userData.onboardingCompleted === true) {
-        log.debug('✅ User has completed onboarding, going to dashboard');
+      } else if (onboardingComplete) {
+        log.debug('✅ User has completed onboarding with all required data, going to dashboard');
         log.debug('🚀 Setting app state to dashboard (completed onboarding)');
         setAppState('dashboard');
       } else {

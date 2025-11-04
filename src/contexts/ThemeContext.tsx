@@ -23,7 +23,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguageState] = useState<string>(() => {
     // Use device language detection for initial language
-    return getDeviceLanguage();
+    const detectedLanguage = getDeviceLanguage();
+    console.log('🌍 ThemeContext: Initial language detected:', detectedLanguage);
+    return detectedLanguage;
   });
   const [user, setUser] = useState<User | null>(null);
   const [pendingSettingsUpdate, setPendingSettingsUpdate] = useState<any>(null);
@@ -45,32 +47,127 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           if (firebaseUser) {
             const userData = await getUserDocument(firebaseUser.uid);
             if (userData) {
-              console.log('🌙 Loading Firebase user settings:', {
-                userId: userData.id,
-                settings: userData.settings,
-                darkMode: userData.settings?.darkMode
-              });
+              if (__DEV__) {
+                console.log('🌙 Loading Firebase user settings:', {
+                  userId: userData.id,
+                  settings: userData.settings,
+                  darkMode: userData.settings?.darkMode,
+                  savedLanguage: userData.settings?.language
+                });
+              }
+              const deviceLanguage = getDeviceLanguage();
+              const savedLanguage = userData.settings?.language;
+              const languageSetManually = userData.settings?.languageSetManually || false;
+
+              // Migration: If device is English but user has 'id' saved, update to device language
+              // BUT only if user has never manually set their language preference
+              let userLanguage = savedLanguage || deviceLanguage;
+              if (deviceLanguage === 'en' && savedLanguage === 'id' && !languageSetManually) {
+                if (__DEV__) {
+                  console.log('🌍 MIGRATION: Device is English but user has Indonesian saved (and never set manually), updating to English');
+                }
+                userLanguage = 'en';
+                // Update the database asynchronously and mark as migrated
+                setTimeout(async () => {
+                  try {
+                    const { updateUserDocument } = await import('../services/auth');
+                    await updateUserDocument(userData.id, {
+                      settings: {
+                        ...userData.settings,
+                        language: 'en',
+                        languageSetManually: false // Migrated, not manually set
+                      }
+                    });
+                    if (__DEV__) {
+                      console.log('✅ User language migrated to English');
+                    }
+                  } catch (error) {
+                    if (__DEV__) {
+                      console.log('Failed to migrate language:', error);
+                    }
+                  }
+                }, 0);
+              } else if (languageSetManually && __DEV__) {
+                console.log('🌍 User has manually set language preference, respecting choice:', savedLanguage);
+              }
+
+              if (__DEV__) {
+                console.log('🌍 User language from settings:', savedLanguage);
+                console.log('🌍 Device language:', deviceLanguage);
+                console.log('🌍 Final language being set:', userLanguage);
+              }
               setUser(userData);
               setIsDarkMode(userData.settings?.darkMode || false);
-              setLanguageState(userData.settings?.language || getDeviceLanguage());
-              console.log('🌙 ✅ Firebase user theme initialized:', {
-                isDarkMode: userData.settings?.darkMode || false
-              });
+              setLanguageState(userLanguage);
+              if (__DEV__) {
+                console.log('🌙 ✅ Firebase user theme initialized:', {
+                  isDarkMode: userData.settings?.darkMode || false,
+                  language: userLanguage
+                });
+              }
             }
           } else {
             const demoUser = demoGetCurrentUser();
             if (demoUser) {
-              console.log('🌙 Loading demo user settings:', {
-                userId: demoUser.id,
-                settings: demoUser.settings,
-                darkMode: demoUser.settings?.darkMode
-              });
+              if (__DEV__) {
+                console.log('🌙 Loading demo user settings:', {
+                  userId: demoUser.id,
+                  settings: demoUser.settings,
+                  darkMode: demoUser.settings?.darkMode,
+                  savedLanguage: demoUser.settings?.language
+                });
+              }
+
+              const deviceLanguage = getDeviceLanguage();
+              const savedLanguage = demoUser.settings?.language;
+              const languageSetManually = demoUser.settings?.languageSetManually || false;
+
+              // Migration: If device is English but user has 'id' saved, update to device language
+              // BUT only if user has never manually set their language preference
+              let userLanguage = savedLanguage || deviceLanguage;
+              if (deviceLanguage === 'en' && savedLanguage === 'id' && !languageSetManually) {
+                if (__DEV__) {
+                  console.log('🌍 MIGRATION: Device is English but demo user has Indonesian saved (and never set manually), updating to English');
+                }
+                userLanguage = 'en';
+                // Update the demo user asynchronously and mark as migrated
+                setTimeout(async () => {
+                  try {
+                    const { demoUpdateUser } = await import('../services/demoAuth');
+                    await demoUpdateUser(demoUser.id, {
+                      settings: {
+                        ...demoUser.settings,
+                        language: 'en',
+                        languageSetManually: false // Migrated, not manually set
+                      }
+                    });
+                    if (__DEV__) {
+                      console.log('✅ Demo user language migrated to English');
+                    }
+                  } catch (error) {
+                    if (__DEV__) {
+                      console.log('Failed to migrate demo user language:', error);
+                    }
+                  }
+                }, 0);
+              } else if (languageSetManually && __DEV__) {
+                console.log('🌍 Demo user has manually set language preference, respecting choice:', savedLanguage);
+              }
+
+              if (__DEV__) {
+                console.log('🌍 Demo user language from settings:', savedLanguage);
+                console.log('🌍 Device language:', deviceLanguage);
+                console.log('🌍 Final language being set:', userLanguage);
+              }
               setUser(demoUser);
               setIsDarkMode(demoUser.settings?.darkMode || false);
-              setLanguageState(demoUser.settings?.language || getDeviceLanguage());
-              console.log('🌙 ✅ Demo user theme initialized:', {
-                isDarkMode: demoUser.settings?.darkMode || false
-              });
+              setLanguageState(userLanguage);
+              if (__DEV__) {
+                console.log('🌙 ✅ Demo user theme initialized:', {
+                  isDarkMode: demoUser.settings?.darkMode || false,
+                  language: userLanguage
+                });
+              }
             }
           }
         } catch (error) {
@@ -129,15 +226,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // Always update language state immediately for UI changes
     setLanguageState(newLanguage);
     console.log('🎯 Language state updated to:', newLanguage);
-    
+
     // If user exists, save settings to storage (but don't update user object to prevent loading states)
     if (user) {
       // Prepare updated user settings for storage only
+      // Mark language as manually set to prevent auto-migration
       const updatedUser = {
         ...user,
         settings: {
           ...user.settings,
-          language: newLanguage
+          language: newLanguage,
+          languageSetManually: true // User explicitly chose this language
         }
       };
       

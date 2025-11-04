@@ -150,7 +150,8 @@
       "Bash(adb start-server)",
       "Bash(adb -s emulator-5554 install -r \"C:\\Users\\windows11\\ZXP\\byesmoke-v0\\byesmoke-v00\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk\")",
       "Bash(adb -s emulator-5554 shell am start -n com.zaynstudio.byesmoke/.MainActivity)",
-      "Bash(wmic process where \"name=''node.exe''\" delete)"
+      "Bash(wmic process where \"name=''node.exe''\" delete)",
+      "Bash(adb -s emulator-5554 install -r \"C:\\Users\\windows11\\Downloads\\application-18631893-36c8-4c26-a27d-7438a5090024.apk\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

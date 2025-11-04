@@ -973,6 +973,19 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       return;
     }
 
+    // Check if user has completed onboarding with required data
+    if (!user.cigarettesPerDay || !user.cigarettePrice || user.cigarettesPerDay <= 0 || user.cigarettePrice <= 0) {
+      showCustomAlert(
+        language === 'en' ? 'Onboarding Required' : 'Onboarding Diperlukan',
+        language === 'en'
+          ? 'Please complete your profile setup with cigarette usage and price information to start tracking your progress.'
+          : 'Silakan lengkapi pengaturan profil Anda dengan informasi penggunaan dan harga rokok untuk mulai melacak kemajuan Anda.',
+        'warning'
+      );
+      debugLog.log('⚠️ Check-in blocked: Missing cigarettesPerDay or cigarettePrice');
+      return;
+    }
+
     // ATOMIC: Generate unique session ID to prevent duplicate processing
     const sessionId = `checkin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
@@ -1214,7 +1227,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       showAdAfterDelay('daily_checkin');
       
     } catch (error) {
-      showCustomAlert('Error', 'Gagal melakukan check-in', 'error');
+      showCustomAlert(
+        'Error',
+        language === 'en' ? 'Failed to check in' : 'Gagal melakukan check-in',
+        'error'
+      );
     } finally {
       setCheckingIn(false);
       // FIXED: Reset the local updating flag after Firebase confirms write (reduced delay)
@@ -1536,7 +1553,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
             });
           });
           
-          showCustomAlert('Error', 'Gagal menyelesaikan misi', 'error');
+          showCustomAlert(
+            'Error',
+            language === 'en' ? 'Failed to complete mission' : 'Gagal menyelesaikan misi',
+            'error'
+          );
         } finally {
           // FIXED: Reset the local updating flag after Firebase confirms write
           setTimeout(() => {

@@ -1587,23 +1587,48 @@ export function getDeviceLanguage(): Language {
   try {
     // Get device locales (returns array of locale objects)
     const locales = Localization.getLocales();
-    
+
+    if (__DEV__) {
+      console.log('🌍 Device locale detection:', {
+        locales: locales,
+        localeCount: locales?.length,
+        primaryLocale: locales?.[0],
+        languageCode: locales?.[0]?.languageCode,
+        regionCode: locales?.[0]?.regionCode
+      });
+    }
+
     if (locales && locales.length > 0) {
       // Get the primary locale
       const primaryLocale = locales[0];
-      
+
       // Extract language code (e.g., "id", "en", "fr")
       const languageCode = primaryLocale.languageCode?.toLowerCase();
-      
+
+      if (__DEV__) {
+        console.log('🌍 Detected language code:', languageCode);
+      }
+
       // Return Indonesian if device is set to Indonesian, otherwise English
-      return languageCode === 'id' ? 'id' : 'en';
+      const detectedLanguage = languageCode === 'id' ? 'id' : 'en';
+
+      if (__DEV__) {
+        console.log('🌍 Final language selection:', detectedLanguage);
+      }
+
+      return detectedLanguage;
     }
-    
-    // Fallback to Indonesian if no locales found
-    return 'id';
+
+    // Fallback to English if no locales found (changed from 'id' to 'en' for international users)
+    if (__DEV__) {
+      console.log('🌍 No locales found, using English fallback');
+    }
+    return 'en';
   } catch (error) {
-    // Fallback to Indonesian if detection fails
-    console.log('Device language detection failed, using Indonesian fallback');
-    return 'id';
+    // Fallback to English if detection fails (changed from 'id' to 'en' for international users)
+    if (__DEV__) {
+      console.log('🌍 Device language detection failed, using English fallback:', error);
+    }
+    return 'en';
   }
 }
