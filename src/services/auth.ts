@@ -56,10 +56,9 @@ const sanitizeErrorMessage = (errorMessage: string): string => {
 };
 
 // Configure Google Sign-In
-// NOTE: You need to add your Web Client ID from Firebase Console
-// Get it from: Firebase Console > Authentication > Sign-in method > Google > Web SDK configuration
+// Web Client ID from Firebase Console
 GoogleSignin.configure({
-  webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com', // From Firebase Console
+  webClientId: '161013631866-el8t2993kpa1olninqoh9n9f6prgc6jr.apps.googleusercontent.com',
   offlineAccess: true,
 });
 
