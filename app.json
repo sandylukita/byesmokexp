@@ -80,6 +80,7 @@
           "iosUrlScheme": "com.googleusercontent.apps.161013631866-el8t2993kpa1olninqoh9n9f6prgc6jr"
         }
       ],
+      "@react-native-firebase/app",
       "expo-router"
     ],
     "extra": {
