@@ -17,6 +17,7 @@ import {
     View,
 } from 'react-native';
 import { CustomAlert } from '../components/CustomAlert';
+import { CheckInShareModal } from '../components/CheckInShareModal';
 import FeatureTutorial from '../components/FeatureTutorial';
 import { trackScreenView, trackUserAction, trackMissionEngagement, initializeUserJourney } from '../services/userJourneyTracking';
 import { initializeCrashReporting, setCurrentScreen, logUserAction } from '../services/crashReporting';
@@ -209,7 +210,16 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
   
   // Confetti animation state
   const [showConfetti, setShowConfetti] = useState(false);
-  
+
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareData, setShareData] = useState({
+    days: 0,
+    streak: 0,
+    money: 0,
+    rank: ''
+  });
+
   const { colors, updateUser, isDarkMode } = useTheme();
 
   // Memoize the motivation text style to prevent MotivationContent re-renders
@@ -1205,23 +1215,37 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       }
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      
+
       // Show success message with badge notification if any
       let message = `${t.dashboard.checkInSuccess} ⭐ +10 XP\n\n🔥 ${t.dashboard.streak}: ${newStreak} ${t.dashboard.daysSinceQuit.split(' ')[0]}`;
       if (updatedUser.badges.length > user.badges.length) {
         const newBadgesCount = updatedUser.badges.length - user.badges.length;
         message += `\n\n🏆 ${t.dashboard.newBadges}: ${newBadgesCount}`;
       }
-      
+
       // Optional: Show daily XP info for development
       // const today = new Date();
-      // const todayKey = today.getFullYear() + '-' + 
-      //                 String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+      // const todayKey = today.getFullYear() + '-' +
+      //                 String(today.getMonth() + 1).padStart(2, '0') + '-' +
       //                 String(today.getDate()).padStart(2, '0');
       // const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
       // message += `\nDebug: Daily XP today: ${todayXP}`;
-      
+
       showCustomAlert(t.dashboard.checkInSuccess, message, 'success');
+
+      // Prepare share data and show share modal
+      const currentMoneySaved = calculateMoneySaved(newTotalDays, updatedUser.cigarettesPerDay, updatedUser.cigarettePrice);
+      setShareData({
+        days: newTotalDays,
+        streak: newStreak,
+        money: currentMoneySaved.totalSaved,
+        rank: '' // Can be populated from community stats if available
+      });
+
+      // Show share modal after a brief delay to allow success alert to be seen
+      setTimeout(() => {
+        setShowShareModal(true);
+      }, 1500);
 
       // Show interstitial ad after successful check-in (for free users only)
       showAdAfterDelay('daily_checkin');
@@ -2776,6 +2800,18 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       onComplete={handleTutorialComplete}
       onSkip={handleTutorialSkip}
       language={language as 'en' | 'id'}
+    />
+
+    {/* Check-In Share Modal */}
+    <CheckInShareModal
+      visible={showShareModal}
+      onClose={() => setShowShareModal(false)}
+      daysSinceQuit={shareData.days}
+      currentStreak={shareData.streak}
+      moneySaved={shareData.money}
+      communityRank={shareData.rank}
+      language={language as 'en' | 'id'}
+      currency={user?.currency || 'IDR'}
     />
     </ErrorBoundary>
   );

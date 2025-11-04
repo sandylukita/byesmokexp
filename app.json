@@ -19,6 +19,8 @@
       },
       "infoPlist": {
         "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you.",
+        "NSPhotoLibraryUsageDescription": "ByeSmoke needs access to save your progress images to your photo library.",
+        "NSPhotoLibraryAddUsageDescription": "ByeSmoke needs permission to save your smoke-free achievement cards.",
         "SKAdNetworkItems": [
           {
             "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
@@ -37,7 +39,9 @@
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
-        "WAKE_LOCK"
+        "WAKE_LOCK",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ],
       "blockedPermissions": [
         "CAMERA",
@@ -80,7 +84,14 @@
           "iosUrlScheme": "com.googleusercontent.apps.161013631866-el8t2993kpa1olninqoh9n9f6prgc6jr"
         }
       ],
-      "@react-native-firebase/app",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow ByeSmoke to save your achievement cards to your photo library.",
+          "savePhotosPermission": "Allow ByeSmoke to save images to your photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
       "expo-router"
     ],
     "extra": {

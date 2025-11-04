@@ -20,6 +20,7 @@ import SignUpSuccess from '../components/SignUpSuccess';
 import ProgressBar from '../components/ProgressBar';
 import { CustomConfirmDialog } from '../components/CustomConfirmDialog';
 import { useTranslation } from '../hooks/useTranslation';
+import { GoogleLogo } from '../components/GoogleLogo';
 
 interface SignUpScreenProps {
   onSignUp: () => void;
@@ -151,9 +152,9 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
               onPress={handleGoogleSignUp}
               disabled={loading}
             >
-              <MaterialIcons name="login" size={20} color={COLORS.textPrimary} style={styles.googleIcon} />
+              <GoogleLogo size={20} />
               <Text style={styles.googleButtonText}>
-                {language === 'en' ? 'Continue with Google' : 'Lanjutkan dengan Google'}
+                {language === 'en' ? 'Sign in with Google' : 'Masuk dengan Google'}
               </Text>
             </TouchableOpacity>
             <View style={styles.dividerContainer}>
@@ -223,22 +224,26 @@ const styles = StyleSheet.create({
   },
   googleButton: {
     backgroundColor: COLORS.white,
-    borderRadius: SIZES.buttonRadius,
+    borderRadius: 26,
     paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.md,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     height: 52,
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
+    borderColor: '#dadce0',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   googleButtonText: {
-    color: COLORS.textPrimary,
+    color: '#3c4043',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  googleIcon: {
-    marginRight: SIZES.xs,
+    fontWeight: '500',
   },
   buttonDisabled: {
     opacity: 0.7,
