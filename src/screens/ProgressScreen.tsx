@@ -809,7 +809,7 @@ const ProgressScreen: React.FC = () => {
       
       if (!comparison) {
         // If not cached, fetch from Firebase and cache it
-        comparison = await compareUserToCommunity(user);
+        comparison = await compareUserToCommunity(user, language);
         if (comparison) {
           await cacheCommunityComparison(user.id, comparison);
         }

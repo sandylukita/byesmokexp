@@ -255,48 +255,48 @@ export const calculateUserPercentile = (userValue: number, distribution: number[
 /**
  * Compare user against community stats
  */
-export const compareUserToCommunity = async (user: User): Promise<UserComparison | null> => {
+export const compareUserToCommunity = async (user: User, language: 'id' | 'en' = 'id'): Promise<UserComparison | null> => {
   try {
     const communityStats = await getCommunityStats();
-    
+
     if (!communityStats) {
       console.log('No community stats available for comparison');
       return null;
     }
-    
+
     // Calculate user's current metrics
     const userStreak = user.longestStreak || user.streak || 0;
     const userXP = user.xp || 0;
     const userDays = user.totalDays || 0;
-    
+
     // Estimate percentiles based on distribution data
     let streakPercentile = 50;
-    let streakRank = "middle 50%";
-    
+    let streakRank = language === 'en' ? "middle 50%" : "middle 50%";
+
     // Determine streak percentile from ranges
     if (userStreak >= communityStats.topStreakRanges.top10Percent) {
       streakPercentile = 95;
-      streakRank = "top 10%";
+      streakRank = language === 'en' ? "top 10%" : "top 10%";
     } else if (userStreak >= communityStats.topStreakRanges.top25Percent) {
       streakPercentile = 87;
-      streakRank = "top 25%";
+      streakRank = language === 'en' ? "top 25%" : "top 25%";
     } else if (userStreak >= communityStats.topStreakRanges.top50Percent) {
       streakPercentile = 75;
-      streakRank = "top 50%";
+      streakRank = language === 'en' ? "top 50%" : "top 50%";
     } else if (userStreak > communityStats.averageStreak) {
       streakPercentile = 65;
-      streakRank = "above average";
+      streakRank = language === 'en' ? "above average" : "above average";
     }
-    
+
     // Simple XP percentile estimation
     const xpPercentile = Math.min(95, Math.max(5, (userXP / (communityStats.averageXP * 2)) * 100));
-    
+
     // Days percentile estimation
     const daysPercentile = Math.min(95, Math.max(5, (userDays / (communityStats.averageDaysSmokeFree * 2)) * 100));
-    
+
     // Generate community insight
-    const communityInsight = generateCommunityInsight(streakPercentile, streakRank, userStreak);
-    
+    const communityInsight = generateCommunityInsight(streakPercentile, streakRank, userStreak, language);
+
     return {
       streakPercentile,
       xpPercentile: Math.round(xpPercentile),
@@ -304,7 +304,7 @@ export const compareUserToCommunity = async (user: User): Promise<UserComparison
       streakRank,
       communityInsight
     };
-    
+
   } catch (error) {
     console.error('Error comparing user to community:', error);
     return null;
@@ -314,17 +314,31 @@ export const compareUserToCommunity = async (user: User): Promise<UserComparison
 /**
  * Generate motivational community insight
  */
-const generateCommunityInsight = (percentile: number, rank: string, streak: number): string => {
-  if (percentile >= 90) {
-    return `🌟 Luar biasa! Streak ${streak} hari Anda mengalahkan 90% pengguna ByeSmoke!`;
-  } else if (percentile >= 75) {
-    return `🔥 Hebat! Anda berada di ${rank} pengguna dengan streak terpanjang!`;
-  } else if (percentile >= 50) {
-    return `💪 Bagus! Streak Anda mengalahkan ${percentile}% pengguna lainnya!`;
-  } else if (percentile >= 25) {
-    return `📈 Terus semangat! Anda sudah lebih baik dari ${percentile}% pengguna!`;
+const generateCommunityInsight = (percentile: number, rank: string, streak: number, language: 'id' | 'en' = 'id'): string => {
+  if (language === 'en') {
+    if (percentile >= 90) {
+      return `🌟 Amazing! Your ${streak}-day streak beats 90% of ByeSmoke users!`;
+    } else if (percentile >= 75) {
+      return `🔥 Great! You're in the ${rank} of users with the longest streaks!`;
+    } else if (percentile >= 50) {
+      return `💪 Nice! Your streak beats ${percentile}% of other users!`;
+    } else if (percentile >= 25) {
+      return `📈 Keep it up! You're already better than ${percentile}% of users!`;
+    } else {
+      return `🚀 Every day is progress! Join the growing community!`;
+    }
   } else {
-    return `🚀 Setiap hari adalah kemajuan! Bergabunglah dengan komunitas yang terus berkembang!`;
+    if (percentile >= 90) {
+      return `🌟 Luar biasa! Streak ${streak} hari Anda mengalahkan 90% pengguna ByeSmoke!`;
+    } else if (percentile >= 75) {
+      return `🔥 Hebat! Anda berada di ${rank} pengguna dengan streak terpanjang!`;
+    } else if (percentile >= 50) {
+      return `💪 Bagus! Streak Anda mengalahkan ${percentile}% pengguna lainnya!`;
+    } else if (percentile >= 25) {
+      return `📈 Terus semangat! Anda sudah lebih baik dari ${percentile}% pengguna!`;
+    } else {
+      return `🚀 Setiap hari adalah kemajuan! Bergabunglah dengan komunitas yang terus berkembang!`;
+    }
   }
 };
 

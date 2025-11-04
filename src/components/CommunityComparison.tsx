@@ -45,7 +45,7 @@ export const CommunityComparison: React.FC<CommunityComparisonProps> = ({
   const loadCommunityComparison = async () => {
     try {
       setLoading(true);
-      const userComparison = await compareUserToCommunity(user);
+      const userComparison = await compareUserToCommunity(user, language);
       setComparison(userComparison);
     } catch (error) {
       console.error('Error loading community comparison:', error);
