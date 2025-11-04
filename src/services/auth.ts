@@ -4,19 +4,22 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
-  User as FirebaseUser
+  User as FirebaseUser,
+  GoogleAuthProvider,
+  signInWithCredential
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { User } from '../types';
 import { checkAndAwardBadges } from './gamification';
 import { OptimizedUserOperations } from '../utils/firebaseOptimizer';
 import { getDeviceLanguage } from '../utils/translations';
-import { 
-  validateSignUp, 
-  validateSignIn, 
-  sanitizeDisplayName, 
-  sanitizeUsername, 
-  sanitizeEmail 
+import {
+  validateSignUp,
+  validateSignIn,
+  sanitizeDisplayName,
+  sanitizeUsername,
+  sanitizeEmail
 } from '../utils/validation';
 import { log } from '../config/environment';
 
@@ -50,6 +53,66 @@ const sanitizeErrorMessage = (errorMessage: string): string => {
   
   // Default safe error message
   return 'An error occurred. Please try again';
+};
+
+// Configure Google Sign-In
+// NOTE: You need to add your Web Client ID from Firebase Console
+// Get it from: Firebase Console > Authentication > Sign-in method > Google > Web SDK configuration
+GoogleSignin.configure({
+  webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com', // From Firebase Console
+  offlineAccess: true,
+});
+
+export const signInWithGoogle = async () => {
+  try {
+    log.info('🔐 Starting Google Sign-In...');
+
+    // Check if device supports Google Play Services
+    await GoogleSignin.hasPlayServices();
+
+    // Get user info from Google
+    const userInfo = await GoogleSignin.signIn();
+    log.info('✅ Google Sign-In successful:', userInfo.data?.user.email);
+
+    // Create Firebase credential from Google ID token
+    const googleCredential = GoogleAuthProvider.credential(userInfo.data?.idToken);
+
+    // Sign in to Firebase with Google credential
+    const userCredential = await signInWithCredential(auth, googleCredential);
+    const firebaseUser = userCredential.user;
+
+    log.info('✅ Firebase authentication successful:', firebaseUser.uid);
+
+    // Check if user document exists
+    const userDoc = await getUserDocument(firebaseUser.uid);
+
+    if (!userDoc) {
+      // New user - create user document
+      log.info('📝 Creating new user document for Google sign-in');
+      const displayName = firebaseUser.displayName || userInfo.data?.user.name || 'User';
+      const username = sanitizeUsername(displayName);
+
+      await createUserDocument(firebaseUser, displayName, username);
+      log.info('✅ User document created successfully');
+    } else {
+      log.info('✅ Existing user logged in via Google');
+    }
+
+    return firebaseUser;
+  } catch (error: any) {
+    log.error('❌ Google Sign-In error:', error);
+
+    // Handle specific Google Sign-In errors
+    if (error.code === 'SIGN_IN_CANCELLED') {
+      throw new Error('Sign in was cancelled');
+    } else if (error.code === 'IN_PROGRESS') {
+      throw new Error('Sign in is already in progress');
+    } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+      throw new Error('Google Play Services not available');
+    }
+
+    throw new Error(sanitizeErrorMessage(error.message || 'Google Sign-In failed'));
+  }
 };
 
 export const signUp = async (

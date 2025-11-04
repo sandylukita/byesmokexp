@@ -10,8 +10,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { signUp } from '../services/auth';
-import { COLORS } from '../utils/constants';
+import { MaterialIcons } from '@expo/vector-icons';
+import { signUp, signInWithGoogle } from '../services/auth';
+import { COLORS, SIZES } from '../utils/constants';
 import SignUpStepOne from '../components/SignUpStepOneSimple';
 import SignUpStepTwo from '../components/SignUpStepTwoSimple';
 import SignUpStepThree from '../components/SignUpStepThreeSimple';
@@ -66,6 +67,23 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
 
   const handleSuccess = () => {
     onSignUp();
+  };
+
+  const handleGoogleSignUp = async () => {
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onSignUp();
+    } catch (error: any) {
+      setErrorMessage(
+        error.message ||
+          (language === 'en' ? 'Google Sign-Up failed' : 'Pendaftaran Google gagal')
+      );
+      setShowErrorDialog(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderCurrentStep = () => {
@@ -126,6 +144,27 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
         {currentStep < 4 && (
           <ProgressBar currentStep={currentStep} totalSteps={3} />
         )}
+        {currentStep === 1 && (
+          <View style={styles.googleButtonContainer}>
+            <TouchableOpacity
+              style={[styles.googleButton, loading && styles.buttonDisabled]}
+              onPress={handleGoogleSignUp}
+              disabled={loading}
+            >
+              <MaterialIcons name="login" size={20} color={COLORS.textPrimary} style={styles.googleIcon} />
+              <Text style={styles.googleButtonText}>
+                {language === 'en' ? 'Continue with Google' : 'Lanjutkan dengan Google'}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>
+                {language === 'en' ? 'OR' : 'ATAU'}
+              </Text>
+              <View style={styles.divider} />
+            </View>
+          </View>
+        )}
         {renderCurrentStep()}
         {currentStep === 1 && (
           <View style={styles.loginPrompt}>
@@ -177,6 +216,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.8,
     textDecorationLine: 'underline',
+  },
+  googleButtonContainer: {
+    paddingHorizontal: SIZES.xl,
+    marginTop: SIZES.lg,
+  },
+  googleButton: {
+    backgroundColor: COLORS.white,
+    borderRadius: SIZES.buttonRadius,
+    paddingVertical: SIZES.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    height: 52,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+  },
+  googleButtonText: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  googleIcon: {
+    marginRight: SIZES.xs,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SIZES.md,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.white,
+    opacity: 0.3,
+  },
+  dividerText: {
+    color: COLORS.white,
+    marginHorizontal: SIZES.sm,
+    opacity: 0.7,
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 

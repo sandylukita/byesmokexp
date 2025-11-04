@@ -13,8 +13,9 @@ import {
     View,
 } from 'react-native';
 import { CustomAlert } from '../components/CustomAlert';
-import { signIn } from '../services/auth';
+import { signIn, signInWithGoogle } from '../services/auth';
 import { sendPasswordResetEmail } from 'firebase/auth';
+import { MaterialIcons } from '@expo/vector-icons';
 import { auth } from '../services/firebase';
 import { demoSignIn } from '../services/demoAuth';
 import { COLORS, SIZES } from '../utils/constants';
@@ -134,6 +135,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
     }
   }, [email, password, showCustomAlert, onLogin, language]);
 
+  const handleGoogleSignIn = useCallback(async () => {
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onLogin();
+    } catch (error: any) {
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        error.message || (language === 'en' ? 'Google Sign-In failed' : 'Login Google gagal')
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [showCustomAlert, onLogin, language]);
 
   return (
     <KeyboardAvoidingView
@@ -200,6 +216,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
                     ? (language === 'en' ? 'Signing in...' : 'Masuk...')
                     : (language === 'en' ? 'Sign In' : 'Masuk')
                   }
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>
+                  {language === 'en' ? 'OR' : 'ATAU'}
+                </Text>
+                <View style={styles.divider} />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.googleButton, loading && styles.buttonDisabled]}
+                onPress={handleGoogleSignIn}
+                disabled={loading}
+              >
+                <MaterialIcons name="login" size={20} color={COLORS.textPrimary} style={styles.googleIcon} />
+                <Text style={styles.googleButtonText}>
+                  {language === 'en' ? 'Continue with Google' : 'Lanjutkan dengan Google'}
                 </Text>
               </TouchableOpacity>
 
@@ -329,6 +364,42 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textDecorationLine: 'underline',
     opacity: 0.9,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SIZES.md,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.white,
+    opacity: 0.3,
+  },
+  dividerText: {
+    ...TYPOGRAPHY.bodyMediumWhite,
+    marginHorizontal: SIZES.sm,
+    opacity: 0.7,
+    fontWeight: '600',
+  },
+  googleButton: {
+    backgroundColor: COLORS.white,
+    borderRadius: SIZES.buttonRadius,
+    paddingVertical: SIZES.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    height: 48,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+  },
+  googleButtonText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+  },
+  googleIcon: {
+    marginRight: SIZES.xs,
   },
 });
 
