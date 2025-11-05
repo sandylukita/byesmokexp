@@ -154,17 +154,17 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
   const loadCommunityData = async () => {
     try {
       setLoading(true);
-      
+
       // Load community stats and insights in parallel
       const [stats, insights] = await Promise.all([
         getCommunityStats(),
-        getCommunityInsights()
+        getCommunityInsights(language as 'id' | 'en')
       ]);
-      
+
       setCommunityStats(stats);
       setCommunityInsights(insights);
     } catch (error) {
-      console.error('Error loading community data:', error);
+      // Error loading community data
     } finally {
       setLoading(false);
     }

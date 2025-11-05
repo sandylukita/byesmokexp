@@ -537,34 +537,53 @@ export const initializeGhostDataBaseline = async (): Promise<void> => {
 /**
  * Get community insights for dashboard display
  */
-export const getCommunityInsights = async (): Promise<string[]> => {
+export const getCommunityInsights = async (language: 'id' | 'en' = 'id'): Promise<string[]> => {
   try {
     const stats = await getCommunityStats();
-    
+
     if (!stats) {
-      return [
-        "🌟 Bergabunglah dengan komunitas ByeSmoke yang terus berkembang!",
-        "💪 Ribuan pengguna telah berhasil berhenti merokok bersama kami!"
-      ];
+      if (language === 'en') {
+        return [
+          "🌟 Join the growing ByeSmoke community!",
+          "💪 Thousands of users have successfully quit smoking with us!"
+        ];
+      } else {
+        return [
+          "🌟 Bergabunglah dengan komunitas ByeSmoke yang terus berkembang!",
+          "💪 Ribuan pengguna telah berhasil berhenti merokok bersama kami!"
+        ];
+      }
     }
-    
-    const insights = [
+
+    const insights = language === 'en' ? [
+      `👥 ${stats.totalUsers.toLocaleString('en-US')} people have joined the ByeSmoke community`,
+      `🔥 Community average streak: ${Math.round(stats.averageStreak)} days`,
+      `🏆 ${stats.streakDistribution['365+']} users have reached a 1+ year streak!`,
+      `💰 Community has saved an average of $${Math.round(stats.averageMoneySaved / 15000)} per person`,
+      `🚀 Community growing every day!`
+    ] : [
       `👥 ${stats.totalUsers.toLocaleString('id-ID')} orang telah bergabung dengan komunitas ByeSmoke`,
       `🔥 Rata-rata streak komunitas: ${Math.round(stats.averageStreak)} hari`,
       `🏆 ${stats.streakDistribution['365+']} pengguna telah mencapai streak 1+ tahun!`,
       `💰 Komunitas telah menghemat rata-rata Rp ${Math.round(stats.averageMoneySaved / 1000)}rb per orang`,
       `🚀 Komunitas terus berkembang setiap hari!`
     ];
-    
+
     // Return 2 random insights
     const shuffled = insights.sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 2);
-    
+
   } catch (error) {
-    console.error('Error getting community insights:', error);
-    return [
-      "🌟 Bergabunglah dengan komunitas ByeSmoke yang terus berkembang!",
-      "💪 Ribuan pengguna telah berhasil berhenti merokok bersama kami!"
-    ];
+    if (language === 'en') {
+      return [
+        "🌟 Join the growing ByeSmoke community!",
+        "💪 Thousands of users have successfully quit smoking with us!"
+      ];
+    } else {
+      return [
+        "🌟 Bergabunglah dengan komunitas ByeSmoke yang terus berkembang!",
+        "💪 Ribuan pengguna telah berhasil berhenti merokok bersama kami!"
+      ];
+    }
   }
 };
