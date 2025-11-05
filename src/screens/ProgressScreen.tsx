@@ -16,6 +16,7 @@ import {
     Share,
     Alert,
 } from 'react-native';
+import { CheckInShareModal } from '../components/CheckInShareModal';
 import { demoGetCurrentUser, demoRestoreUser } from '../services/demoAuth';
 import { auth, db } from '../services/firebase';
 import { User } from '../types';
@@ -427,6 +428,7 @@ const ProgressScreen: React.FC = () => {
   const [loading, setLoading] = useState(false); // OPTIMIZED: Start with false for instant UI
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date()); // For month navigation
+  const [showShareModal, setShowShareModal] = useState(false);
   const { colors, updateUser, language } = useTheme();
   const { t } = useTranslation();
 
@@ -793,76 +795,10 @@ const ProgressScreen: React.FC = () => {
   }, [user, daysSinceQuit, moneySavedData, cigarettesAvoided, language]);
 
   // Comprehensive progress summary sharing
-  const shareProgressSummary = async () => {
+  const shareProgressSummary = () => {
     if (!user) return;
-
-    const moneySaved = moneySavedData;
-    const currentStreak = user.longestStreak || user.streak || 0;
-    const missionsCompleted = user.completedMissions?.length || 0;
-    const savings = formatCurrency(moneySaved, language);
-
-    // Get community comparison for enhanced sharing (cached)
-    let communityRankText = '';
-    try {
-      // First try cache
-      let comparison = await loadCachedCommunityComparison(user.id);
-      
-      if (!comparison) {
-        // If not cached, fetch from Firebase and cache it
-        comparison = await compareUserToCommunity(user, language);
-        if (comparison) {
-          await cacheCommunityComparison(user.id, comparison);
-        }
-      }
-      
-      if (comparison) {
-        communityRankText = language === 'en' 
-          ? `\n🏆 Ranked in the ${comparison.streakRank} of ByeSmoke users!`
-          : `\n🏆 Berada di ${comparison.streakRank} pengguna ByeSmoke!`;
-      }
-    } catch (error) {
-      log.debug('Could not get community comparison for sharing');
-    }
-
-    const message = language === 'en'
-      ? `🎉 My Smoke-Free Journey with ByeSmoke AI 🚭
-
-✅ ${daysSinceQuit} days smoke-free
-💰 ${savings} saved
-🚫 ${formatNumber(cigarettesAvoided)} cigarettes avoided
-🔥 ${currentStreak}-day streak
-🏆 ${missionsCompleted} missions completed
-
-Every day smoke-free is a victory! 💪${communityRankText} #SmokeFree #HealthyLife #QuitSmoking`
-      : `🎉 Perjalanan Bebas Rokok Saya dengan ByeSmoke AI 🚭
-
-✅ ${daysSinceQuit} hari bebas rokok
-💰 ${savings} dihemat
-🚫 ${formatNumber(cigarettesAvoided)} batang rokok dihindari
-🔥 Streak ${currentStreak} hari
-🏆 ${missionsCompleted} misi selesai
-
-Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok #HidupSehat #BerhentiMerokok`;
-
-    try {
-      const result = await Share.share({
-        message: message,
-        title: language === 'en' ? 'My Smoke-Free Progress' : 'Progres Bebas Rokok Saya',
-      });
-
-      if (result.action === Share.sharedAction) {
-        Alert.alert(
-          language === 'en' ? 'Shared!' : 'Berhasil!',
-          language === 'en' ? 'Progress shared successfully!' : 'Progres berhasil dibagikan!'
-        );
-      }
-    } catch (error) {
-      console.error('Error sharing progress:', error);
-      Alert.alert(
-        language === 'en' ? 'Error' : 'Kesalahan',
-        language === 'en' ? 'Failed to share progress' : 'Gagal membagikan progres'
-      );
-    }
+    // Show the same share modal used in check-in
+    setShowShareModal(true);
   };
 
   // RESTORED: Show loading when no user data
@@ -1302,6 +1238,18 @@ Setiap hari bebas rokok adalah kemenangan! 💪${communityRankText} #BebasRokok 
 
         {renderTabContent()}
       </ScrollView>
+
+      {/* Share Progress Modal */}
+      <CheckInShareModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        daysSinceQuit={daysSinceQuit}
+        currentStreak={user?.longestStreak || user?.streak || 0}
+        moneySaved={moneySavedData}
+        communityRank=""
+        language={language as 'en' | 'id'}
+        currency={user?.currency || 'IDR'}
+      />
     </View>
   );
 };
