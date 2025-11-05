@@ -88,13 +88,13 @@ const styles = StyleSheet.create({
     height: 500,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
   },
   content: {
     flex: 1,
     justifyContent: 'space-between',
     padding: 32,
-    paddingTop: 24,
+    paddingTop: 32,
     paddingBottom: 24,
   },
   header: {
