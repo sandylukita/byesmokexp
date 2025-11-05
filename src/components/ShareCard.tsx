@@ -32,7 +32,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
     return (
       <View ref={ref} style={styles.container}>
         <LinearGradient
-          colors={['#FF6B6B', '#4ECDC4', '#45B7D1']}
+          colors={['#667eea', '#764ba2']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradient}
@@ -41,70 +41,41 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.emoji}>🚭</Text>
-              <Text style={styles.title}>
-                {language === 'en' ? 'Smoke-Free Achievement' : 'Pencapaian Bebas Rokok'}
+            </View>
+
+            {/* Main Metric - Days */}
+            <View style={styles.mainMetric}>
+              <Text style={styles.mainValue}>{daysSinceQuit}</Text>
+              <Text style={styles.mainLabel}>
+                {language === 'en' ? 'DAYS SMOKE-FREE' : 'HARI BEBAS ROKOK'}
               </Text>
             </View>
 
-            {/* Metrics Grid */}
-            <View style={styles.metricsContainer}>
-              {/* Days Since Quit */}
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>
-                  {language === 'en' ? 'Days Since Quit' : 'Hari Bebas Rokok'}
+            {/* Stats Row */}
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>
+                  {language === 'en' ? 'STREAK' : 'STREAK'}
                 </Text>
-                <Text style={styles.metricValue}>{daysSinceQuit}</Text>
-                <Text style={styles.metricUnit}>
-                  {language === 'en' ? 'days' : 'hari'}
-                </Text>
-              </View>
-
-              {/* Current Streak */}
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>
-                  {language === 'en' ? 'Current Streak' : 'Streak Saat Ini'}
-                </Text>
-                <View style={styles.streakContainer}>
+                <View style={styles.statValueContainer}>
                   <Text style={styles.fireEmoji}>🔥</Text>
-                  <Text style={styles.metricValue}>{currentStreak}</Text>
+                  <Text style={styles.statValue}>{currentStreak}</Text>
                 </View>
-                <Text style={styles.metricUnit}>
-                  {language === 'en' ? 'days' : 'hari'}
-                </Text>
               </View>
 
-              {/* Money Saved */}
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>
-                  {language === 'en' ? 'Money Saved' : 'Uang Tersimpan'}
-                </Text>
-                <Text style={styles.metricValue}>{formatMoney(moneySaved)}</Text>
-                <Text style={styles.metricUnit}>
-                  {currency === 'USD' ? 'saved' : 'tersimpan'}
-                </Text>
-              </View>
+              <View style={styles.divider} />
 
-              {/* Community Rank (Optional) */}
-              {communityRank && (
-                <View style={styles.metric}>
-                  <Text style={styles.metricLabel}>
-                    {language === 'en' ? 'Community Rank' : 'Peringkat Komunitas'}
-                  </Text>
-                  <Text style={styles.metricValue}>💪</Text>
-                  <Text style={styles.metricUnit}>{communityRank}</Text>
-                </View>
-              )}
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>
+                  {language === 'en' ? 'SAVED' : 'HEMAT'}
+                </Text>
+                <Text style={styles.statValue}>{formatMoney(moneySaved)}</Text>
+              </View>
             </View>
 
             {/* Footer Logo */}
             <View style={styles.footer}>
               <Text style={styles.logoText}>ByeSmoke AI</Text>
-              <Text style={styles.tagline}>
-                {language === 'en'
-                  ? 'Your Smart Quit Coach'
-                  : 'Pelatih Berhenti Rokok Anda'
-                }
-              </Text>
             </View>
           </View>
         </LinearGradient>
@@ -115,14 +86,19 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 
 const styles = StyleSheet.create({
   container: {
-    width: 350,
-    height: 500,
-    borderRadius: 20,
+    width: 340,
+    height: 480,
+    borderRadius: 24,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
   },
   gradient: {
     flex: 1,
-    padding: 30,
+    padding: 40,
   },
   content: {
     flex: 1,
@@ -130,83 +106,80 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
   },
   emoji: {
-    fontSize: 48,
-    marginBottom: 12,
+    fontSize: 56,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  mainMetric: {
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 40,
+  },
+  mainValue: {
+    fontSize: 96,
+    fontWeight: '800',
     color: '#FFFFFF',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    letterSpacing: -2,
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 8,
   },
-  metricsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 24,
+  mainLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    opacity: 0.95,
+    letterSpacing: 2,
+    marginTop: 8,
   },
-  metric: {
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  statItem: {
     alignItems: 'center',
-    backdropFilter: 'blur(10px)',
+    flex: 1,
   },
-  metricLabel: {
-    fontSize: 13,
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#FFFFFF',
-    opacity: 0.9,
+    opacity: 0.8,
+    letterSpacing: 1.5,
     marginBottom: 8,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
-  metricValue: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  metricUnit: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.85,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  streakContainer: {
+  statValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   fireEmoji: {
-    fontSize: 32,
+    fontSize: 24,
+  },
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   footer: {
     alignItems: 'center',
-    marginTop: 20,
   },
   logoText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  tagline: {
-    fontSize: 14,
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
     opacity: 0.9,
-    marginTop: 4,
-    fontWeight: '500',
+    letterSpacing: 1,
   },
 });
 
