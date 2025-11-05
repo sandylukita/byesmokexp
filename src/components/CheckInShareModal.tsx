@@ -114,11 +114,14 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
               style={[styles.actionButton, styles.instagramButton]}
               onPress={() => handleShare('instagram')}
               disabled={loading}
+              activeOpacity={0.8}
             >
-              <View style={styles.instagramGradient}>
-                <MaterialIcons name="photo-camera" size={24} color="#FFFFFF" />
+              <View style={styles.buttonContent}>
+                <View style={styles.iconCircle}>
+                  <MaterialIcons name="photo-camera" size={20} color="#E1306C" />
+                </View>
                 <Text style={styles.actionButtonText}>
-                  {language === 'en' ? 'Instagram Story' : 'Instagram Story'}
+                  {language === 'en' ? 'Share to Instagram' : 'Bagikan ke Instagram'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -128,11 +131,16 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
               style={[styles.actionButton, styles.saveButton]}
               onPress={() => handleShare('save')}
               disabled={loading}
+              activeOpacity={0.8}
             >
-              <MaterialIcons name="save-alt" size={24} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>
-                {language === 'en' ? 'Save Image' : 'Simpan Gambar'}
-              </Text>
+              <View style={styles.buttonContent}>
+                <View style={styles.iconCircle}>
+                  <MaterialIcons name="file-download" size={20} color="#667eea" />
+                </View>
+                <Text style={styles.actionButtonText}>
+                  {language === 'en' ? 'Save to Photos' : 'Simpan ke Galeri'}
+                </Text>
+              </View>
             </TouchableOpacity>
 
             {/* More Options */}
@@ -140,11 +148,16 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
               style={[styles.actionButton, styles.shareButton]}
               onPress={() => handleShare('share')}
               disabled={loading}
+              activeOpacity={0.8}
             >
-              <MaterialIcons name="share" size={24} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>
-                {language === 'en' ? 'More Options' : 'Opsi Lain'}
-              </Text>
+              <View style={styles.buttonContent}>
+                <View style={styles.iconCircle}>
+                  <MaterialIcons name="ios-share" size={20} color="#10b981" />
+                </View>
+                <Text style={styles.actionButtonText}>
+                  {language === 'en' ? 'More Options' : 'Opsi Lainnya'}
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -155,13 +168,15 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
             </View>
           )}
 
-          {/* Close Button */}
+          {/* Skip Button */}
           <TouchableOpacity
-            style={styles.closeButton}
+            style={styles.skipButton}
             onPress={handleClose}
             disabled={loading}
           >
-            <MaterialIcons name="close" size={28} color="#FFFFFF" />
+            <Text style={styles.skipButtonText}>
+              {language === 'en' ? 'Skip for now' : 'Lewati'}
+            </Text>
           </TouchableOpacity>
         </View>
       </BlurView>
@@ -217,35 +232,52 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     width: '100%',
-    gap: 12,
+    gap: 10,
+    marginTop: 4,
   },
   actionButton: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 14,
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   instagramButton: {
-    backgroundColor: '#E1306C',
-  },
-  instagramGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    backgroundColor: '#fef2f7',
   },
   saveButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#f0f4ff',
   },
   shareButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#f0fdf4',
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    color: '#1f2937',
     fontSize: 16,
     fontWeight: '600',
+    flex: 1,
   },
   loadingContainer: {
     position: 'absolute',
@@ -258,15 +290,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 24,
   },
-  closeButton: {
-    position: 'absolute',
-    top: -50,
-    right: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  skipButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  skipButtonText: {
+    color: '#6b7280',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
