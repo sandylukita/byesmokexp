@@ -21,6 +21,7 @@ import * as Haptics from 'expo-haptics';
 import { ShareCard } from './ShareCard';
 import { shareAchievementCard } from '../services/shareService';
 import { COLORS, SIZES } from '../utils/constants';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +48,7 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 }) => {
   const shareCardRef = useRef<View>(null);
   const [loading, setLoading] = useState(false);
+  const { colors, isDarkMode } = useTheme();
 
   const handleShare = async (action: 'instagram' | 'save' | 'share') => {
     try {
@@ -81,23 +83,23 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
       onRequestClose={handleClose}
     >
       <BlurView intensity={90} style={styles.container}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
           {/* Close Button */}
           <TouchableOpacity
-            style={styles.closeButton}
+            style={[styles.closeButton, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' }]}
             onPress={handleClose}
             disabled={loading}
             activeOpacity={0.7}
           >
-            <MaterialIcons name="close" size={24} color="#6b7280" />
+            <MaterialIcons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
               {language === 'en' ? '🎉 Check-In Complete!' : '🎉 Check-In Berhasil!'}
             </Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
               {language === 'en'
                 ? 'Share your achievement with friends'
                 : 'Bagikan pencapaian Anda'}
@@ -121,16 +123,19 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
           <View style={styles.actionsContainer}>
             {/* Instagram Story */}
             <TouchableOpacity
-              style={[styles.actionButton, styles.instagramButton]}
+              style={[
+                styles.actionButton,
+                { backgroundColor: isDarkMode ? '#3f1d2e' : '#fef2f7' }
+              ]}
               onPress={() => handleShare('instagram')}
               disabled={loading}
               activeOpacity={0.8}
             >
               <View style={styles.buttonContent}>
-                <View style={styles.iconCircle}>
+                <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#4a1f36' : '#ffffff' }]}>
                   <MaterialIcons name="photo-camera" size={20} color="#E1306C" />
                 </View>
-                <Text style={styles.actionButtonText}>
+                <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>
                   {language === 'en' ? 'Share to Instagram' : 'Bagikan ke Instagram'}
                 </Text>
               </View>
@@ -138,16 +143,19 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 
             {/* Save to Gallery */}
             <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton]}
+              style={[
+                styles.actionButton,
+                { backgroundColor: isDarkMode ? '#1e2a4a' : '#f0f4ff' }
+              ]}
               onPress={() => handleShare('save')}
               disabled={loading}
               activeOpacity={0.8}
             >
               <View style={styles.buttonContent}>
-                <View style={styles.iconCircle}>
+                <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#2a3a5a' : '#ffffff' }]}>
                   <MaterialIcons name="file-download" size={20} color="#667eea" />
                 </View>
-                <Text style={styles.actionButtonText}>
+                <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>
                   {language === 'en' ? 'Save to Photos' : 'Simpan ke Galeri'}
                 </Text>
               </View>
@@ -155,16 +163,19 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 
             {/* More Options */}
             <TouchableOpacity
-              style={[styles.actionButton, styles.shareButton]}
+              style={[
+                styles.actionButton,
+                { backgroundColor: isDarkMode ? '#1e3a2e' : '#f0fdf4' }
+              ]}
               onPress={() => handleShare('share')}
               disabled={loading}
               activeOpacity={0.8}
             >
               <View style={styles.buttonContent}>
-                <View style={styles.iconCircle}>
+                <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#2a4a3a' : '#ffffff' }]}>
                   <MaterialIcons name="ios-share" size={20} color="#10b981" />
                 </View>
-                <Text style={styles.actionButtonText}>
+                <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>
                   {language === 'en' ? 'More Options' : 'Opsi Lainnya'}
                 </Text>
               </View>
@@ -173,8 +184,8 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 
           {/* Loading Indicator */}
           {loading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
+            <View style={[styles.loadingContainer, { backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.9)' : 'rgba(255, 255, 255, 0.9)' }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
 
@@ -184,7 +195,7 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
             onPress={handleClose}
             disabled={loading}
           >
-            <Text style={styles.skipButtonText}>
+            <Text style={[styles.skipButtonText, { color: colors.textSecondary }]}>
               {language === 'en' ? 'Skip for now' : 'Lewati'}
             </Text>
           </TouchableOpacity>
@@ -204,7 +215,6 @@ const styles = StyleSheet.create({
   modalContent: {
     width: width - 40,
     maxWidth: 400,
-    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 20,
     paddingTop: 16,
@@ -222,7 +232,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f3f4f6',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -235,13 +244,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
     textAlign: 'center',
   },
   cardContainer: {
@@ -260,7 +267,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   actionButton: {
-    backgroundColor: '#f8f9fa',
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -279,7 +285,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -288,17 +293,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  instagramButton: {
-    backgroundColor: '#fef2f7',
-  },
-  saveButton: {
-    backgroundColor: '#f0f4ff',
-  },
-  shareButton: {
-    backgroundColor: '#f0fdf4',
-  },
   actionButtonText: {
-    color: '#1f2937',
     fontSize: 16,
     fontWeight: '600',
     flex: 1,
@@ -309,7 +304,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 24,
@@ -320,7 +314,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   skipButtonText: {
-    color: '#6b7280',
     fontSize: 15,
     fontWeight: '600',
     textAlign: 'center',
