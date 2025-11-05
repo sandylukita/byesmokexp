@@ -82,6 +82,16 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
     >
       <BlurView intensity={90} style={styles.container}>
         <View style={styles.modalContent}>
+          {/* Close Button */}
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={handleClose}
+            disabled={loading}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="close" size={24} color="#6b7280" />
+          </TouchableOpacity>
+
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>
@@ -197,6 +207,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 20,
+    paddingTop: 16,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -204,9 +215,22 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
   header: {
     alignItems: 'center',
     marginBottom: 20,
+    marginTop: 8,
   },
   headerTitle: {
     fontSize: 24,
