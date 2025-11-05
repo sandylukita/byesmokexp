@@ -25,6 +25,11 @@ interface ShareCardProps {
 export const ShareCard = React.forwardRef<View, ShareCardProps>(
   ({ daysSinceQuit, currentStreak, moneySaved, communityRank, language, currency }, ref) => {
     const formatMoney = (amount: number) => {
+      // Handle NaN or invalid values
+      if (!amount || isNaN(amount) || amount < 0) {
+        return currency === 'USD' ? '$0' : 'Rp0';
+      }
+
       if (currency === 'USD') {
         return `$${Math.floor(amount / 15000)}`;
       }
@@ -40,9 +45,9 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
           style={styles.gradient}
         >
           <View style={styles.content}>
-            {/* Header */}
+            {/* Header with Logo */}
             <View style={styles.header}>
-              <Text style={styles.emoji}>🚭</Text>
+              <Image source={LOGO} style={styles.headerLogo} />
             </View>
 
             {/* Main Metric - Days */}
@@ -75,9 +80,8 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
               </View>
             </View>
 
-            {/* Footer Logo */}
+            {/* Footer Branding */}
             <View style={styles.footer}>
-              <Image source={LOGO} style={styles.logo} />
               <Text style={styles.logoText}>ByeSmoke AI</Text>
               <Text style={styles.tagline}>
                 {language === 'en' ? 'Your Smart Quit Coach' : 'Pelatih Berhenti Rokok Anda'}
@@ -113,8 +117,10 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
   },
-  emoji: {
-    fontSize: 56,
+  headerLogo: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
   },
   mainMetric: {
     alignItems: 'center',
@@ -179,19 +185,14 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    gap: 6,
-  },
-  logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    marginBottom: 4,
+    gap: 4,
   },
   logoText: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+    opacity: 0.95,
   },
   tagline: {
     fontSize: 12,
