@@ -7,7 +7,6 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SIZES } from '../utils/constants';
 import { formatCurrency } from '../utils/helpers';
 
@@ -38,13 +37,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 
     return (
       <View ref={ref} style={styles.container}>
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          <View style={styles.content}>
+        <View style={styles.content}>
             {/* Header with Logo and Branding */}
             <View style={styles.header}>
               <Image source={LOGO} style={styles.headerLogo} />
@@ -84,7 +77,6 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
               </View>
             </View>
           </View>
-        </LinearGradient>
       </View>
     );
   }
@@ -96,21 +88,14 @@ const styles = StyleSheet.create({
     height: 500,
     borderRadius: 24,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  gradient: {
-    flex: 1,
-    padding: 32,
-    paddingTop: 24,
-    paddingBottom: 24,
+    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,
     justifyContent: 'space-between',
+    padding: 32,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   header: {
     alignItems: 'center',
