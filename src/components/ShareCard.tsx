@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SIZES } from '../utils/constants';
 import { formatCurrency } from '../utils/helpers';
 
+const LOGO = require('../../assets/images/icon.png');
+
 interface ShareCardProps {
   daysSinceQuit: number;
   currentStreak: number;
@@ -75,7 +77,11 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 
             {/* Footer Logo */}
             <View style={styles.footer}>
+              <Image source={LOGO} style={styles.logo} />
               <Text style={styles.logoText}>ByeSmoke AI</Text>
+              <Text style={styles.tagline}>
+                {language === 'en' ? 'Your Smart Quit Coach' : 'Pelatih Berhenti Rokok Anda'}
+              </Text>
             </View>
           </View>
         </LinearGradient>
@@ -173,13 +179,26 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
+    gap: 6,
+  },
+  logo: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    marginBottom: 4,
   },
   logoText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
-    opacity: 0.9,
-    letterSpacing: 1,
+    letterSpacing: 0.5,
+  },
+  tagline: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    opacity: 0.85,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
 });
 
