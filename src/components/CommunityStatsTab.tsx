@@ -55,7 +55,7 @@ export const CommunityStatsTab: React.FC<CommunityStatsTabProps> = ({
   useEffect(() => {
     loadCommunityData();
     checkUnlockStatus();
-  }, [user.id, isFocused]); // Re-check when user changes or tab becomes focused
+  }, [user.id, isFocused, language]); // Re-check when user changes, tab becomes focused, or language changes
 
   // Check if community stats were unlocked today
   const checkUnlockStatus = async () => {
