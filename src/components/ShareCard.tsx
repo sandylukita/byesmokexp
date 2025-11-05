@@ -45,9 +45,13 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
           style={styles.gradient}
         >
           <View style={styles.content}>
-            {/* Header with Logo */}
+            {/* Header with Logo and Branding */}
             <View style={styles.header}>
               <Image source={LOGO} style={styles.headerLogo} />
+              <Text style={styles.logoText}>ByeSmoke AI</Text>
+              <Text style={styles.tagline}>
+                {language === 'en' ? 'Your Smart Quit Coach' : 'Pelatih Berhenti Rokok Anda'}
+              </Text>
             </View>
 
             {/* Main Metric - Days */}
@@ -79,14 +83,6 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
                 <Text style={styles.statValue}>{formatMoney(moneySaved)}</Text>
               </View>
             </View>
-
-            {/* Footer Branding */}
-            <View style={styles.footer}>
-              <Text style={styles.logoText}>ByeSmoke AI</Text>
-              <Text style={styles.tagline}>
-                {language === 'en' ? 'Your Smart Quit Coach' : 'Pelatih Berhenti Rokok Anda'}
-              </Text>
-            </View>
           </View>
         </LinearGradient>
       </View>
@@ -97,7 +93,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 const styles = StyleSheet.create({
   container: {
     width: 340,
-    height: 480,
+    height: 500,
     borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -108,7 +104,9 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    padding: 40,
+    padding: 32,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   content: {
     flex: 1,
@@ -116,16 +114,18 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
+    gap: 6,
   },
   headerLogo: {
     width: 56,
     height: 56,
     borderRadius: 14,
+    marginBottom: 4,
   },
   mainMetric: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 40,
+    marginTop: 32,
+    marginBottom: 32,
   },
   mainValue: {
     fontSize: 96,
@@ -183,19 +183,15 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
-  footer: {
-    alignItems: 'center',
-    gap: 4,
-  },
   logoText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
     opacity: 0.95,
   },
   tagline: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#FFFFFF',
     opacity: 0.85,
     fontWeight: '500',

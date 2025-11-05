@@ -151,7 +151,15 @@
       "Bash(adb -s emulator-5554 install -r \"C:\\Users\\windows11\\ZXP\\byesmoke-v0\\byesmoke-v00\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk\")",
       "Bash(adb -s emulator-5554 shell am start -n com.zaynstudio.byesmoke/.MainActivity)",
       "Bash(wmic process where \"name=''node.exe''\" delete)",
-      "Bash(adb -s emulator-5554 install -r \"C:\\Users\\windows11\\Downloads\\application-18631893-36c8-4c26-a27d-7438a5090024.apk\")"
+      "Bash(adb -s emulator-5554 install -r \"C:\\Users\\windows11\\Downloads\\application-18631893-36c8-4c26-a27d-7438a5090024.apk\")",
+      "Bash(emulator -list-avds)",
+      "Bash(where emulator)",
+      "Bash(.gradlew.bat assembleDebug)",
+      "Bash(gradlew.bat assembleDebug)",
+      "Bash(wsl sudo apt-get update)",
+      "Bash(wsl sudo apt-get install -y openjdk-17-jdk)",
+      "Bash(keytool -list -v -keystore ./app/debug.keystore -alias androiddebugkey -storepass android -keypass android)",
+      "Bash(git rm -rf android/)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
