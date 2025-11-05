@@ -7,7 +7,7 @@
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
-import { Platform, Share, Alert } from 'react-native';
+import { Platform, Share } from 'react-native';
 
 export interface ShareOptions {
   format?: 'png' | 'jpg';
@@ -43,27 +43,14 @@ export const saveToGallery = async (uri: string): Promise<boolean> => {
     const { status } = await MediaLibrary.requestPermissionsAsync();
 
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please grant permission to save images to your gallery'
-      );
       return false;
     }
 
     // Save to gallery
     await MediaLibrary.createAssetAsync(uri);
 
-    Alert.alert(
-      'Success!',
-      'Your smoke-free achievement has been saved to your gallery! 🎉'
-    );
-
     return true;
   } catch (error) {
-    Alert.alert(
-      'Error',
-      'Failed to save image to gallery. Please try again.'
-    );
     return false;
   }
 };
@@ -76,10 +63,6 @@ export const shareToInstagramStory = async (uri: string): Promise<boolean> => {
     const isAvailable = await Sharing.isAvailableAsync();
 
     if (!isAvailable) {
-      Alert.alert(
-        'Sharing Not Available',
-        'Sharing is not available on this device'
-      );
       return false;
     }
 
@@ -92,10 +75,6 @@ export const shareToInstagramStory = async (uri: string): Promise<boolean> => {
 
     return true;
   } catch (error) {
-    Alert.alert(
-      'Error',
-      'Failed to share to Instagram. Please try again.'
-    );
     return false;
   }
 };
@@ -152,10 +131,6 @@ export const shareAchievementCard = async (
         return false;
     }
   } catch (error) {
-    Alert.alert(
-      'Error',
-      'Something went wrong. Please try again.'
-    );
     return false;
   }
 };
