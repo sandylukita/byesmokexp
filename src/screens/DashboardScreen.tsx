@@ -1216,24 +1216,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Show success message with badge notification if any
-      let message = `${t.dashboard.checkInSuccess} ⭐ +10 XP\n\n🔥 ${t.dashboard.streak}: ${newStreak} ${t.dashboard.daysSinceQuit.split(' ')[0]}`;
-      if (updatedUser.badges.length > user.badges.length) {
-        const newBadgesCount = updatedUser.badges.length - user.badges.length;
-        message += `\n\n🏆 ${t.dashboard.newBadges}: ${newBadgesCount}`;
-      }
-
-      // Optional: Show daily XP info for development
-      // const today = new Date();
-      // const todayKey = today.getFullYear() + '-' +
-      //                 String(today.getMonth() + 1).padStart(2, '0') + '-' +
-      //                 String(today.getDate()).padStart(2, '0');
-      // const todayXP = updatedUser.dailyXP?.[todayKey] || 0;
-      // message += `\nDebug: Daily XP today: ${todayXP}`;
-
-      showCustomAlert(t.dashboard.checkInSuccess, message, 'success');
-
-      // Prepare share data and show share modal
+      // Prepare share data and show share modal immediately
       const currentMoneySaved = calculateMoneySaved(newTotalDays, updatedUser.cigarettesPerDay, updatedUser.cigarettePrice);
       setShareData({
         days: newTotalDays,
@@ -1242,10 +1225,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
         rank: '' // Can be populated from community stats if available
       });
 
-      // Show share modal after a brief delay to allow success alert to be seen
-      setTimeout(() => {
-        setShowShareModal(true);
-      }, 1500);
+      // Show share modal immediately after check-in
+      setShowShareModal(true);
 
       // Show interstitial ad after successful check-in (for free users only)
       showAdAfterDelay('daily_checkin');
