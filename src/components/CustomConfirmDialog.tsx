@@ -109,7 +109,11 @@ export const CustomConfirmDialog: React.FC<CustomConfirmDialogProps> = ({
                   ]}
                   onPress={onCancel}
                 >
-                  <Text style={[styles.buttonText, { color: colors.textPrimary }]}>
+                  <Text
+                    style={[styles.buttonText, { color: colors.textPrimary }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
                     {cancelText}
                   </Text>
                 </TouchableOpacity>
@@ -122,7 +126,11 @@ export const CustomConfirmDialog: React.FC<CustomConfirmDialogProps> = ({
                   ]}
                   onPress={onConfirm}
                 >
-                  <Text style={[styles.buttonText, { color: colors.white }]}>
+                  <Text
+                    style={[styles.buttonText, { color: colors.white }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
                     {confirmText}
                   </Text>
                 </TouchableOpacity>
@@ -193,11 +201,12 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     paddingVertical: SIZES.md,
-    paddingHorizontal: SIZES.lg,
+    paddingHorizontal: SIZES.md,
     borderRadius: SIZES.buttonRadius || 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
+    minWidth: 100,
   },
   cancelButton: {
     backgroundColor: '#F0F0F0',
@@ -211,5 +220,7 @@ const styles = StyleSheet.create({
   buttonText: {
     ...TYPOGRAPHY.buttonMedium,
     fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
   },
 });
