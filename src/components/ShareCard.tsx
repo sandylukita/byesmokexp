@@ -93,14 +93,14 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'flex-start',
-    padding: 32,
-    paddingTop: 32,
-    paddingBottom: 24,
+    padding: 24,
+    paddingTop: 28,
+    paddingBottom: 28,
   },
   header: {
     alignItems: 'center',
     gap: 6,
-    marginBottom: 40,
+    marginBottom: 32,
   },
   headerLogo: {
     width: 56,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
   mainMetric: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   mainValue: {
     fontSize: 96,
