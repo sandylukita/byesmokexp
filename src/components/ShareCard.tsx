@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     padding: 32,
     paddingTop: 32,
     paddingBottom: 24,
@@ -100,6 +100,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     gap: 6,
+    marginBottom: 40,
   },
   headerLogo: {
     width: 56,
@@ -109,8 +110,7 @@ const styles = StyleSheet.create({
   },
   mainMetric: {
     alignItems: 'center',
-    marginTop: 32,
-    marginBottom: 32,
+    marginBottom: 40,
   },
   mainValue: {
     fontSize: 96,
@@ -136,7 +136,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 20,
   },
   statItem: {
     alignItems: 'center',
