@@ -56,9 +56,11 @@ const sanitizeErrorMessage = (errorMessage: string): string => {
 };
 
 // Configure Google Sign-In
-// Web Client ID from Firebase Console
+// Web Client ID from Firebase Console (client_type: 3)
+// iOS Client ID from GoogleService-Info.plist
 GoogleSignin.configure({
   webClientId: '161013631866-el8t2993kpa1olninqoh9n9f6prgc6jr.apps.googleusercontent.com',
+  iosClientId: '161013631866-c4rmolnq9tuhvjihodkthfsjfggn0edu.apps.googleusercontent.com',
   offlineAccess: true,
 });
 
