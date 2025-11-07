@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
-    paddingTop: 4,
+    paddingTop: 12,
     paddingBottom: 32,
   },
   closeButton: {
