@@ -242,10 +242,11 @@ const styles = StyleSheet.create({
   modalContent: {
     width: width - 40,
     maxWidth: 400,
-    maxHeight: '85%',
+    maxHeight: '90%',
     borderRadius: 24,
-    padding: 20,
-    paddingTop: 8,
+    padding: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -258,8 +259,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
-    paddingBottom: 40,
-    paddingTop: 0,
+    paddingTop: 4,
+    paddingBottom: 32,
   },
   closeButton: {
     position: 'absolute',
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
     marginTop: 0,
   },
   headerTitle: {
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardContainer: {
-    marginBottom: 12,
+    marginBottom: 16,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',

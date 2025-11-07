@@ -89,8 +89,8 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 
 const styles = StyleSheet.create({
   container: {
-    width: 300,
-    height: 400,
+    width: 280,
+    height: 360,
     borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
@@ -98,27 +98,27 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'flex-start',
-    padding: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
+    padding: 18,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   header: {
     alignItems: 'center',
     gap: 4,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   headerLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 11,
     marginBottom: 4,
   },
   mainMetric: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   mainValue: {
-    fontSize: 72,
+    fontSize: 64,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: -2,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   mainLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
     opacity: 0.95,
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 14,
-    padding: 16,
+    padding: 14,
   },
   statItem: {
     alignItems: 'center',
@@ -160,20 +160,20 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   fireEmoji: {
-    fontSize: 20,
+    fontSize: 18,
   },
   divider: {
     width: 1,
-    height: 32,
+    height: 30,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   logoText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
