@@ -102,6 +102,7 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
                 onPress={handleClose}
                 disabled={loading}
                 activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <MaterialIcons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -264,11 +265,11 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    top: 8,
+    right: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
