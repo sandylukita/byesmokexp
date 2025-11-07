@@ -274,8 +274,8 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 8,
+    marginBottom: 12,
+    marginTop: 4,
   },
   headerTitle: {
     fontSize: 24,
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
