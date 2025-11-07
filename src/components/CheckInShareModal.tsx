@@ -242,6 +242,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: width - 40,
     maxWidth: 400,
+    maxHeight: '85%',
     borderRadius: 24,
     padding: 20,
     paddingTop: 16,
@@ -254,7 +255,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     width: '100%',
-    flex: 1,
   },
   scrollContent: {
     alignItems: 'center',
