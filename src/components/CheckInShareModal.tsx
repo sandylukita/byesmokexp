@@ -254,10 +254,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     width: '100%',
+    flex: 1,
   },
   scrollContent: {
     alignItems: 'center',
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   closeButton: {
     position: 'absolute',

@@ -1217,7 +1217,13 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Prepare share data and show share modal immediately
-      const currentMoneySaved = calculateMoneySaved(newTotalDays, updatedUser.cigarettesPerDay, updatedUser.cigarettePrice);
+      // Safety check: Return 0 if user data is missing or invalid
+      let currentMoneySaved = 0;
+      if (updatedUser.cigarettesPerDay > 0 && updatedUser.cigarettePrice > 0 &&
+          !isNaN(updatedUser.cigarettesPerDay) && !isNaN(updatedUser.cigarettePrice)) {
+        currentMoneySaved = calculateMoneySaved(newTotalDays, updatedUser.cigarettesPerDay, updatedUser.cigarettePrice);
+      }
+
       setShareData({
         days: newTotalDays,
         streak: newStreak,
