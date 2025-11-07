@@ -1221,7 +1221,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
       setShareData({
         days: newTotalDays,
         streak: newStreak,
-        money: currentMoneySaved.totalSaved,
+        money: currentMoneySaved,
         rank: '' // Can be populated from community stats if available
       });
 
