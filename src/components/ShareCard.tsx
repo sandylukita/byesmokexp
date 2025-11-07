@@ -24,14 +24,19 @@ interface ShareCardProps {
 export const ShareCard = React.forwardRef<View, ShareCardProps>(
   ({ daysSinceQuit, currentStreak, moneySaved, communityRank, language, currency }, ref) => {
     const formatMoney = (amount: number) => {
-      // Handle NaN or invalid values
-      if (!amount || isNaN(amount) || amount < 0) {
-        return currency === 'USD' ? '$0' : 'Rp0';
+      // Handle NaN or invalid values (but allow zero)
+      if (amount === undefined || amount === null || isNaN(amount) || amount < 0) {
+        return language === 'en' ? '$0' : 'Rp0';
       }
 
-      if (currency === 'USD') {
-        return `$${Math.floor(amount / 15000)}`;
+      // Use language to determine currency display (override currency prop if needed)
+      if (language === 'en') {
+        // Convert IDR to USD for English users (assuming amount is in IDR)
+        const usdAmount = currency === 'IDR' ? Math.floor(amount / 15000) : amount;
+        return `$${usdAmount}`;
       }
+
+      // Indonesian - show in Rupiah
       return formatCurrency(amount, language);
     };
 
