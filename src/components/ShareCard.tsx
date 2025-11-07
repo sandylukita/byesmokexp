@@ -84,8 +84,8 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 
 const styles = StyleSheet.create({
   container: {
-    width: 340,
-    height: 500,
+    width: 320,
+    height: 450,
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   mainValue: {
-    fontSize: 96,
+    fontSize: 84,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: -2,
@@ -122,12 +122,12 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   mainLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
     opacity: 0.95,
     letterSpacing: 2,
-    marginTop: 8,
+    marginTop: 6,
   },
   statsRow: {
     flexDirection: 'row',
