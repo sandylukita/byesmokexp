@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     borderRadius: 24,
     padding: 20,
-    paddingTop: 16,
+    paddingTop: 8,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -259,6 +259,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     alignItems: 'center',
     paddingBottom: 40,
+    paddingTop: 0,
   },
   closeButton: {
     position: 'absolute',
@@ -274,8 +275,8 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 12,
-    marginTop: 4,
+    marginBottom: 8,
+    marginTop: 0,
   },
   headerTitle: {
     fontSize: 24,
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
