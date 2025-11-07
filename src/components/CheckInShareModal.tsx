@@ -82,9 +82,19 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <BlurView intensity={90} style={styles.container}>
-        <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-          {/* Close Button */}
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={handleClose}
+        disabled={loading}
+      >
+        <BlurView intensity={90} style={styles.container}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+              {/* Close Button */}
           <TouchableOpacity
             style={[styles.closeButton, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' }]}
             onPress={handleClose}
@@ -199,13 +209,18 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
               {language === 'en' ? 'Skip for now' : 'Lewati'}
             </Text>
           </TouchableOpacity>
-        </View>
-      </BlurView>
+            </View>
+          </TouchableOpacity>
+        </BlurView>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
