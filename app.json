@@ -13,7 +13,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zaynstudio.byesmoke",
-      "buildNumber": "1.0.3",
+      "buildNumber": "1.0.4",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -35,7 +35,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.zaynstudio.byesmoke",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
