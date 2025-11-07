@@ -7,7 +7,8 @@
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
-import { Platform, Share } from 'react-native';
+import { Platform, Share, Linking } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 
 export interface ShareOptions {
   format?: 'png' | 'jpg';
@@ -60,22 +61,47 @@ export const saveToGallery = async (uri: string): Promise<boolean> => {
  */
 export const shareToInstagramStory = async (uri: string): Promise<boolean> => {
   try {
-    const isAvailable = await Sharing.isAvailableAsync();
+    // First, save to gallery (required for Instagram Story sharing)
+    const { status } = await MediaLibrary.requestPermissionsAsync();
 
-    if (!isAvailable) {
-      return false;
+    if (status === 'granted') {
+      await MediaLibrary.createAssetAsync(uri);
     }
 
-    // On iOS, we can use the Instagram URL scheme
-    // On Android, we use the general share dialog
-    await Sharing.shareAsync(uri, {
-      mimeType: 'image/png',
-      dialogTitle: 'Share your smoke-free achievement',
-    });
+    // Try to open Instagram directly
+    const instagramURL = Platform.OS === 'ios'
+      ? 'instagram://story-camera'
+      : 'instagram://story-camera';
 
-    return true;
+    const canOpen = await Linking.canOpenURL(instagramURL);
+
+    if (canOpen) {
+      // Open Instagram Story camera
+      await Linking.openURL(instagramURL);
+      return true;
+    } else {
+      // Fallback to regular share dialog if Instagram not installed
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share your smoke-free achievement',
+        });
+        return true;
+      }
+      return false;
+    }
   } catch (error) {
-    return false;
+    // Fallback to share dialog on error
+    try {
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: 'Share your smoke-free achievement',
+      });
+      return true;
+    } catch (fallbackError) {
+      return false;
+    }
   }
 };
 
