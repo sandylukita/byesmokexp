@@ -233,19 +233,34 @@ export default function Main() {
 
   const checkOnboardingStatus = async (firebaseUser: FirebaseUser) => {
     log.debug('🔍 Starting checkOnboardingStatus for user:', firebaseUser.email);
-    
+
+    // OFFLINE FIX: Check AsyncStorage cache first to avoid network-dependent onboarding reset
+    try {
+      const AsyncStorage = await import('@react-native-async-storage/async-storage');
+      const cacheKey = `onboarding_complete_${firebaseUser.uid}`;
+      const cached = await AsyncStorage.default.getItem(cacheKey);
+
+      if (cached === 'true') {
+        log.debug('✅ Cached onboarding status: completed - going to dashboard (offline safe)');
+        setAppState('dashboard');
+        return; // Early return - skip network call
+      }
+    } catch (error) {
+      log.debug('⚠️ Could not check onboarding cache:', error);
+    }
+
     // Add a maximum timeout for the entire function to prevent infinite hanging
     const functionTimeoutPromise = new Promise<void>((_, reject) => {
       setTimeout(() => {
         reject(new Error('checkOnboardingStatus function timeout after 5 seconds'));
       }, 5000); // 5 second total timeout for faster loading
     });
-    
+
     const checkOnboardingPromise = async (): Promise<void> => {
       try {
         // Check Firestore for actual onboarding completion status
         const { getUserDocument } = await import('../src/services/auth');
-      
+
       // Retry logic for newly created users with timeout handling
       let userData = null;
       const maxRetries = 2;
@@ -311,6 +326,17 @@ export default function Main() {
           try {
             await updateUserDocument(userData.id, { onboardingCompleted: true });
             log.debug('🚀 Setting app state to dashboard (existing user)');
+
+            // OFFLINE FIX: Cache onboarding completion status
+            try {
+              const AsyncStorage = await import('@react-native-async-storage/async-storage');
+              const cacheKey = `onboarding_complete_${firebaseUser.uid}`;
+              await AsyncStorage.default.setItem(cacheKey, 'true');
+              log.debug('💾 Cached auto-completed onboarding status');
+            } catch (cacheError) {
+              log.debug('⚠️ Could not cache onboarding status:', cacheError);
+            }
+
             setAppState('dashboard');
           } catch (error) {
             log.error('Error auto-completing onboarding:', error);
@@ -325,6 +351,17 @@ export default function Main() {
       } else if (onboardingComplete) {
         log.debug('✅ User has completed onboarding with all required data, going to dashboard');
         log.debug('🚀 Setting app state to dashboard (completed onboarding)');
+
+        // OFFLINE FIX: Cache onboarding completion status
+        try {
+          const AsyncStorage = await import('@react-native-async-storage/async-storage');
+          const cacheKey = `onboarding_complete_${firebaseUser.uid}`;
+          await AsyncStorage.default.setItem(cacheKey, 'true');
+          log.debug('💾 Cached onboarding completion status');
+        } catch (error) {
+          log.debug('⚠️ Could not cache onboarding status:', error);
+        }
+
         setAppState('dashboard');
       } else {
         // No user document found after retries - this is a new user
