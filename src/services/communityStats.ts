@@ -133,7 +133,7 @@ export const getCommunityStats = async (): Promise<CommunityStats | null> => {
   const canMakeCall = await trackFirebaseCall();
   if (!canMakeCall) {
     console.warn('🚨 Circuit breaker active - using demo stats to control costs');
-    return generateDemoCommunityStats();
+    return await generateDemoCommunityStats();
   }
   
   // Level 3: Firebase call with enhanced caching logic
@@ -161,7 +161,7 @@ export const getCommunityStats = async (): Promise<CommunityStats | null> => {
     }
     
     console.log('📊 No Firebase community stats found, using demo stats');
-    const demoStats = generateDemoCommunityStats();
+    const demoStats = await generateDemoCommunityStats();
     await setLocalStorageStats(demoStats); // Cache demo stats to avoid repeated Firebase calls
     return demoStats;
     
@@ -173,7 +173,7 @@ export const getCommunityStats = async (): Promise<CommunityStats | null> => {
     }
     
     console.log('📊 Falling back to demo community stats');
-    const demoStats = generateDemoCommunityStats();
+    const demoStats = await generateDemoCommunityStats();
     await setLocalStorageStats(demoStats); // Cache demo stats to avoid repeated failures
     return demoStats;
   }
@@ -473,18 +473,60 @@ const incrementCommunityCountWithCap = async (userId: string): Promise<void> => 
 };
 
 /**
- * Generate demo community stats for development/testing
- */
-export const generateDemoCommunityStats = (): CommunityStats => {
+// Get real user count from Firebase (non-demo users)
+// Cached for 1 hour to minimize Firebase reads
+const getRealUserCount = async (): Promise<number> => {
+  try {
+    const cached = await AsyncStorage.getItem('realUserCount');
+    if (cached) {
+      const { count, timestamp } = JSON.parse(cached);
+      const age = Date.now() - timestamp;
+      if (age < 60 * 60 * 1000) {
+        console.log(\`📊 Using cached real user count: \${count}\`);
+        return count;
+      }
+    }
+
+    const usersRef = collection(db, 'users');
+    const snapshot = await getDocs(query(usersRef, limit(10000)));
+    const realUserCount = snapshot.docs.filter(doc => {
+      const email = doc.data().email;
+      return email && !email.includes('demo') && !email.includes('test');
+    }).length;
+
+    await AsyncStorage.setItem('realUserCount', JSON.stringify({
+      count: realUserCount,
+      timestamp: Date.now()
+    }));
+
+    console.log(\`📊 Real user count from Firebase: \${realUserCount}\`);
+    return realUserCount;
+  } catch (error) {
+    console.log('⚠️ Could not get real user count, using 0:', error);
+    return 0;
+  }
+};
+
+// Generate community stats with ghost baseline + real user increment
+// Ghost baseline: 12,847 users (prevents empty stats at launch)
+// Real users added on top: totalUsers = 12847 + realUserCount
+export const generateDemoCommunityStats = async (): Promise<CommunityStats> => {
+  const GHOST_BASELINE = 12847;
+  const realUsers = await getRealUserCount();
+  const totalUsers = GHOST_BASELINE + realUsers;
+  const distributionRatio = totalUsers / GHOST_BASELINE;
+
+  console.log(\`📊 Community: \${GHOST_BASELINE} ghost + \${realUsers} real = \${totalUsers} total\`);
+
   return {
     lastUpdated: new Date().toISOString(),
-    totalUsers: 12847,
+    totalUsers: totalUsers,
     streakDistribution: {
-      '0-7': 4523,
-      '8-30': 3891,
-      '31-90': 2456,
-      '91-365': 1677,
-      '365+': 300
+      '0-7': Math.floor(4523 * distributionRatio),
+      '8-30': Math.floor(3891 * distributionRatio),
+      '31-90': Math.floor(2456 * distributionRatio),
+      '91-365': Math.floor(1677 * distributionRatio),
+      '365+': Math.floor(300 * distributionRatio)
     },
     averageStreak: 28.5,
     topStreakRanges: {
@@ -493,15 +535,15 @@ export const generateDemoCommunityStats = (): CommunityStats => {
       top50Percent: 21
     },
     xpDistribution: {
-      '0-100': 3200,
-      '101-500': 4500,
-      '501-1000': 2800,
-      '1001-2000': 1847,
-      '2000+': 500
+      '0-100': Math.floor(3200 * distributionRatio),
+      '101-500': Math.floor(4500 * distributionRatio),
+      '501-1000': Math.floor(2800 * distributionRatio),
+      '1001-2000': Math.floor(1847 * distributionRatio),
+      '2000+': Math.floor(500 * distributionRatio)
     },
     averageXP: 485,
     averageDaysSmokeFree: 34.2,
-    averageMoneySaved: 890000 // In Rupiah
+    averageMoneySaved: 890000
   };
 };
 
@@ -521,7 +563,7 @@ export const initializeGhostDataBaseline = async (): Promise<void> => {
     }
     
     // Create initial community stats with ghost data
-    const ghostStats = generateDemoCommunityStats();
+    const ghostStats = await generateDemoCommunityStats();
     
     await setDoc(globalStatsRef, ghostStats);
     

@@ -27,8 +27,8 @@ export const initializeCommunityStats = async (): Promise<void> => {
     }
     
     // Create initial community stats with demo data
-    const demoStats = generateDemoCommunityStats();
-    
+    const demoStats = await generateDemoCommunityStats();
+
     await setDoc(globalStatsRef, demoStats);
     
     console.log('✅ Community stats collection initialized successfully');
