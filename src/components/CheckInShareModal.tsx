@@ -117,9 +117,12 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
               <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={Platform.OS === 'ios'}
                 bounces={true}
                 scrollEventThrottle={16}
+                nestedScrollEnabled={true}
+                scrollEnabled={true}
+                alwaysBounceVertical={true}
               >
                 {/* Header */}
                 <View style={styles.header}>
@@ -247,12 +250,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalWrapper: {
-    height: Platform.OS === 'ios' ? height * 0.8 : height * 0.85,
+    maxHeight: Platform.OS === 'ios' ? height * 0.85 : height * 0.9,
     width: width - 40,
     maxWidth: 400,
   },
   modalContent: {
-    flex: 1,
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: 'transparent',
@@ -261,6 +263,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
+    maxHeight: '100%',
   },
   closeButtonContainer: {
     position: 'absolute',
@@ -287,15 +290,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
   },
   scrollView: {
-    flex: 1,
     width: '100%',
   },
   scrollContent: {
-    flexGrow: 1,
     alignItems: 'center',
     paddingTop: 60, // Space for close button
-    paddingBottom: 32,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 32,
     paddingHorizontal: 16,
+    minHeight: Platform.OS === 'ios' ? height * 0.9 : undefined,
   },
   header: {
     alignItems: 'center',
