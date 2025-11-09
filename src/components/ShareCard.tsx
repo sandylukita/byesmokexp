@@ -43,7 +43,24 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 
     // Calculate additional metrics for visualization
     const cigarettesAvoided = Math.floor(daysSinceQuit * 20); // Assuming 20 cigs/day
-    const healthScore = Math.min(100, Math.floor((daysSinceQuit / 365) * 100));
+
+    // Calculate health score based on medically accurate recovery timeline
+    // Source: American Cancer Society, CDC smoking cessation benefits timeline
+    const calculateHealthScore = (days: number): number => {
+      if (days < 1) return 0;
+      if (days < 1) return 5;           // 20 minutes - 1 day: Heart rate normalizes
+      if (days < 2) return 8;           // 12 hours: CO levels normal
+      if (days < 14) return 12;         // 2 weeks: Circulation improves
+      if (days < 90) return 25;         // 3 months: Lung function increases
+      if (days < 180) return 35;        // 6 months: Coughing decreases
+      if (days < 365) return 50;        // 1 year: Heart disease risk halved
+      if (days < 1825) return 70;       // 5 years: Stroke risk = non-smoker
+      if (days < 3650) return 85;       // 10 years: Lung cancer risk halved
+      if (days < 5475) return 95;       // 15 years: Heart disease risk = non-smoker
+      return 100;                        // Full recovery
+    };
+
+    const healthScore = calculateHealthScore(daysSinceQuit);
 
     // White text for visibility on any background
     const textColor = '#FFFFFF';
