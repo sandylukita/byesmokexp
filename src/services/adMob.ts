@@ -54,7 +54,7 @@ class AdMobService {
   private isShowingRewardedAd = false;
   private userEarnedReward = false;
   private lastAdShownTime = 0;
-  private readonly AD_COOLDOWN = 5 * 60 * 1000; // 5 minutes cooldown between ads
+  private readonly AD_COOLDOWN = 3 * 60 * 1000; // 3 minutes cooldown between ads (optimized for revenue while maintaining good UX)
   private sessionAdsShown = 0;
   private readonly MAX_ADS_PER_SESSION = 3; // Maximum ads per app session
   

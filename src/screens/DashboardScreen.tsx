@@ -1403,20 +1403,25 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
               // Show success message if XP was awarded
               if (result.xpAwarded > 0) {
                 showCustomAlert(
-                  `🎉 ${t.dashboard.missionCompleted} 🏆`, 
+                  `🎉 ${t.dashboard.missionCompleted} 🏆`,
                   `⭐ ${t.dashboard.xpEarned}: ${result.xpAwarded} XP! 🎯`
                 );
               }
-              
-              
+
+
               // Show badge notification if new badges were earned
               if (result.newBadges.length > 0) {
                 showCustomAlert(
-                  `🏆 ${t.dashboard.newBadge}`, 
+                  `🏆 ${t.dashboard.newBadge}`,
                   `🎊 ${translate('dashboard.badgeEarned', { count: result.newBadges.length })} 🌟`,
                   'success'
                 );
               }
+
+              // Show interstitial ad after mission completion (with small delay)
+              setTimeout(() => {
+                showInterstitialAd(user.isPremium, 'mission_completed');
+              }, 2000);
             }
           } else {
             // Handle demo user mission completion

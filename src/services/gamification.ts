@@ -316,9 +316,14 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
       const shouldShowAd = !user.isPremium;
       if (shouldShowAd) {
         // Show ad after a short delay, don't block the function
-        setTimeout(() => {
-          // showInterstitialAd(user.isPremium, `badge_earned_${newBadges[0].id}`); // Commented out for web compatibility
-          debugLog.log('🎯 Badge earned ad would show here on native platforms');
+        setTimeout(async () => {
+          try {
+            const { showInterstitialAd } = await import('./adMob');
+            await showInterstitialAd(user.isPremium, `badge_earned_${newBadges[0].id}`);
+            debugLog.log('🎯 Showed interstitial ad after badge unlock');
+          } catch (error) {
+            debugLog.log('🎯 Could not show badge ad (web platform or error):', error);
+          }
         }, 3000); // 3 second delay to let user enjoy the badge notification
       }
     }
