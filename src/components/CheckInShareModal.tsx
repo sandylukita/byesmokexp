@@ -84,13 +84,14 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={handleClose}
-        disabled={loading}
-      >
-        <BlurView intensity={90} style={styles.container}>
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={handleClose}
+          disabled={loading}
+        />
+        <BlurView intensity={90} style={styles.container} pointerEvents="box-none">
           <View style={styles.modalWrapper}>
             <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
               {/* Close Button - Outside ScrollView for iOS visibility */}
@@ -230,7 +231,7 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
             </View>
           </View>
         </BlurView>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };
