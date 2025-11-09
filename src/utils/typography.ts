@@ -27,6 +27,7 @@ export const TYPOGRAPHY = {
   // Special text
   caption: getTextStyle('caption'),
   button: getTextStyle('button'),
+  buttonMedium: getTextStyle('button'), // Medium button text style
 
   // Colored variants
   displayWhite: {

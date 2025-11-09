@@ -128,9 +128,11 @@ export const SIZES = {
   xxs: 4,
   xs: 8,
   sm: 12,
+  spacingSm: 12,  // Alias for sm
   md: 20,
   lg: 32,
   xl: 48,
+  xxl: 64,  // Extra extra large spacing
   
   // Component sizes
   buttonHeight: 52,    // Increased for better touch targets

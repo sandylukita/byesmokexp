@@ -2,7 +2,7 @@
  * ShareCard Component
  *
  * Strava-style achievement card for sharing smoke-free progress
- * Transparent background with metrics display
+ * Beautiful gradient backgrounds with visual stats
  */
 
 import React from 'react';
@@ -19,10 +19,11 @@ interface ShareCardProps {
   communityRank?: string;
   language: 'en' | 'id';
   currency: 'IDR' | 'USD';
+  style?: 'gradient' | 'dark' | 'light'; // Different visual styles
 }
 
 export const ShareCard = React.forwardRef<View, ShareCardProps>(
-  ({ daysSinceQuit, currentStreak, moneySaved, communityRank, language, currency }, ref) => {
+  ({ daysSinceQuit, currentStreak, moneySaved, communityRank, language, currency, style = 'gradient' }, ref) => {
     const formatMoney = (amount: number) => {
       // Handle NaN or invalid values (but allow zero)
       if (amount === undefined || amount === null || isNaN(amount) || amount < 0) {
@@ -40,48 +41,87 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
       return formatCurrency(amount, language);
     };
 
+    // Calculate additional metrics for visualization
+    const cigarettesAvoided = Math.floor(daysSinceQuit * 20); // Assuming 20 cigs/day
+    const healthScore = Math.min(100, Math.floor((daysSinceQuit / 365) * 100));
+
+    // White text for visibility on any background
+    const textColor = '#FFFFFF';
+
     return (
       <View ref={ref} style={styles.container}>
-        <View style={styles.content}>
+        <View style={styles.transparentContainer}>
+          <View style={styles.content}>
             {/* Header with Logo and Branding */}
             <View style={styles.header}>
               <Image source={LOGO} style={styles.headerLogo} />
-              <Text style={styles.logoText}>ByeSmoke AI</Text>
-              <Text style={styles.tagline}>
-                {language === 'en' ? 'Your Smart Quit Coach' : 'Pelatih Berhenti Rokok Anda'}
-              </Text>
+              <Text style={[styles.logoText, { color: textColor }]}>ByeSmoke AI</Text>
             </View>
 
-            {/* Main Metric - Days */}
+            {/* Main Metric - Days with Visual Impact */}
             <View style={styles.mainMetric}>
-              <Text style={styles.mainValue}>{daysSinceQuit}</Text>
-              <Text style={styles.mainLabel}>
+              <Text style={[styles.mainValue, { color: textColor }]}>{daysSinceQuit}</Text>
+              <Text style={[styles.mainLabel, { color: textColor }]}>
                 {language === 'en' ? 'DAYS SMOKE-FREE' : 'HARI BEBAS ROKOK'}
               </Text>
             </View>
 
-            {/* Stats Row */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>
-                  {language === 'en' ? 'STREAK' : 'STREAK'}
-                </Text>
-                <View style={styles.statValueContainer}>
-                  <Text style={styles.fireEmoji}>🔥</Text>
-                  <Text style={styles.statValue}>{currentStreak}</Text>
+            {/* Stats Grid with Visual Elements */}
+            <View style={styles.statsGrid}>
+              {/* Streak */}
+              <View style={styles.statCard}>
+                <View style={styles.statIconContainer}>
+                  <Text style={styles.statEmoji}>🔥</Text>
                 </View>
+                <Text style={[styles.statCardValue, { color: textColor }]}>{currentStreak}</Text>
+                <Text style={[styles.statCardLabel, { color: textColor }]}>
+                  {language === 'en' ? 'Day Streak' : 'Hari Streak'}
+                </Text>
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>
-                  {language === 'en' ? 'SAVED' : 'HEMAT'}
+              {/* Money Saved */}
+              <View style={styles.statCard}>
+                <View style={styles.statIconContainer}>
+                  <Text style={styles.statEmoji}>💰</Text>
+                </View>
+                <Text style={[styles.statCardValue, { color: textColor, fontSize: 18 }]}>
+                  {formatMoney(moneySaved)}
                 </Text>
-                <Text style={styles.statValue}>{formatMoney(moneySaved)}</Text>
+                <Text style={[styles.statCardLabel, { color: textColor }]}>
+                  {language === 'en' ? 'Saved' : 'Hemat'}
+                </Text>
               </View>
             </View>
+
+            {/* Bottom Stats Bar */}
+            <View style={styles.bottomBar}>
+              <View style={styles.bottomStat}>
+                <Text style={[styles.bottomStatValue, { color: textColor }]}>🚭 {cigarettesAvoided}</Text>
+                <Text style={[styles.bottomStatLabel, { color: textColor }]}>
+                  {language === 'en' ? 'Cigarettes Avoided' : 'Rokok Dihindari'}
+                </Text>
+              </View>
+              {healthScore > 0 && (
+                <>
+                  <View style={[styles.bottomDivider, { backgroundColor: textColor }]} />
+                  <View style={styles.bottomStat}>
+                    <Text style={[styles.bottomStatValue, { color: textColor }]}>❤️ {healthScore}%</Text>
+                    <Text style={[styles.bottomStatLabel, { color: textColor }]}>
+                      {language === 'en' ? 'Health Score' : 'Skor Kesehatan'}
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
+
+            {/* Footer Brand */}
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: textColor }]}>
+                {language === 'en' ? 'Share your journey' : 'Bagikan perjalanan Anda'}
+              </Text>
+            </View>
           </View>
+        </View>
       </View>
     );
   }
@@ -89,102 +129,119 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 
 const styles = StyleSheet.create({
   container: {
-    width: 280,
-    height: 360,
-    borderRadius: 20,
+    width: 320,
+    height: 480,
     overflow: 'hidden',
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+  },
+  transparentContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   content: {
     flex: 1,
-    justifyContent: 'flex-start',
-    padding: 18,
-    paddingTop: 20,
-    paddingBottom: 20,
+    justifyContent: 'space-between',
+    padding: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
   },
   header: {
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   headerLogo: {
-    width: 44,
-    height: 44,
-    borderRadius: 11,
-    marginBottom: 4,
+    width: 52,
+    height: 52,
+    borderRadius: 13,
+    marginBottom: 8,
+  },
+  logoText: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   mainMetric: {
     alignItems: 'center',
     marginBottom: 20,
   },
   mainValue: {
-    fontSize: 64,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -2,
-    textShadowColor: 'rgba(0, 0, 0, 0.25)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    fontSize: 84,
+    fontWeight: '900',
+    letterSpacing: -3,
+    textAlign: 'center',
   },
   mainLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    opacity: 0.95,
-    letterSpacing: 1.5,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 2,
     marginTop: 4,
+    opacity: 0.95,
   },
-  statsRow: {
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  statIconContainer: {
+    marginBottom: 8,
+  },
+  statEmoji: {
+    fontSize: 32,
+  },
+  statCardValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  statCardLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    opacity: 0.85,
+    letterSpacing: 0.5,
+  },
+  bottomBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 14,
-    padding: 14,
+    paddingVertical: 12,
   },
-  statItem: {
+  bottomStat: {
     alignItems: 'center',
     flex: 1,
+    paddingHorizontal: 8,
   },
-  statLabel: {
-    fontSize: 10,
+  bottomStatValue: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
-    opacity: 0.8,
-    letterSpacing: 1.2,
     marginBottom: 6,
   },
-  statValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  fireEmoji: {
-    fontSize: 18,
-  },
-  divider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  logoText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-    opacity: 0.95,
-  },
-  tagline: {
-    fontSize: 10,
-    color: '#FFFFFF',
-    opacity: 0.85,
-    fontWeight: '500',
+  bottomStatLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    opacity: 0.8,
+    textAlign: 'center',
     letterSpacing: 0.3,
+  },
+  bottomDivider: {
+    width: 1,
+    height: 35,
+    opacity: 0.25,
+    marginHorizontal: 8,
+  },
+  footer: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  footerText: {
+    fontSize: 11,
+    fontWeight: '600',
+    opacity: 0.8,
+    letterSpacing: 0.5,
   },
 });
 

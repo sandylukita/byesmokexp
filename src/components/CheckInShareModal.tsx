@@ -15,6 +15,7 @@ import {
   Dimensions,
   ActivityIndicator,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -24,7 +25,7 @@ import { shareAchievementCard } from '../services/shareService';
 import { COLORS, SIZES } from '../utils/constants';
 import { useTheme } from '../contexts/ThemeContext';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface CheckInShareModalProps {
   visible: boolean;
@@ -96,22 +97,29 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
             style={styles.modalWrapper}
           >
             <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-              {/* Close Button */}
-              <TouchableOpacity
-                style={[styles.closeButton, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' }]}
-                onPress={handleClose}
-                disabled={loading}
-                activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <MaterialIcons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
+              {/* Close Button - Outside ScrollView for iOS visibility */}
+              <View style={styles.closeButtonContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.closeButton,
+                    { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' },
+                    Platform.OS === 'ios' && styles.closeButtonIOS
+                  ]}
+                  onPress={handleClose}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <MaterialIcons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
               <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
-                bounces={false}
+                bounces={true}
+                scrollEventThrottle={16}
               >
                 {/* Header */}
                 <View style={styles.header}>
@@ -135,6 +143,7 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
                     communityRank={communityRank}
                     language={language}
                     currency={currency}
+                    style="dark"
                   />
                 </View>
 
@@ -238,47 +247,60 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalWrapper: {
-    maxHeight: '90%',
-  },
-  modalContent: {
+    height: Platform.OS === 'ios' ? height * 0.8 : height * 0.85,
     width: width - 40,
     maxWidth: 400,
-    maxHeight: '90%',
+  },
+  modalContent: {
+    flex: 1,
     borderRadius: 24,
-    padding: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    alignItems: 'center',
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
   },
-  scrollView: {
-    width: '100%',
-  },
-  scrollContent: {
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 32,
+  closeButtonContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 1000,
+    elevation: 1000,
   },
   closeButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
+    margin: 8,
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999,
-    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  closeButtonIOS: {
+    marginTop: Platform.OS === 'ios' ? 12 : 8,
+    shadowOpacity: 0.3,
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingTop: 60, // Space for close button
+    paddingBottom: 32,
+    paddingHorizontal: 16,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 12,
-    marginTop: 0,
+    marginBottom: 16,
+    width: '100%',
   },
   headerTitle: {
     fontSize: 24,

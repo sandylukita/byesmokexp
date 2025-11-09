@@ -23,12 +23,12 @@ const validateFirebaseConfig = () => {
   const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig]);
   
   if (missingFields.length > 0) {
-    const error = `Firebase configuration incomplete. Missing: ${missingFields.join(', ')}`;
-    log.error('🚨 Firebase Config Error:', error);
+    const error = 'Firebase configuration incomplete. Missing: ' + missingFields.join(', ');
+    log.error('Firebase Config Error:', error);
     throw new Error(error);
   }
   
-  log.info('✅ Firebase configuration validated successfully');
+  log.info('Firebase configuration validated successfully');
 };
 
 // Validate configuration on load

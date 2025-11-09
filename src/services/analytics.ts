@@ -28,13 +28,16 @@ export const logAnalyticsEvent = (eventName: string, parameters?: Record<string,
       log.debug('📊 Analytics Event:', eventName, parameters);
       return; // Don't log to Firebase when analytics is disabled or not available
     }
-    
+
     logEvent(analytics, eventName, parameters);
     log.debug('📊 Analytics Event logged:', eventName, parameters);
   } catch (error: any) {
     log.error('Error logging analytics event:', error);
   }
 };
+
+// Alias for compatibility
+export const trackAnalyticsEvent = logAnalyticsEvent;
 
 /**
  * Set user ID for analytics tracking
