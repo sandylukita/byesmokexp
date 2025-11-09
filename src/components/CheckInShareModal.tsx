@@ -91,14 +91,10 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
         disabled={loading}
       >
         <BlurView intensity={90} style={styles.container}>
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-            style={styles.modalWrapper}
-          >
+          <View style={styles.modalWrapper}>
             <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
               {/* Close Button - Outside ScrollView for iOS visibility */}
-              <View style={styles.closeButtonContainer}>
+              <View style={styles.closeButtonContainer} pointerEvents="box-none">
                 <TouchableOpacity
                   style={[
                     styles.closeButton,
@@ -117,12 +113,12 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
               <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={Platform.OS === 'ios'}
+                showsVerticalScrollIndicator={true}
                 bounces={true}
                 scrollEventThrottle={16}
                 nestedScrollEnabled={true}
-                scrollEnabled={true}
-                alwaysBounceVertical={true}
+                alwaysBounceVertical={Platform.OS === 'ios'}
+                keyboardShouldPersistTaps="handled"
               >
                 {/* Header */}
                 <View style={styles.header}>
@@ -232,7 +228,7 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
                 </View>
               )}
             </View>
-          </TouchableOpacity>
+          </View>
         </BlurView>
       </TouchableOpacity>
     </Modal>
@@ -250,11 +246,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalWrapper: {
-    maxHeight: Platform.OS === 'ios' ? height * 0.85 : height * 0.9,
+    height: Platform.OS === 'ios' ? height * 0.85 : height * 0.88,
     width: width - 40,
     maxWidth: 400,
   },
   modalContent: {
+    flex: 1,
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: 'transparent',
@@ -263,7 +260,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    maxHeight: '100%',
   },
   closeButtonContainer: {
     position: 'absolute',
@@ -271,6 +267,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
     elevation: 1000,
+    pointerEvents: 'box-none',
   },
   closeButton: {
     margin: 8,
@@ -290,14 +287,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
   },
   scrollView: {
+    flex: 1,
     width: '100%',
   },
   scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
     paddingTop: 60, // Space for close button
-    paddingBottom: Platform.OS === 'ios' ? 40 : 32,
-    paddingHorizontal: 16,
-    minHeight: Platform.OS === 'ios' ? height * 0.9 : undefined,
+    paddingBottom: Platform.OS === 'ios' ? 50 : 40,
+    paddingHorizontal: 20,
   },
   header: {
     alignItems: 'center',
