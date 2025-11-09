@@ -843,81 +843,16 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
         return;
       }
 
-      debugLog.log('No user found in any data source - creating default demo user as fallback');
-      // Create a default demo user as the ultimate fallback
-      const defaultUser: User = {
-        id: 'fallback-user',
-        email: 'guest@byerokok.app',
-        displayName: 'Guest User',
-        username: 'guest_user',
-        isPremium: false,
-        quitDate: new Date(),
-        cigarettesPerDay: 0,
-        cigarettePrice: 0,
-        streak: 0,
-        longestStreak: 0,
-        totalDays: 0,
-        xp: 0,
-        level: 1,
-        lastCheckIn: null,
-        badges: [],
-        completedMissions: [],
-        settings: {
-          darkMode: false,
-          notifications: true,
-          language: 'id',
-          reminderTime: '09:00',
-          leaderboardDisplayPreference: 'username'
-        },
-        onboardingCompleted: false,
-        dailyXP: {},
-        referralCode: 'GUEST1',
-        referralCount: 0,
-        referralRewards: 0
-      };
-      
-      debugLog.log('Setting fallback guest user');
-      setUser(defaultUser);
-      updateUser(defaultUser);
+      debugLog.log("❌ No user found - redirecting to login");
+      setLoading(false);
+      onLogout();
+      return;
     } catch (error) {
       debugLog.error('Error loading user data:', error);
-      
-      // Even in error case, provide a fallback user
-      const errorFallbackUser: User = {
-        id: 'error-fallback-user',
-        email: 'error@byerokok.app',
-        displayName: 'Recovery User',
-        username: 'recovery_user',
-        isPremium: false,
-        quitDate: new Date(),
-        cigarettesPerDay: 0,
-        cigarettePrice: 0,
-        streak: 0,
-        longestStreak: 0,
-        totalDays: 0,
-        xp: 0,
-        level: 1,
-        lastCheckIn: null,
-        badges: [],
-        completedMissions: [],
-        settings: {
-          darkMode: false,
-          notifications: true,
-          language: 'id',
-          reminderTime: '09:00',
-          leaderboardDisplayPreference: 'username'
-        },
-        onboardingCompleted: false,
-        dailyXP: {},
-        referralCode: 'ERROR1',
-        referralCount: 0,
-        referralRewards: 0
-      };
-      
-      debugLog.log('Setting error recovery user');
-      setUser(errorFallbackUser);
-      updateUser(errorFallbackUser);
-      showCustomAlert('Error', 'Using offline mode. Your data will be saved locally.', 'warning');
+      debugLog.log('❌ Error loading user - redirecting to login');
+      setLoading(false);
+      onLogout();
+      return;
     } finally {
       debugLog.log('Setting loading to false');
       setLoading(false);
