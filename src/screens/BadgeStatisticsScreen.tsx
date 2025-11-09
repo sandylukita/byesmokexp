@@ -377,11 +377,11 @@ const BadgeStatisticsScreen: React.FC = () => {
 
   // OPTIMIZED: Memoize badge item rendering to prevent expensive re-renders
   const renderBadgeItem = useMemo(() => {
-    return (badge: any, index: number) => {
+    const BadgeItemRenderer = (badge: any, index: number) => {
       const isUnlocked = isUserBadgeUnlocked(badge.id);
       const unlockCount = badgeStats[badge.id] || FALLBACK_STATS[badge.id] || 50;
       const translatedBadge = getTranslatedBadge(badge.id, language as any);
-      
+
       return (
         <View key={badge.id} style={[
           { ...styles.badgeItem, backgroundColor: colors.surface },
@@ -393,13 +393,13 @@ const BadgeStatisticsScreen: React.FC = () => {
               { backgroundColor: isUnlocked ? badge.color + '20' : colors.lightGray },
               !isUnlocked && { backgroundColor: colors.lightGray }
             ]}>
-              <MaterialIcons 
-                name={badge.icon as any} 
-                size={28} 
-                color={isUnlocked ? badge.color : colors.gray} 
+              <MaterialIcons
+                name={badge.icon as any}
+                size={28}
+                color={isUnlocked ? badge.color : colors.gray}
               />
             </View>
-            
+
             <View style={styles.badgeInfo}>
               <Text style={[
                 { ...styles.badgeName, color: colors.textPrimary },
@@ -415,7 +415,7 @@ const BadgeStatisticsScreen: React.FC = () => {
                 {translatedBadge.description}
               </Text>
             </View>
-            
+
             <View style={styles.statsContainer}>
               <Text style={[styles.statsCount, { color: colors.primary }]}>
                 {unlockCount.toLocaleString()}
@@ -433,6 +433,8 @@ const BadgeStatisticsScreen: React.FC = () => {
         </View>
       );
     };
+    BadgeItemRenderer.displayName = 'BadgeItemRenderer';
+    return BadgeItemRenderer;
   }, [userBadges, badgeStats, language, colors]); // Recalculate only when dependencies change
 
   // OPTIMIZED: Always show UI with skeleton/fallback data, no loading state blocking

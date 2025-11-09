@@ -129,26 +129,35 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ onLogout }) => {
   };
   
   // Memoize components to prevent recreation on theme/language changes
-  const DashboardComponent = useMemo(() => 
-    ({ navigation, route }: any) => <DashboardWrapper onLogout={onLogout} navigation={navigation} route={route} />, 
-    [onLogout]
-  );
-  const ProgressComponent = useMemo(() => 
-    ({ navigation, route }: any) => <ProgressWrapper navigation={navigation} route={route} />, 
-    []
-  );
-  const BadgeStatsComponent = useMemo(() => 
-    ({ navigation, route }: any) => <BadgeStatsWrapper navigation={navigation} route={route} />, 
-    []
-  );
-  const ProfileComponent = useMemo(() => 
-    ({ navigation, route }: any) => <ProfileWrapper onLogout={onLogout} navigation={navigation} route={route} />, 
-    [onLogout]
-  );
-  const TamagotchiComponent = useMemo(() => 
-    ({ navigation, route }: any) => <TamagotchiWrapper navigation={navigation} route={route} />, 
-    []
-  );
+  const DashboardComponent = useMemo(() => {
+    const Component = ({ navigation, route }: any) => <DashboardWrapper onLogout={onLogout} navigation={navigation} route={route} />;
+    Component.displayName = 'DashboardComponent';
+    return Component;
+  }, [onLogout]);
+
+  const ProgressComponent = useMemo(() => {
+    const Component = ({ navigation, route }: any) => <ProgressWrapper navigation={navigation} route={route} />;
+    Component.displayName = 'ProgressComponent';
+    return Component;
+  }, []);
+
+  const BadgeStatsComponent = useMemo(() => {
+    const Component = ({ navigation, route }: any) => <BadgeStatsWrapper navigation={navigation} route={route} />;
+    Component.displayName = 'BadgeStatsComponent';
+    return Component;
+  }, []);
+
+  const ProfileComponent = useMemo(() => {
+    const Component = ({ navigation, route }: any) => <ProfileWrapper onLogout={onLogout} navigation={navigation} route={route} />;
+    Component.displayName = 'ProfileComponent';
+    return Component;
+  }, [onLogout]);
+
+  const TamagotchiComponent = useMemo(() => {
+    const Component = ({ navigation, route }: any) => <TamagotchiWrapper navigation={navigation} route={route} />;
+    Component.displayName = 'TamagotchiComponent';
+    return Component;
+  }, []);
   
   return (
     <>

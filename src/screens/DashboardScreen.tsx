@@ -145,6 +145,7 @@ const MotivationContent = React.memo(({
   return shouldNotRerender;
 });
 
+MotivationContent.displayName = 'MotivationContent';
 
 const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation }) => {
   // SIMPLE: Back to original working approach - null until data loads

@@ -1957,25 +1957,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Re-authentication Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: SIZES.buttonRadius || 16,
-    padding: SIZES.lg,
-    alignItems: 'center',
-    width: width * 0.85,
-    maxWidth: 340,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-  },
   modalHeader: {
     alignItems: 'center',
     marginBottom: SIZES.md,
@@ -2002,17 +1983,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SIZES.sm,
     width: '100%',
-  },
-  modalButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: SIZES.buttonRadius || 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   spinnerContainer: {
     padding: SIZES.md,

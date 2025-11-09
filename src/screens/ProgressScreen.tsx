@@ -380,6 +380,8 @@ const MemoizedHeatmapGrid = React.memo(({
   );
 });
 
+MemoizedHeatmapGrid.displayName = 'MemoizedHeatmapGrid';
+
 // INSTAGRAM-STYLE: Create skeleton user for instant loading
 const createSkeletonProgressUser = (): User => ({
   id: 'loading',
@@ -1161,7 +1163,7 @@ const ProgressScreen: React.FC = () => {
         <LinearGradient colors={[colors.primary, colors.primaryLight]} style={styles.header}>
           <Text style={styles.headerTitle}>{t.progress.title}</Text>
           <Text style={styles.headerSubtitle}>
-            "{daysSinceQuit} {t.progress.subtitle}"
+            {daysSinceQuit} {t.progress.subtitle}
           </Text>
           <TouchableOpacity 
             style={styles.shareAchievementButton} 
