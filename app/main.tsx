@@ -179,17 +179,30 @@ export default function Main() {
     
     // Start auth initialization immediately
     initializeAuth();
-    
+
+    // Add timeout for offline scenarios - if Firebase doesn't respond in 3 seconds, show login
+    const authTimeout = setTimeout(() => {
+      if (!authStateLoaded) {
+        log.debug('⏱️ AUTH TIMEOUT: Firebase took too long (likely offline), showing login');
+        setAuthStateLoaded(true);
+        setSplashFinished(true);
+        setAppState('login');
+      }
+    }, 3000);
+
     // Set up Firebase listener for auth state changes - this is the primary auth handler
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       log.debug('🔐 AUTH STATE CHANGE - User:', firebaseUser?.email || 'null');
-      
+
+      // Clear timeout since Firebase responded
+      clearTimeout(authTimeout);
+
       // Mark Firebase as initialized once the first auth state change fires
       if (!firebaseInitialized) {
         log.debug('🔥 Firebase auth initialized');
         setFirebaseInitialized(true);
       }
-      
+
       if (firebaseUser) {
         log.debug('🔐 AUTH CHANGE: User logged in, checking onboarding');
         setUser(firebaseUser);
@@ -213,8 +226,9 @@ export default function Main() {
       }
     });
 
-    // Clean up listener on unmount
+    // Clean up listener and timeout on unmount
     return () => {
+      clearTimeout(authTimeout);
       unsubscribe();
     };
   }, []); // Remove dependencies to run once on mount
