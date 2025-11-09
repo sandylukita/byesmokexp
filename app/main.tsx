@@ -180,13 +180,25 @@ export default function Main() {
     // Start auth initialization immediately
     initializeAuth();
 
-    // Add timeout for offline scenarios - if Firebase doesn't respond in 3 seconds, show login
-    const authTimeout = setTimeout(() => {
+    // Add timeout for offline scenarios - if Firebase doesn't respond in 3 seconds, check cache
+    const authTimeout = setTimeout(async () => {
       if (!authStateLoaded) {
-        log.debug('⏱️ AUTH TIMEOUT: Firebase took too long (likely offline), showing login');
-        setAuthStateLoaded(true);
-        setSplashFinished(true);
-        setAppState('login');
+        log.debug('⏱️ AUTH TIMEOUT: Firebase took too long, checking cached user...');
+
+        // Check if Firebase has cached user (from AsyncStorage persistence)
+        const cachedFirebaseUser = auth.currentUser;
+        if (cachedFirebaseUser) {
+          log.debug('✅ Found cached Firebase user, loading dashboard');
+          setUser(cachedFirebaseUser);
+          setAuthStateLoaded(true);
+          setSplashFinished(true);
+          await handleDashboardNavigation(cachedFirebaseUser);
+        } else {
+          log.debug('⏱️ No cached user found, showing login');
+          setAuthStateLoaded(true);
+          setSplashFinished(true);
+          setAppState('login');
+        }
       }
     }, 3000);
 
