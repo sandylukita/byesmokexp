@@ -130,13 +130,6 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
                 </>
               )}
             </View>
-
-            {/* Footer Brand */}
-            <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: textColor }]}>
-                {language === 'en' ? 'Share your journey' : 'Bagikan perjalanan Anda'}
-              </Text>
-            </View>
           </View>
         </View>
       </View>
