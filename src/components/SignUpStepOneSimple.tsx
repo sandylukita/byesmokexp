@@ -12,6 +12,7 @@ interface SignUpStepOneProps {
   name: string;
   onNameChange: (name: string) => void;
   onNext: () => void;
+  onLogin: () => void;
   language: 'en' | 'id';
 }
 
@@ -19,6 +20,7 @@ const SignUpStepOne: React.FC<SignUpStepOneProps> = ({
   name,
   onNameChange,
   onNext,
+  onLogin,
   language,
 }) => {
   return (
@@ -68,6 +70,14 @@ const SignUpStepOne: React.FC<SignUpStepOneProps> = ({
         </TouchableOpacity>
 
         <Text style={styles.stepInfo}>{language === 'en' ? 'Step 1 of 3' : 'Langkah 1 dari 3'}</Text>
+
+        <TouchableOpacity onPress={onLogin} style={styles.loginPrompt}>
+          <Text style={styles.loginPromptText}>
+            {language === 'en'
+              ? 'Already have an account? Sign in now'
+              : 'Sudah punya akun? Masuk sekarang'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -76,8 +86,9 @@ const SignUpStepOne: React.FC<SignUpStepOneProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: SIZES.xl,
+    paddingTop: 20,
     backgroundColor: COLORS.primary,
   },
   form: {
@@ -133,6 +144,17 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginTop: 12,
     textAlign: 'center',
+  },
+  loginPrompt: {
+    padding: 12,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  loginPromptText: {
+    color: COLORS.white,
+    fontSize: 14,
+    opacity: 0.8,
+    textDecorationLine: 'underline',
   },
 });
 

@@ -95,6 +95,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
             name={name}
             onNameChange={setName}
             onNext={handleNext}
+            onLogin={onLogin}
             language={language}
           />
         );
@@ -167,18 +168,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
           </View>
         )}
         {renderCurrentStep()}
-        {currentStep === 1 && (
-          <View style={styles.loginPrompt}>
-            <TouchableOpacity onPress={onLogin} style={styles.loginPromptButton}>
-              <Text style={styles.loginPromptText}>
-                {language === 'en'
-                  ? 'Already have an account? Sign in now'
-                  : 'Sudah punya akun? Masuk sekarang'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        
+
         <CustomConfirmDialog
           visible={showErrorDialog}
           title="Error"
@@ -201,22 +191,6 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
-  },
-  loginPrompt: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  loginPromptButton: {
-    padding: 12,
-  },
-  loginPromptText: {
-    color: COLORS.white,
-    fontSize: 14,
-    opacity: 0.8,
-    textDecorationLine: 'underline',
   },
   googleButtonContainer: {
     paddingHorizontal: SIZES.xl,
