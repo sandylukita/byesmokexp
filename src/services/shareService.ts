@@ -61,42 +61,34 @@ export const saveToGallery = async (uri: string): Promise<boolean> => {
  */
 export const shareToInstagramStory = async (uri: string): Promise<boolean> => {
   try {
-    // First, save to gallery (required for Instagram Story sharing)
+    // Save to gallery first (Instagram needs file access)
     const { status } = await MediaLibrary.requestPermissionsAsync();
 
     if (status === 'granted') {
       await MediaLibrary.createAssetAsync(uri);
     }
 
-    // Try to open Instagram directly
-    const instagramURL = Platform.OS === 'ios'
-      ? 'instagram://story-camera'
-      : 'instagram://story-camera';
+    // Use the native share sheet filtered to Instagram
+    const isAvailable = await Sharing.isAvailableAsync();
 
-    const canOpen = await Linking.canOpenURL(instagramURL);
-
-    if (canOpen) {
-      // Open Instagram Story camera
-      await Linking.openURL(instagramURL);
+    if (isAvailable) {
+      // Share with Instagram as the target
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: 'Share to Instagram',
+        UTI: 'image/png', // iOS specific
+      });
       return true;
-    } else {
-      // Fallback to regular share dialog if Instagram not installed
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          dialogTitle: 'Share your smoke-free achievement',
-        });
-        return true;
-      }
-      return false;
     }
+
+    return false;
   } catch (error) {
-    // Fallback to share dialog on error
+    console.log('Instagram share error:', error);
+    // Fallback to share dialog
     try {
       await Sharing.shareAsync(uri, {
         mimeType: 'image/png',
-        dialogTitle: 'Share your smoke-free achievement',
+        dialogTitle: 'Share your achievement',
       });
       return true;
     } catch (fallbackError) {
