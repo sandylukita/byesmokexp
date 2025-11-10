@@ -140,7 +140,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 const styles = StyleSheet.create({
   container: {
     width: 320,
-    height: 480,
+    height: 420,
     overflow: 'visible',
   },
   transparentContainer: {
@@ -150,13 +150,13 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'space-between',
-    padding: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
+    padding: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   headerLogo: {
     width: 52,
@@ -171,10 +171,10 @@ const styles = StyleSheet.create({
   },
   mainMetric: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   mainValue: {
-    fontSize: 84,
+    fontSize: 72,
     fontWeight: '900',
     letterSpacing: -3,
     textAlign: 'center',
