@@ -4,8 +4,7 @@ import React, { useEffect } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
-import { translations, Language } from '../utils/translations';
-import { detectDeviceLanguage } from '../utils/translations';
+import { translations, Language, getDeviceLanguage } from '../utils/translations';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -14,7 +13,7 @@ interface SplashScreenProps {
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, language }) => {
   // Detect language if not provided
-  const currentLanguage = language || detectDeviceLanguage();
+  const currentLanguage = language || getDeviceLanguage();
   const t = translations[currentLanguage];
 
   useEffect(() => {
