@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     paddingTop: 60, // Space for close button
-    paddingBottom: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: Platform.OS === 'ios' ? 80 : 60,
     paddingHorizontal: 20,
   },
   header: {
