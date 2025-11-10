@@ -254,7 +254,6 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     borderRadius: 24,
-    overflow: 'hidden',
     backgroundColor: 'transparent',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -290,6 +289,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     width: '100%',
+    borderRadius: 24,
   },
   scrollContent: {
     flexGrow: 1,
