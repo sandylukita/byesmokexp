@@ -109,27 +109,6 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
                 </Text>
               </View>
             </View>
-
-            {/* Bottom Stats Bar */}
-            <View style={styles.bottomBar}>
-              <View style={styles.bottomStat}>
-                <Text style={[styles.bottomStatValue, { color: textColor }]}>🚭 {cigarettesAvoided}</Text>
-                <Text style={[styles.bottomStatLabel, { color: textColor }]}>
-                  {language === 'en' ? 'Cigarettes Avoided' : 'Rokok Dihindari'}
-                </Text>
-              </View>
-              {healthScore > 0 && (
-                <>
-                  <View style={[styles.bottomDivider, { backgroundColor: textColor }]} />
-                  <View style={styles.bottomStat}>
-                    <Text style={[styles.bottomStatValue, { color: textColor }]}>❤️ {healthScore}%</Text>
-                    <Text style={[styles.bottomStatLabel, { color: textColor }]}>
-                      {language === 'en' ? 'Health Score' : 'Skor Kesehatan'}
-                    </Text>
-                  </View>
-                </>
-              )}
-            </View>
           </View>
         </View>
       </View>
@@ -140,7 +119,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 const styles = StyleSheet.create({
   container: {
     width: 320,
-    height: 380,
+    height: 320,
     overflow: 'visible',
   },
   transparentContainer: {
