@@ -66,7 +66,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
     const textColor = '#FFFFFF';
 
     return (
-      <View ref={ref} style={styles.container}>
+      <View ref={ref} style={styles.container} collapsable={false}>
         <View style={styles.transparentContainer}>
           <View style={styles.content}>
             {/* Header with Logo and Branding */}

@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { ShareCard } from './ShareCard';
 import { shareAchievementCard } from '../services/shareService';
@@ -164,20 +165,23 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 
                 {/* Action Buttons */}
                 <View style={styles.actionsContainer}>
-                  {/* Share Achievement - Primary Button */}
+                  {/* Share Achievement - Primary Button with Gradient */}
                   <TouchableOpacity
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: colors.primary }
-                    ]}
                     onPress={() => handleShare('share')}
                     disabled={loading}
                     activeOpacity={0.8}
                   >
-                    <MaterialIcons name="share" size={20} color="#ffffff" />
-                    <Text style={styles.primaryButtonText}>
-                      {language === 'en' ? 'Share Achievement' : 'Bagikan Pencapaian'}
-                    </Text>
+                    <LinearGradient
+                      colors={['#F99546', '#DB6B1D']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.primaryButton}
+                    >
+                      <MaterialIcons name="share" size={20} color="#ffffff" />
+                      <Text style={styles.primaryButtonText}>
+                        {language === 'en' ? 'Share Achievement' : 'Bagikan Pencapaian'}
+                      </Text>
+                    </LinearGradient>
                   </TouchableOpacity>
 
                   {/* Save to Photos - Secondary Button */}
@@ -311,15 +315,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 28,
     paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     gap: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   primaryButtonText: {
     fontSize: 16,
@@ -330,9 +334,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 28,
     paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     gap: 10,
   },
   secondaryButtonText: {
