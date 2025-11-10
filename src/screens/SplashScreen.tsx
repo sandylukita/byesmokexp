@@ -4,12 +4,19 @@ import React, { useEffect } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { COLORS, SIZES } from '../utils/constants';
 import { TYPOGRAPHY } from '../utils/typography';
+import { translations, Language } from '../utils/translations';
+import { detectDeviceLanguage } from '../utils/translations';
 
 interface SplashScreenProps {
   onFinish: () => void;
+  language?: Language;
 }
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
+const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, language }) => {
+  // Detect language if not provided
+  const currentLanguage = language || detectDeviceLanguage();
+  const t = translations[currentLanguage];
+
   useEffect(() => {
     console.log('🎬 SplashScreen: Component mounted, starting timer...');
     const timer = setTimeout(() => {
@@ -30,17 +37,17 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     >
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/images/icon.png')} 
+          <Image
+            source={require('../../assets/images/icon.png')}
             style={styles.logo}
             resizeMode="contain"
           />
           <Text style={styles.title}>ByeSmoke AI</Text>
-          <Text style={styles.subtitle}>Mulai Hidup Sehat Hari Ini</Text>
+          <Text style={styles.subtitle}>{t.splash.subtitle}</Text>
         </View>
-        
+
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Join thousands of users on their smoke free journey</Text>
+          <Text style={styles.footerText}>{t.splash.footer}</Text>
         </View>
       </View>
     </LinearGradient>

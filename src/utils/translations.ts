@@ -24,6 +24,12 @@ export interface Translations {
     retry: string;
   };
 
+  // Splash Screen
+  splash: {
+    subtitle: string;
+    footer: string;
+  };
+
   // Navigation & Screen Titles
   navigation: {
     dashboard: string;
@@ -466,6 +472,11 @@ export const translations: Record<Language, Translations> = {
       skip: 'Lewati',
       done: 'Selesai',
       retry: 'Coba Lagi',
+    },
+
+    splash: {
+      subtitle: 'Mulai Hidup Sehat Hari Ini',
+      footer: 'Bergabunglah dengan ribuan pengguna dalam perjalanan bebas rokok mereka',
     },
 
     navigation: {
@@ -1082,6 +1093,11 @@ export const translations: Record<Language, Translations> = {
       skip: 'Skip',
       done: 'Done',
       retry: 'Retry',
+    },
+
+    splash: {
+      subtitle: 'Start Living Healthy Today',
+      footer: 'Join thousands of users on their smoke free journey',
     },
 
     navigation: {
