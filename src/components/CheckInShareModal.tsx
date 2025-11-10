@@ -149,30 +149,30 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 
                 {/* Action Buttons */}
                 <View style={styles.actionsContainer}>
-                  {/* Instagram Story */}
+                  {/* Share Achievement - Primary Button */}
                   <TouchableOpacity
                     style={[
-                      styles.actionButton,
-                      { backgroundColor: isDarkMode ? '#3f1d2e' : '#fef2f7' }
+                      styles.primaryButton,
+                      { backgroundColor: isDarkMode ? '#667eea' : '#667eea' }
                     ]}
-                    onPress={() => handleShare('instagram')}
+                    onPress={() => handleShare('share')}
                     disabled={loading}
                     activeOpacity={0.8}
                   >
                     <View style={styles.buttonContent}>
-                      <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#4a1f36' : '#ffffff' }]}>
-                        <MaterialIcons name="photo-camera" size={20} color="#E1306C" />
+                      <View style={[styles.iconCircle, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
+                        <MaterialIcons name="share" size={22} color="#ffffff" />
                       </View>
-                      <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>
-                        {language === 'en' ? 'Share to Instagram' : 'Bagikan ke Instagram'}
+                      <Text style={[styles.primaryButtonText, { color: '#ffffff' }]}>
+                        {language === 'en' ? 'Share Achievement' : 'Bagikan Pencapaian'}
                       </Text>
                     </View>
                   </TouchableOpacity>
 
-                  {/* Save to Gallery */}
+                  {/* Save to Photos - Secondary Button */}
                   <TouchableOpacity
                     style={[
-                      styles.actionButton,
+                      styles.secondaryButton,
                       { backgroundColor: isDarkMode ? '#1e2a4a' : '#f0f4ff' }
                     ]}
                     onPress={() => handleShare('save')}
@@ -185,26 +185,6 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
                       </View>
                       <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>
                         {language === 'en' ? 'Save to Photos' : 'Simpan ke Galeri'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* More Options */}
-                  <TouchableOpacity
-                    style={[
-                      styles.actionButton,
-                      { backgroundColor: isDarkMode ? '#1e3a2e' : '#f0fdf4' }
-                    ]}
-                    onPress={() => handleShare('share')}
-                    disabled={loading}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.buttonContent}>
-                      <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#2a4a3a' : '#ffffff' }]}>
-                        <MaterialIcons name="ios-share" size={20} color="#10b981" />
-                      </View>
-                      <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>
-                        {language === 'en' ? 'More Options' : 'Opsi Lainnya'}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -247,7 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalWrapper: {
-    height: Platform.OS === 'ios' ? height * 0.85 : height * 0.88,
+    height: height * 0.70,
     width: width - 40,
     maxWidth: 400,
   },
@@ -324,8 +304,33 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     width: '100%',
-    gap: 10,
-    marginTop: 4,
+    gap: 12,
+    marginTop: 8,
+  },
+  primaryButton: {
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  primaryButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    flex: 1,
+  },
+  secondaryButton: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   actionButton: {
     borderRadius: 16,
