@@ -61,39 +61,20 @@ export const saveToGallery = async (uri: string): Promise<boolean> => {
  */
 export const shareToInstagramStory = async (uri: string): Promise<boolean> => {
   try {
-    // Save to gallery first (Instagram needs file access)
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-
-    if (status === 'granted') {
-      await MediaLibrary.createAssetAsync(uri);
-    }
-
-    // Use the native share sheet filtered to Instagram
+    // Just use the regular share dialog - same as generic share
     const isAvailable = await Sharing.isAvailableAsync();
 
     if (isAvailable) {
-      // Share with Instagram as the target
       await Sharing.shareAsync(uri, {
         mimeType: 'image/png',
         dialogTitle: 'Share to Instagram',
-        UTI: 'image/png', // iOS specific
       });
       return true;
     }
 
     return false;
   } catch (error) {
-    console.log('Instagram share error:', error);
-    // Fallback to share dialog
-    try {
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        dialogTitle: 'Share your achievement',
-      });
-      return true;
-    } catch (fallbackError) {
-      return false;
-    }
+    return false;
   }
 };
 
