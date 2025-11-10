@@ -54,19 +54,34 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 
   const handleShare = async (action: 'instagram' | 'save' | 'share') => {
     try {
+      console.log('🎯 Share button clicked, action:', action);
+      console.log('📍 ShareCard ref:', shareCardRef.current);
       setLoading(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+      console.log('📸 Capturing ShareCard...');
       const success = await shareAchievementCard(shareCardRef, action);
+      console.log('✅ Share result:', success);
 
-      if (success && action === 'save') {
-        // Auto-close modal after successful save
-        setTimeout(() => {
-          onClose();
-        }, 1500);
+      if (success) {
+        console.log('✅ Share successful!');
+        if (action === 'save') {
+          // Auto-close modal after successful save
+          setTimeout(() => {
+            onClose();
+          }, 1500);
+        }
+      } else {
+        console.error('❌ Share failed - no error thrown but returned false');
+        alert(language === 'en'
+          ? 'Failed to share. Please try again.'
+          : 'Gagal membagikan. Silakan coba lagi.');
       }
     } catch (error) {
-      // Silent error handling
+      console.error('❌ Share error caught:', error);
+      alert(language === 'en'
+        ? `Share error: ${error}`
+        : `Kesalahan berbagi: ${error}`);
     } finally {
       setLoading(false);
     }
