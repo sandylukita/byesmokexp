@@ -54,10 +54,13 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 
   const handleShare = async (action: 'instagram' | 'save' | 'share') => {
     try {
+      console.log('🎯 Share button clicked, action:', action);
       setLoading(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+      console.log('📸 Capturing ShareCard ref...');
       const success = await shareAchievementCard(shareCardRef, action);
+      console.log('✅ Share result:', success);
 
       if (success && action === 'save') {
         // Auto-close modal after successful save
@@ -66,7 +69,7 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
         }, 1500);
       }
     } catch (error) {
-      // Error sharing - silently fail or show alert
+      console.error('❌ Share error:', error);
     } finally {
       setLoading(false);
     }
@@ -153,40 +156,36 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
                   <TouchableOpacity
                     style={[
                       styles.primaryButton,
-                      { backgroundColor: isDarkMode ? '#667eea' : '#667eea' }
+                      { backgroundColor: colors.primary }
                     ]}
                     onPress={() => handleShare('share')}
                     disabled={loading}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
-                    <View style={styles.buttonContent}>
-                      <View style={[styles.iconCircle, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
-                        <MaterialIcons name="share" size={22} color="#ffffff" />
-                      </View>
-                      <Text style={[styles.primaryButtonText, { color: '#ffffff' }]}>
-                        {language === 'en' ? 'Share Achievement' : 'Bagikan Pencapaian'}
-                      </Text>
-                    </View>
+                    <MaterialIcons name="share" size={24} color="#ffffff" style={{ marginRight: 12 }} />
+                    <Text style={styles.primaryButtonText}>
+                      {language === 'en' ? 'Share Achievement' : 'Bagikan Pencapaian'}
+                    </Text>
                   </TouchableOpacity>
 
                   {/* Save to Photos - Secondary Button */}
                   <TouchableOpacity
                     style={[
                       styles.secondaryButton,
-                      { backgroundColor: isDarkMode ? '#1e2a4a' : '#f0f4ff' }
+                      {
+                        backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? '#4b5563' : '#e5e7eb'
+                      }
                     ]}
                     onPress={() => handleShare('save')}
                     disabled={loading}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
-                    <View style={styles.buttonContent}>
-                      <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#2a3a5a' : '#ffffff' }]}>
-                        <MaterialIcons name="file-download" size={20} color="#667eea" />
-                      </View>
-                      <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>
-                        {language === 'en' ? 'Save to Photos' : 'Simpan ke Galeri'}
-                      </Text>
-                    </View>
+                    <MaterialIcons name="file-download" size={24} color={colors.textPrimary} style={{ marginRight: 12 }} />
+                    <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>
+                      {language === 'en' ? 'Save to Photos' : 'Simpan ke Galeri'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
@@ -227,7 +226,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalWrapper: {
-    height: height * 0.70,
+    height: height * 0.85,
     width: width - 40,
     maxWidth: 400,
   },
@@ -305,64 +304,37 @@ const styles = StyleSheet.create({
   actionsContainer: {
     width: '100%',
     gap: 12,
-    marginTop: 8,
+    marginTop: 16,
   },
   primaryButton: {
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  primaryButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    flex: 1,
-  },
-  secondaryButton: {
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  actionButton: {
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 2,
   },
-  actionButtonText: {
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  secondaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    flex: 1,
   },
   loadingContainer: {
     position: 'absolute',
