@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalWrapper: {
-    maxHeight: height * 0.90,
+    height: height * 0.85,
     width: width - 40,
     maxWidth: 400,
   },
