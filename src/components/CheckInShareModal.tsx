@@ -54,13 +54,10 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
 
   const handleShare = async (action: 'instagram' | 'save' | 'share') => {
     try {
-      console.log('🎯 Share button clicked, action:', action);
       setLoading(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      console.log('📸 Capturing ShareCard ref...');
       const success = await shareAchievementCard(shareCardRef, action);
-      console.log('✅ Share result:', success);
 
       if (success && action === 'save') {
         // Auto-close modal after successful save
@@ -69,7 +66,7 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
         }, 1500);
       }
     } catch (error) {
-      console.error('❌ Share error:', error);
+      // Silent error handling
     } finally {
       setLoading(false);
     }
@@ -150,55 +147,38 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
                   />
                 </View>
 
-                {/* Action Buttons */}
-                <View style={styles.actionsContainer}>
-                  {/* Share Achievement - Primary Button */}
+                {/* Action Buttons - Native Style Grid */}
+                <View style={styles.shareGrid}>
+                  {/* Share Achievement */}
                   <TouchableOpacity
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: colors.primary }
-                    ]}
+                    style={styles.shareOption}
                     onPress={() => handleShare('share')}
                     disabled={loading}
-                    activeOpacity={0.7}
+                    activeOpacity={0.6}
                   >
-                    <MaterialIcons name="share" size={24} color="#ffffff" style={{ marginRight: 12 }} />
-                    <Text style={styles.primaryButtonText}>
-                      {language === 'en' ? 'Share Achievement' : 'Bagikan Pencapaian'}
+                    <View style={styles.shareOptionIcon}>
+                      <MaterialIcons name="share" size={36} color={colors.primary} />
+                    </View>
+                    <Text style={[styles.shareOptionText, { color: colors.textSecondary }]}>
+                      {language === 'en' ? 'Share' : 'Bagikan'}
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Save to Photos - Secondary Button */}
+                  {/* Save to Photos */}
                   <TouchableOpacity
-                    style={[
-                      styles.secondaryButton,
-                      {
-                        backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
-                        borderWidth: 1,
-                        borderColor: isDarkMode ? '#4b5563' : '#e5e7eb'
-                      }
-                    ]}
+                    style={styles.shareOption}
                     onPress={() => handleShare('save')}
                     disabled={loading}
-                    activeOpacity={0.7}
+                    activeOpacity={0.6}
                   >
-                    <MaterialIcons name="file-download" size={24} color={colors.textPrimary} style={{ marginRight: 12 }} />
-                    <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>
-                      {language === 'en' ? 'Save to Photos' : 'Simpan ke Galeri'}
+                    <View style={styles.shareOptionIcon}>
+                      <MaterialIcons name="save-alt" size={36} color={colors.gray} />
+                    </View>
+                    <Text style={[styles.shareOptionText, { color: colors.textSecondary }]}>
+                      {language === 'en' ? 'Save' : 'Simpan'}
                     </Text>
                   </TouchableOpacity>
                 </View>
-
-                {/* Skip Button */}
-                <TouchableOpacity
-                  style={styles.skipButton}
-                  onPress={handleClose}
-                  disabled={loading}
-                >
-                  <Text style={[styles.skipButtonText, { color: colors.textSecondary }]}>
-                    {language === 'en' ? 'Skip for now' : 'Lewati'}
-                  </Text>
-                </TouchableOpacity>
               </ScrollView>
 
               {/* Loading Indicator */}
@@ -226,7 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalWrapper: {
-    height: height * 0.85,
+    maxHeight: height * 0.90,
     width: width - 40,
     maxWidth: 400,
   },
@@ -301,40 +281,25 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  actionsContainer: {
+  shareGrid: {
+    flexDirection: 'row',
     width: '100%',
-    gap: 12,
-    marginTop: 16,
+    gap: 24,
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
-  primaryButton: {
-    flexDirection: 'row',
+  shareOption: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
     paddingVertical: 16,
-    paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
+  shareOptionIcon: {
+    marginBottom: 8,
   },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  shareOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   loadingContainer: {
     position: 'absolute',
@@ -345,15 +310,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 24,
-  },
-  skipButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  skipButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
   },
 });
