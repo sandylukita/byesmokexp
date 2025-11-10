@@ -162,35 +162,41 @@ export const CheckInShareModal: React.FC<CheckInShareModalProps> = ({
                   />
                 </View>
 
-                {/* Action Buttons - Native Style Grid */}
-                <View style={styles.shareGrid}>
-                  {/* Share Achievement */}
+                {/* Action Buttons */}
+                <View style={styles.actionsContainer}>
+                  {/* Share Achievement - Primary Button */}
                   <TouchableOpacity
-                    style={styles.shareOption}
+                    style={[
+                      styles.primaryButton,
+                      { backgroundColor: colors.primary }
+                    ]}
                     onPress={() => handleShare('share')}
                     disabled={loading}
-                    activeOpacity={0.6}
+                    activeOpacity={0.8}
                   >
-                    <View style={styles.shareOptionIcon}>
-                      <MaterialIcons name="share" size={36} color={colors.primary} />
-                    </View>
-                    <Text style={[styles.shareOptionText, { color: colors.textSecondary }]}>
-                      {language === 'en' ? 'Share' : 'Bagikan'}
+                    <MaterialIcons name="share" size={20} color="#ffffff" />
+                    <Text style={styles.primaryButtonText}>
+                      {language === 'en' ? 'Share Achievement' : 'Bagikan Pencapaian'}
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Save to Photos */}
+                  {/* Save to Photos - Secondary Button */}
                   <TouchableOpacity
-                    style={styles.shareOption}
+                    style={[
+                      styles.secondaryButton,
+                      {
+                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'
+                      }
+                    ]}
                     onPress={() => handleShare('save')}
                     disabled={loading}
-                    activeOpacity={0.6}
+                    activeOpacity={0.8}
                   >
-                    <View style={styles.shareOptionIcon}>
-                      <MaterialIcons name="save-alt" size={36} color={colors.gray} />
-                    </View>
-                    <Text style={[styles.shareOptionText, { color: colors.textSecondary }]}>
-                      {language === 'en' ? 'Save' : 'Simpan'}
+                    <MaterialIcons name="save-alt" size={20} color={colors.textPrimary} />
+                    <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>
+                      {language === 'en' ? 'Save to Photos' : 'Simpan ke Galeri'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -296,25 +302,42 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  shareGrid: {
-    flexDirection: 'row',
+  actionsContainer: {
     width: '100%',
-    gap: 24,
+    gap: 12,
     marginTop: 20,
-    paddingHorizontal: 20,
   },
-  shareOption: {
-    flex: 1,
+  primaryButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
     paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  shareOptionIcon: {
-    marginBottom: 8,
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
-  shareOptionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 10,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   loadingContainer: {
     position: 'absolute',
