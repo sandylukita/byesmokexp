@@ -147,7 +147,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 const styles = StyleSheet.create({
   container: {
     width: 320,
-    height: 520,
+    height: 480,
     overflow: 'visible',
   },
   transparentContainer: {
