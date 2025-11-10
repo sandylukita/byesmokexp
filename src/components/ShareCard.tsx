@@ -119,7 +119,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
 const styles = StyleSheet.create({
   container: {
     width: 320,
-    height: 350,
+    height: 420,
     overflow: 'visible',
   },
   transparentContainer: {
@@ -129,28 +129,28 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'space-between',
-    padding: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
+    padding: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   header: {
     alignItems: 'center',
     marginBottom: 8,
   },
   headerLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 52,
+    height: 52,
+    borderRadius: 13,
     marginBottom: 8,
   },
   logoText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   mainMetric: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   mainValue: {
     fontSize: 72,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   mainLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
     letterSpacing: 2,
     marginTop: 4,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 0,
+    marginBottom: 8,
   },
   statCard: {
     flex: 1,
