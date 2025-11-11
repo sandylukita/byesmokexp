@@ -64,14 +64,14 @@ describe('CustomAlert', () => {
 
   it('should call onDismiss when close button is pressed', () => {
     const onDismiss = jest.fn();
-    const { getByTestId } = render(
+    const { getByText } = render(
       <TestWrapper>
         <CustomAlert {...defaultProps} onDismiss={onDismiss} />
       </TestWrapper>
     );
 
     // Since we don't have testID in the component, let's test overlay press
-    const modal = result.getByText('Test Title').parent?.parent?.parent;
+    const modal = getByText('Test Title').parent?.parent?.parent;
     if (modal) {
       fireEvent.press(modal);
     }

@@ -48,7 +48,7 @@ const ProfileWrapper: React.FC<{ onLogout: () => void; navigation: any; route: a
 
 const TamagotchiWrapper: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => (
   <TamagotchiScreen
-    user={null} // Will be passed from parent
+    user={undefined} // Will be passed from parent
     onUpdateUser={async () => {}} // Will be passed from parent
   />
 );

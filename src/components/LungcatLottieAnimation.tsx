@@ -67,7 +67,8 @@ const ANIMATION_IMPORTS = {
 // Simple animation loading function
 const loadAnimation = (stage: 'cat' | 'tiger' | 'lion', state: AnimationState): any => {
   try {
-    const importFunction = ANIMATION_IMPORTS[stage][state];
+    const stageAnimations = ANIMATION_IMPORTS[stage] as Record<string, () => any>;
+    const importFunction = stageAnimations[state];
     if (!importFunction) {
       return ANIMATION_IMPORTS.cat.idle();
     }
@@ -358,13 +359,14 @@ export const LungcatLottieAnimation = React.forwardRef<any, LungcatLottieAnimati
     const animationState = temporaryAnimation || currentAnimation;
 
     try {
-      if (ANIMATION_IMPORTS[petStage] && ANIMATION_IMPORTS[petStage][animationState]) {
-        return ANIMATION_IMPORTS[petStage][animationState]();
+      const stageAnimations = ANIMATION_IMPORTS[petStage] as Record<string, () => any>;
+      if (stageAnimations && stageAnimations[animationState]) {
+        return stageAnimations[animationState]();
       }
 
       // Fallback to idle animation of the same stage
-      if (ANIMATION_IMPORTS[petStage] && ANIMATION_IMPORTS[petStage].idle) {
-        return ANIMATION_IMPORTS[petStage].idle();
+      if (stageAnimations && stageAnimations.idle) {
+        return stageAnimations.idle();
       }
 
       // Ultimate fallback to cat idle

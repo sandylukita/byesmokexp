@@ -94,6 +94,7 @@ export interface UserSettings {
   notifications: boolean;
   streakNotifications?: boolean; // Smart streak protection notifications
   language: string;
+  languageSetManually?: boolean; // Track if user manually changed language
   reminderTime: string;
   leaderboardDisplayPreference: 'username' | 'displayName';
 }
