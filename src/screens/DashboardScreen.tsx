@@ -502,12 +502,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
               
               // Handle both Firebase Timestamp and regular Date objects
               let completedDate;
-              if (m.completedAt && typeof m.completedAt.toDate === 'function') {
+              if (m.completedAt && typeof (m.completedAt as any).toDate === 'function') {
                 // Firebase Timestamp
-                completedDate = m.completedAt.toDate();
-              } else if (m.completedAt && m.completedAt.seconds) {
+                completedDate = (m.completedAt as any).toDate();
+              } else if (m.completedAt && (m.completedAt as any).seconds) {
                 // Serialized Firebase Timestamp with seconds property
-                completedDate = new Date(m.completedAt.seconds * 1000);
+                completedDate = new Date((m.completedAt as any).seconds * 1000);
               } else {
                 // Regular Date or string
                 completedDate = new Date(m.completedAt);

@@ -51,16 +51,19 @@ const createSkeletonAchievementUser = (): User => ({
   xp: 140,
   level: 2,
   badges: [
-    { id: 'new-member', unlockedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
-    { id: 'first-day', unlockedAt: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000) },
-    { id: 'week-warrior', unlockedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+    { id: 'new-member', name: 'New Member', description: 'Welcome!', icon: '🎉', color: '#3498DB', unlockedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), requirement: 'Join' },
+    { id: 'first-day', name: 'First Day', description: 'First day smoke-free', icon: '🌟', color: '#2ECC71', unlockedAt: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000), requirement: '1 day' },
+    { id: 'week-warrior', name: 'Week Warrior', description: '7 days smoke-free', icon: '💪', color: '#F39C12', unlockedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), requirement: '7 days' },
   ],
   completedMissions: [],
   dailyXP: {},
   settings: {
+    darkMode: false,
     notifications: true,
     streakNotifications: true,
+    language: 'en',
     reminderTime: '09:00',
+    leaderboardDisplayPreference: 'username',
   },
   lastCheckIn: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
 });
@@ -340,11 +343,11 @@ const BadgeStatisticsScreen: React.FC = () => {
         console.log('✅ Badge Screen: Demo user data loaded:', demoUser.email);
       } else {
         console.log('⚠️ No user found for badge screen');
-        setUser(null);
+        setUser(createSkeletonAchievementUser());
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      setUser(null);
+      setUser(createSkeletonAchievementUser());
     }
   };
 

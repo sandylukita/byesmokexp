@@ -1,5 +1,5 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
 import AppNavigator from './AppNavigator';
 import LegalScreen from '../screens/LegalScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
@@ -34,14 +34,14 @@ const MainNavigator: React.FC<MainNavigatorProps> = ({ onLogout }) => {
           headerShown: false,
         }}
       />
-      <Stack.Screen 
+      <Stack.Screen
         name="Subscription"
         options={{
           presentation: 'modal',
           headerShown: false,
         }}
       >
-        {({ navigation, route }) => (
+        {({ navigation, route }: NativeStackScreenProps<MainStackParamList, 'Subscription'>) => (
           <SubscriptionScreen
             onClose={() => navigation.goBack()}
             userId={route.params?.userId}
