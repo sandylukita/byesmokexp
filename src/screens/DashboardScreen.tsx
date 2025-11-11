@@ -600,7 +600,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
             const aiMotivation = await OptimizedAI.getMotivation(
               user,
               motivationResult.triggerType === 'milestone' ? 'milestone' : 'daily',
-              motivationResult.triggerData || {},
+              (motivationResult as any).triggerData || {},
               language as 'en' | 'id'
             );
             
@@ -679,7 +679,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
           
           debugLog.log('🗑️ Cleared ALL motivation caches for language change');
         } catch (error) {
-          debugLog.log('ℹ️ Could not clear motivation cache:', error.message);
+          debugLog.log('ℹ️ Could not clear motivation cache:', (error as any).message);
         }
       };
       clearLanguageCaches();
@@ -857,22 +857,22 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
     } finally {
       debugLog.log('Setting loading to false');
       setLoading(false);
-      
+
       // Initialize user journey tracking and crash reporting
-      if (userData) {
-        await initializeUserJourney(userData.id);
-        initializeCrashReporting(userData.id);
+      if (user) {
+        await initializeUserJourney(user.id);
+        initializeCrashReporting(user.id);
         setCurrentScreen('dashboard');
-        
-        await trackScreenView('dashboard', { 
-          userStreak: userData.streak,
-          userLevel: userData.xp ? Math.floor(userData.xp / 100) + 1 : 1,
-          hasPremium: userData.isPremium
+
+        await trackScreenView('dashboard', {
+          userStreak: user.streak,
+          userLevel: user.xp ? Math.floor(user.xp / 100) + 1 : 1,
+          hasPremium: user.isPremium
         });
       }
 
       // Check if user needs tutorial (first-time user)
-      if (userData && !userData.tutorialCompleted && userData.onboardingCompleted) {
+      if (user && !user.tutorialCompleted && user.onboardingCompleted) {
         debugLog.log('🎯 First-time user detected, showing feature tutorial');
         setShowTutorial(true);
       }

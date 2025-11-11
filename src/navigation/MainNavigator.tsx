@@ -41,10 +41,10 @@ const MainNavigator: React.FC<MainNavigatorProps> = ({ onLogout }) => {
           headerShown: false,
         }}
       >
-        {({ navigation, route }: NativeStackScreenProps<MainStackParamList, 'Subscription'>) => (
+        {(props: NativeStackScreenProps<MainStackParamList, 'Subscription'>) => (
           <SubscriptionScreen
-            onClose={() => navigation.goBack()}
-            userId={route.params?.userId}
+            onClose={() => props.navigation.goBack()}
+            userId={props.route.params?.userId}
           />
         )}
       </Stack.Screen>
