@@ -1,52 +1,31 @@
-# EAS ignore file - Exclude files that cause permission errors
-
-# Version control
-.git/
-.github/
-.husky/
-
-# Dependencies
-node_modules/
-
-# Build outputs
-.expo/
-dist/
-coverage/
+# Exclude build artifacts and caches
 android/build/
-ios/build/
+android/.gradle/
+android/app/build/
+android/.cxx/
 
-# Environment files (using EAS environment variables instead)
-.env.local
-.env.development
-.env.test
+# Exclude git
+.git/
 
-# IDE and OS files
+# Exclude IDE files
+.idea/
 .vscode/
-.claude/
-.DS_Store
+
+# Exclude logs
 *.log
 
-# Test files
-**/__tests__/
-**/*.test.ts
-**/*.test.tsx
-**/*.test.js
-**/*.test.jsx
-
-# Backup and old files
+# Exclude backup files
 *.backup
-*_old.png
-*_def.png
+*.bak
+*.old
 
-# Documentation and tasks (not needed for builds)
-tasks/
-app-store/
-COST-OPTIMIZATION.md
-PRODUCTION-READY.md
-README.md
-*.md
+# Exclude test files
+**/__tests__/
+*.test.tsx
+*.test.ts
 
-# Scripts not needed for builds
-scripts/
-setup-production-env.bat
-setup-production-env.sh
+# Exclude documentation (keep README)
+SHARE_CARD_FEATURE.md
+SHARE_MODAL_FIXES.md
+SPACING_IMPROVEMENTS.md
+APPLE_SIGNIN_SETUP.md
