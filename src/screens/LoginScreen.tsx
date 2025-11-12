@@ -13,7 +13,7 @@ import {
     View,
 } from 'react-native';
 import { CustomAlert } from '../components/CustomAlert';
-import { signIn, signInWithGoogle } from '../services/auth';
+import { signIn, signInWithGoogle, signInWithApple } from '../services/auth';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { MaterialIcons } from '@expo/vector-icons';
 import { auth } from '../services/firebase';
@@ -23,6 +23,7 @@ import { TYPOGRAPHY } from '../utils/typography';
 import { debugLog } from '../utils/performanceOptimizer';
 import { useTranslation } from '../hooks/useTranslation';
 import { GoogleLogo } from '../components/GoogleLogo';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -152,6 +153,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
     }
   }, [showCustomAlert, onLogin, language]);
 
+  const handleAppleSignIn = useCallback(async () => {
+    setLoading(true);
+    try {
+      await signInWithApple();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onLogin();
+    } catch (error: any) {
+      showCustomAlert(
+        language === 'en' ? 'Error' : 'Kesalahan',
+        error.message || (language === 'en' ? 'Apple Sign-In failed' : 'Login Apple gagal')
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [showCustomAlert, onLogin, language]);
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -238,6 +255,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onSignUp }) => {
                   {language === 'en' ? 'Sign in with Google' : 'Masuk dengan Google'}
                 </Text>
               </TouchableOpacity>
+
+              {Platform.OS === 'ios' && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={24}
+                  style={styles.appleButton}
+                  onPress={handleAppleSignIn}
+                />
+              )}
 
               <TouchableOpacity
                 style={styles.forgotPasswordContainer}
@@ -406,6 +433,11 @@ const styles = StyleSheet.create({
     color: '#3c4043',
     fontWeight: '500',
     fontSize: 14,
+  },
+  appleButton: {
+    width: '100%',
+    height: 48,
+    marginTop: SIZES.sm,
   },
 });
 

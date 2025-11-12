@@ -6,10 +6,13 @@ import {
   updateProfile,
   User as FirebaseUser,
   GoogleAuthProvider,
-  signInWithCredential
+  signInWithCredential,
+  OAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { Platform } from 'react-native';
 import { User } from '../types';
 import { checkAndAwardBadges } from './gamification';
 import { OptimizedUserOperations } from '../utils/firebaseOptimizer';
@@ -113,6 +116,80 @@ export const signInWithGoogle = async () => {
     }
 
     throw new Error(sanitizeErrorMessage(error.message || 'Google Sign-In failed'));
+  }
+};
+
+export const signInWithApple = async () => {
+  try {
+    log.info('🍎 Starting Apple Sign-In...');
+
+    // Check if Apple Authentication is available
+    if (Platform.OS !== 'ios') {
+      throw new Error('Apple Sign-In is only available on iOS devices');
+    }
+
+    const isAvailable = await AppleAuthentication.isAvailableAsync();
+    if (!isAvailable) {
+      throw new Error('Apple Sign-In is not available on this device');
+    }
+
+    // Request Apple authentication
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+
+    log.info('✅ Apple Sign-In successful');
+
+    // Create Firebase credential from Apple ID token
+    const provider = new OAuthProvider('apple.com');
+    const appleCredential = provider.credential({
+      idToken: credential.identityToken!,
+    });
+
+    // Sign in to Firebase with Apple credential
+    const userCredential = await signInWithCredential(auth, appleCredential);
+    const firebaseUser = userCredential.user;
+
+    log.info('✅ Firebase authentication successful:', firebaseUser.uid);
+
+    // Check if user document exists
+    const userDoc = await getUserDocument(firebaseUser.uid);
+
+    if (!userDoc) {
+      // New user - create user document
+      log.info('📝 Creating new user document for Apple sign-in');
+
+      // Get display name from Apple (if provided) or use email
+      let displayName = 'User';
+      if (credential.fullName?.givenName && credential.fullName?.familyName) {
+        displayName = `${credential.fullName.givenName} ${credential.fullName.familyName}`.trim();
+      } else if (credential.fullName?.givenName) {
+        displayName = credential.fullName.givenName;
+      } else if (firebaseUser.email) {
+        displayName = firebaseUser.email.split('@')[0];
+      }
+
+      const username = sanitizeUsername(displayName);
+
+      await createUserDocument(firebaseUser, displayName, username);
+      log.info('✅ User document created successfully');
+    } else {
+      log.info('✅ Existing user logged in via Apple');
+    }
+
+    return firebaseUser;
+  } catch (error: any) {
+    log.error('❌ Apple Sign-In error:', error);
+
+    // Handle specific Apple Sign-In errors
+    if (error.code === 'ERR_CANCELED' || error.code === 'ERR_REQUEST_CANCELED') {
+      throw new Error('Sign in was cancelled');
+    }
+
+    throw new Error(sanitizeErrorMessage(error.message || 'Apple Sign-In failed'));
   }
 };
 

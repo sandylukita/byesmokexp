@@ -11,7 +11,7 @@ import {
     View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { signUp, signInWithGoogle } from '../services/auth';
+import { signUp, signInWithGoogle, signInWithApple } from '../services/auth';
 import { COLORS, SIZES } from '../utils/constants';
 import SignUpStepOne from '../components/SignUpStepOneSimple';
 import SignUpStepTwo from '../components/SignUpStepTwoSimple';
@@ -21,6 +21,7 @@ import ProgressBar from '../components/ProgressBar';
 import { CustomConfirmDialog } from '../components/CustomConfirmDialog';
 import { useTranslation } from '../hooks/useTranslation';
 import { GoogleLogo } from '../components/GoogleLogo';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 interface SignUpScreenProps {
   onSignUp: () => void;
@@ -80,6 +81,23 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
       setErrorMessage(
         error.message ||
           (language === 'en' ? 'Google Sign-Up failed' : 'Pendaftaran Google gagal')
+      );
+      setShowErrorDialog(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignUp = async () => {
+    setLoading(true);
+    try {
+      await signInWithApple();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onSignUp();
+    } catch (error: any) {
+      setErrorMessage(
+        error.message ||
+          (language === 'en' ? 'Apple Sign-Up failed' : 'Pendaftaran Apple gagal')
       );
       setShowErrorDialog(true);
     } finally {
@@ -158,6 +176,17 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignUp, onLogin }) => {
                 {language === 'en' ? 'Sign in with Google' : 'Masuk dengan Google'}
               </Text>
             </TouchableOpacity>
+
+            {Platform.OS === 'ios' && (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={26}
+                style={styles.appleButton}
+                onPress={handleAppleSignUp}
+              />
+            )}
+
             <View style={styles.dividerContainer}>
               <View style={styles.divider} />
               <Text style={styles.dividerText}>
@@ -239,6 +268,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     fontWeight: '600',
     fontSize: 14,
+  },
+  appleButton: {
+    width: '100%',
+    height: 52,
+    marginTop: SIZES.sm,
   },
 });
 

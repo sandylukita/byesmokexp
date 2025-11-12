@@ -2,7 +2,7 @@
   "expo": {
     "name": "ByeSmoke AI - Smart Quit Coach",
     "slug": "byesmoke-v00",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "byesmokev00",
@@ -13,7 +13,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zaynstudio.byesmoke",
-      "buildNumber": "1.0.8",
+      "buildNumber": "1.0.9",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -35,13 +35,20 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.zaynstudio.byesmoke",
-      "versionCode": 8,
+      "versionCode": 9,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "WAKE_LOCK",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
       ],
       "blockedPermissions": [
         "CAMERA",
@@ -92,12 +99,15 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
+      "expo-apple-authentication",
       "expo-router"
     ],
     "extra": {
       "eas": {
-        "projectId": "9801fdf0-23bb-4c50-a0da-de62cbc37659"
-      }
-    }
+        "projectId": "ec609e29-dc15-4634-9dc2-93fa44ccb3a5"
+      },
+      "router": {}
+    },
+    "owner": "isenklagee"
   }
 }
