@@ -402,38 +402,54 @@ class AdMobService {
         log.info('🎯 AdMob not available on web platform');
         return false;
       }
-      
+
       // Check if rewarded ad is loaded and ready
       if (!this.isRewardedAdLoaded || this.isShowingRewardedAd || !this.rewardedAd) {
         log.info('🎯 Rewarded ad not ready to show - loaded:', this.isRewardedAdLoaded, 'showing:', this.isShowingRewardedAd, 'exists:', !!this.rewardedAd);
-        
+
         // If ad is not loaded, try to load it again (might help with network issues)
         if (!this.isRewardedAdLoaded && !this.isShowingRewardedAd) {
           log.info('🔄 Attempting to reload rewarded ad due to not being ready');
           this.createRewardedAd();
         }
-        
+
         return false;
       }
 
       log.info(`🎯 Showing rewarded ad for context: ${context}`);
-      
+
       // Reset reward state
       this.userEarnedReward = false;
-      
-      // Show the ad and wait for completion
+
+      // Create a promise that waits for the ad to be closed
+      // This is the proper way to detect ad completion across iOS and Android
+      const adClosedPromise = new Promise<void>((resolve) => {
+        const closeHandler = this.rewardedAd.addAdEventListener(
+          AdEventType.CLOSED,
+          () => {
+            log.info('🎯 Rewarded ad CLOSED event fired');
+            closeHandler(); // Remove this temporary listener
+            resolve();
+          }
+        );
+      });
+
+      // Show the ad (on iOS this returns immediately, on Android it may wait)
       await this.rewardedAd.show();
-      
-      // Wait a moment for the reward event to fire
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      log.info('🎯 Rewarded ad show() completed');
+
+      // Wait for the ad to actually close (regardless of ad duration)
+      await adClosedPromise;
+      log.info('🎯 Ad closed, checking reward status');
+
+      // By now, EARNED_REWARD event has fired (if user completed the ad)
       log.info('🎯 Rewarded ad completed - user earned reward:', this.userEarnedReward);
       return this.userEarnedReward;
 
     } catch (error) {
       // Reset state on error
       this.isShowingRewardedAd = false;
-      
+
       log.error('❌ Failed to show rewarded ad:', error);
       errorTracker.trackError({
         error: error as Error,
