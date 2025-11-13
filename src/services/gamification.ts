@@ -168,7 +168,7 @@ const getBaselineStats = (): {[badgeId: string]: number} => {
 };
 
 
-export const checkAndAwardBadges = async (userId: string, user: User): Promise<Badge[]> => {
+export const checkAndAwardBadges = async (userId: string, user: User, skipAds: boolean = false): Promise<Badge[]> => {
   const newBadges: Badge[] = [];
   const userBadgeIds = (user.badges || []).map(badge => badge.id);
 
@@ -311,7 +311,8 @@ export const checkAndAwardBadges = async (userId: string, user: User): Promise<B
     }
     
     // Show interstitial ad when user earns badges (async, don't await)
-    if (newBadges.length > 0) {
+    // Skip ads if explicitly requested (e.g., during signup) or if user is premium
+    if (newBadges.length > 0 && !skipAds) {
       // Get user's premium status to determine if we should show ad
       const shouldShowAd = !user.isPremium;
       if (shouldShowAd) {

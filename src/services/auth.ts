@@ -315,8 +315,9 @@ export const createUserDocument = async (user: FirebaseUser, displayName: string
   await setDoc(userDoc, userData);
   
   // Auto-award the "new member" badge and increment its statistics
+  // Skip ads during signup to avoid interrupting the onboarding experience
   try {
-    const newBadges = await checkAndAwardBadges(user.uid, userData as User);
+    const newBadges = await checkAndAwardBadges(user.uid, userData as User, true);
     if (newBadges.length > 0) {
       console.log(`✓ Auto-awarded ${newBadges.length} badges to new user: ${newBadges.map(b => b.id).join(', ')}`);
       // Update the userData to include the new badges
