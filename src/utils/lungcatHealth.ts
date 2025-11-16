@@ -40,19 +40,21 @@ export const calculateLungcatHealth = (user: User | null): LungcatHealthInfo => 
     };
   }
 
-  const streak = user.streak || 0;
+  // Use totalDays for health calculation (represents total progress, never resets)
+  // This is more encouraging than streak-based which resets on missed days
+  const totalDays = user.totalDays || 0;
   const lastCheckIn = user.lastCheckIn;
 
-  // Base health calculation based on streak
+  // Base health calculation based on total check-in days
   let baseHealth: number;
 
-  if (streak === 0) {
+  if (totalDays === 0) {
     baseHealth = 20;
-  } else if (streak < 7) {
+  } else if (totalDays < 7) {
     baseHealth = 40;
-  } else if (streak < 30) {
+  } else if (totalDays < 30) {
     baseHealth = 70;
-  } else if (streak < 90) {
+  } else if (totalDays < 90) {
     baseHealth = 85;
   } else {
     baseHealth = 100;
