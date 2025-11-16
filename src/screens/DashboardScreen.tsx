@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { OptimizedUserOperations, CostTracker } from '../utils/firebaseOptimizer';
 import { log } from '../config/environment';
@@ -1011,8 +1011,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
             throw new Error('Authentication mismatch');
           }
           
-          // 💰 COST-OPTIMIZED: Use batched write for check-in updates
-          await OptimizedUserOperations.updateUser(user.id, {
+          // CRITICAL FIX: Use immediate write for check-ins to prevent streak reset bug
+          // The batched write system has a 2-second delay which causes race conditions
+          // with the Firebase listener, resulting in streak values getting stuck at 1
+          const userDoc = doc(db, 'users', user.id);
+          await updateDoc(userDoc, {
             lastCheckIn: new Date().toISOString(),
             streak: newStreak,
             longestStreak: newLongestStreak,
@@ -1020,7 +1023,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
             xp: newXP,
             dailyXP: updatedDailyXP,
           });
-          debugLog.log('✓ Dashboard Firebase: Check-in data updated successfully');
+          debugLog.log('✓ Dashboard Firebase: Check-in data updated successfully (immediate write)');
         } catch (firebaseError) {
           debugLog.log('⚠️ Firebase error during check-in, switching to demo mode:', firebaseError.message);
           
