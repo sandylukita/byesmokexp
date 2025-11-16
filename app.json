@@ -2,7 +2,7 @@
   "expo": {
     "name": "ByeSmoke AI - Smart Quit Coach",
     "slug": "byesmoke-v00",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "byesmokev00",
@@ -13,7 +13,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zaynstudio.byesmoke",
-      "buildNumber": "1.0.10",
+      "buildNumber": "1.0.11",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -21,6 +21,9 @@
         "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you.",
         "NSPhotoLibraryUsageDescription": "ByeSmoke needs access to save your progress images to your photo library.",
         "NSPhotoLibraryAddUsageDescription": "ByeSmoke needs permission to save your smoke-free achievement cards.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "SKAdNetworkItems": [
           {
             "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
@@ -35,7 +38,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.zaynstudio.byesmoke",
-      "versionCode": 10,
+      "versionCode": 11,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
@@ -75,7 +78,10 @@
       [
         "expo-notifications",
         {
-          "color": "#F99546"
+          "icon": "./assets/images/icon.png",
+          "color": "#F99546",
+          "sounds": [],
+          "iosDisplayInForeground": true
         }
       ],
       [

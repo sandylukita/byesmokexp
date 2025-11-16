@@ -758,8 +758,8 @@ Cheerleader pribadi kamu makin seneng dan sehat setiap hari bebas rokok! 💖
       return language === 'en' ? 'Start daily check-ins to help Lungcat grow!' : 'Check-in harian untuk bantu Lungcat tumbuh!';
     }
 
-    // Use totalDays for health progress (more encouraging, never resets)
-    const totalDays = user.totalDays || 0;
+    // Use streak for health progress to motivate daily consistency
+    const streak = user.streak || 0;
     const evolutionInfo = getEvolutionInfo(user);
     const daysToNextEvolution = evolutionInfo.daysToNextStage;
 
@@ -771,8 +771,8 @@ Cheerleader pribadi kamu makin seneng dan sehat setiap hari bebas rokok! 💖
       return language === 'en'
         ? `📈 ${daysToNextEvolution} days to evolve into ${nextStage}`
         : `📈 ${daysToNextEvolution} hari lagi evolusi jadi ${nextStage}`;
-    } else if (totalDays < 7) {
-      const daysNeeded = 7 - totalDays;
+    } else if (streak < 7) {
+      const daysNeeded = 7 - streak;
       return language === 'en'
         ? `💪 ${daysNeeded} more check-ins to reach full health`
         : `💪 ${daysNeeded} check-in lagi untuk kesehatan penuh`;

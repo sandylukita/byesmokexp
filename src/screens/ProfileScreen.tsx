@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as StoreReview from 'expo-store-review';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
@@ -440,20 +441,32 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout, navigation }) =
     );
   };
 
-  const handleRateApp = () => {
-    const appStoreUrl = Platform.OS === 'ios'
-      ? 'https://apps.apple.com/app/byesmoke-ai-smart-quit-coach/id123456789' // TODO: Replace with actual App Store ID after iOS submission
-      : 'https://play.google.com/store/apps/details?id=com.zaynstudio.byesmoke';
-    
-    Linking.openURL(appStoreUrl).catch(err => {
-      console.error('Failed to open app store:', err);
+  const handleRateApp = async () => {
+    try {
+      // Check if in-app review is available
+      const isAvailable = await StoreReview.isAvailableAsync();
+
+      if (isAvailable) {
+        // Use in-app review (works on both iOS and Android)
+        await StoreReview.requestReview();
+      } else {
+        // Fallback to store URL
+        const appStoreUrl = Platform.OS === 'ios'
+          ? 'https://apps.apple.com/app/byesmoke-ai/id6739254626' // ByeSmoke AI App Store ID
+          : 'https://play.google.com/store/apps/details?id=com.zaynstudio.byesmoke';
+
+        await Linking.openURL(appStoreUrl);
+      }
+    } catch (err) {
+      console.error('Failed to open app rating:', err);
       showCustomAlert(
         language === 'en' ? 'Error' : 'Error',
-        language === 'en' 
-          ? 'Could not open app store. Please rate us manually in your app store.'
-          : 'Tidak dapat membuka app store. Silakan beri rating secara manual di app store Anda.'
+        language === 'en'
+          ? 'Could not open app rating. Please rate us manually in your app store.'
+          : 'Tidak dapat membuka rating. Silakan beri rating secara manual di app store Anda.',
+        'error'
       );
-    });
+    }
   };
 
   const handleLanguageToggle = () => {
