@@ -278,8 +278,8 @@ export default function Main() {
     // Add a maximum timeout for the entire function to prevent infinite hanging
     const functionTimeoutPromise = new Promise<void>((_, reject) => {
       setTimeout(() => {
-        reject(new Error('checkOnboardingStatus function timeout after 5 seconds'));
-      }, 5000); // 5 second total timeout for faster loading
+        reject(new Error('checkOnboardingStatus function timeout after 8 seconds'));
+      }, 8000); // 8 second total timeout to allow for retries
     });
 
     const checkOnboardingPromise = async (): Promise<void> => {
@@ -298,8 +298,8 @@ export default function Main() {
           // Create a proper timeout promise that actually rejects
           const timeoutPromise = new Promise<never>((_, reject) => {
             setTimeout(() => {
-              reject(new Error('Firebase request timeout after 2 seconds'));
-            }, 2000); // Optimized for faster loading
+              reject(new Error('Firebase request timeout after 5 seconds'));
+            }, 5000); // Increased timeout to prevent false onboarding redirects
           });
           
           const userDocPromise = getUserDocument(firebaseUser.uid);
