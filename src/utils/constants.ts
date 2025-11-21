@@ -758,16 +758,16 @@ export const MOTIVATIONAL_QUOTES = [
 ];
 
 export const XP_LEVELS = [
-  { level: 1, xpRequired: 0, title: 'Pemula' },
-  { level: 2, xpRequired: 100, title: 'Pejuang' },
-  { level: 3, xpRequired: 250, title: 'Juara' },
-  { level: 4, xpRequired: 500, title: 'Veteran' },
-  { level: 5, xpRequired: 850, title: 'Master' },
-  { level: 6, xpRequired: 1300, title: 'Grandmaster' },
-  { level: 7, xpRequired: 1900, title: 'Legenda' },
-  { level: 8, xpRequired: 2600, title: 'Mitos' },
-  { level: 9, xpRequired: 3500, title: 'Dewa' },
-  { level: 10, xpRequired: 5000, title: 'Abadi' }
+  { level: 1, xpRequired: 0, title: 'Pemula', titleEn: 'Beginner' },
+  { level: 2, xpRequired: 100, title: 'Pejuang', titleEn: 'Fighter' },
+  { level: 3, xpRequired: 250, title: 'Juara', titleEn: 'Champion' },
+  { level: 4, xpRequired: 500, title: 'Veteran', titleEn: 'Veteran' },
+  { level: 5, xpRequired: 850, title: 'Master', titleEn: 'Master' },
+  { level: 6, xpRequired: 1300, title: 'Grandmaster', titleEn: 'Grandmaster' },
+  { level: 7, xpRequired: 1900, title: 'Legenda', titleEn: 'Legend' },
+  { level: 8, xpRequired: 2600, title: 'Mitos', titleEn: 'Mythical' },
+  { level: 9, xpRequired: 3500, title: 'Dewa', titleEn: 'Deity' },
+  { level: 10, xpRequired: 5000, title: 'Abadi', titleEn: 'Eternal' }
 ];
 
 // SECURITY: API keys moved to environment configuration

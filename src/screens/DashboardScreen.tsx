@@ -229,8 +229,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, navigation 
     color: colors.textPrimary
   }), [colors.textPrimary]);
 
-  // FIXED: Null-safe calculations
-  const levelInfo = useMemo(() => user ? calculateLevel(user.xp) : { level: 1, nextLevelXP: 100, progress: 0 }, [user?.xp]);
+  // FIXED: Null-safe calculations with language-specific level titles
+  const levelInfo = useMemo(() => user ? calculateLevel(user.xp, language as 'en' | 'id') : { level: 1, title: '', nextLevelXP: 100, progress: 0 }, [user?.xp, language]);
   // NEW: Use check-in based tracking instead of quit date calculation
   const daysSinceQuit = useMemo(() => user?.totalDays || 0, [user?.totalDays]);
   const moneySaved = useMemo(() => {

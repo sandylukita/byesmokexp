@@ -1,0 +1,24 @@
+Version 1.0.11 - Bug Fixes & Improvements
+
+🔧 CRITICAL FIXES:
+
+✅ Fixed Streak Counter Bug
+- Resolved issue where daily streak would get stuck at 1 day
+- Your streak will now properly increment each consecutive day (1 → 2 → 3...)
+- Check-in data is now saved immediately to prevent any delays
+
+✅ Fixed Lungcat Health Progress
+- Health progress now accurately reflects your total check-ins
+- Progress message now shows correct number of remaining check-ins
+- Your Lungcat's health will never reset, making progress more encouraging!
+
+📊 IMPROVEMENTS:
+
+• More accurate health tracking based on total days instead of streak
+• Better motivation system - your progress is never lost
+• Faster and more reliable check-in system
+
+💡 What This Means For You:
+If you've been checking in daily, your streak will now correctly track your progress. The Lungcat companion will show accurate health improvements based on your total check-ins, making your quit journey more rewarding!
+
+Thank you for using ByeSmoke AI to support your smoke-free journey! 💪🚭

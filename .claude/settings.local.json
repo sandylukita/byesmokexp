@@ -159,7 +159,11 @@
       "Bash(wsl sudo apt-get update)",
       "Bash(wsl sudo apt-get install -y openjdk-17-jdk)",
       "Bash(keytool -list -v -keystore ./app/debug.keystore -alias androiddebugkey -storepass android -keypass android)",
-      "Bash(git rm -rf android/)"
+      "Bash(git rm -rf android/)",
+      "Bash(./android/gradlew.bat clean)",
+      "Bash(del scriptssetup-admin.js)",
+      "Read(//c/**)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

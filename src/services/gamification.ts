@@ -486,8 +486,8 @@ export const calculateXPForCheckIn = (
   return Math.min(baseXP, 30);
 };
 
-export const getLevelProgress = (xp: number) => {
-  const levelInfo = calculateLevel(xp);
+export const getLevelProgress = (xp: number, language: 'en' | 'id' = 'id') => {
+  const levelInfo = calculateLevel(xp, language);
   return {
     currentLevel: levelInfo.level,
     currentLevelTitle: levelInfo.title,
@@ -555,12 +555,13 @@ export const generateDailyMissions = (
   return missions;
 };
 
-export const getMotivationalMessage = (user: User): string => {
+export const getMotivationalMessage = (user: User, language: 'en' | 'id' = 'id'): string => {
+  const levelInfo = calculateLevel(user.xp, language);
   const messages = [
     `Hebat ${user.displayName}! Kamu sudah ${user.totalDays} hari bebas rokok. Terus pertahankan!`,
     `Streak ${user.streak} hari adalah pencapaian luar biasa. Kamu membuktikan bahwa kamu bisa!`,
     `Setiap hari tanpa rokok adalah investasi untuk kesehatan masa depanmu.`,
-    `Level ${calculateLevel(user.xp).level} ${calculateLevel(user.xp).title}! Kamu semakin kuat dan sehat.`,
+    `Level ${levelInfo.level} ${levelInfo.title}! Kamu semakin kuat dan sehat.`,
     `${user.badges.length} badge telah kamu raih. Pencapaian yang membanggakan!`,
     `Kamu sudah menghemat banyak uang dan kesehatan. Terus maju!`,
     `Pernapasanmu semakin sehat, energimu bertambah. Nikmati perubahannya!`,

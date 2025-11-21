@@ -641,7 +641,7 @@ Mari berhenti merokok bersama! 💪`;
 
   // OPTIMIZED: Always show UI with skeleton/cached data, no loading state blocking
 
-  const levelInfo = calculateLevel(user.xp);
+  const levelInfo = calculateLevel(user.xp, language as 'en' | 'id');
 
   const renderCustomAlert = () => (
     <Modal

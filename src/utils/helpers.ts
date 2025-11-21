@@ -3,10 +3,10 @@ import { HEALTH_MILESTONES, XP_LEVELS, CONTEXTUAL_QUOTES } from './constants';
 import { getTranslation, Language } from './translations';
 import { memoize } from './performanceOptimizer';
 
-export const calculateLevel = memoize((xp: number): { level: number; title: string; progress: number; nextLevelXP: number } => {
+export const calculateLevel = memoize((xp: number, language: 'en' | 'id' = 'id'): { level: number; title: string; progress: number; nextLevelXP: number } => {
   let currentLevel = XP_LEVELS[0];
   let nextLevel = XP_LEVELS[1];
-  
+
   for (let i = 0; i < XP_LEVELS.length - 1; i++) {
     if (xp >= XP_LEVELS[i].xpRequired && xp < XP_LEVELS[i + 1].xpRequired) {
       currentLevel = XP_LEVELS[i];
@@ -14,19 +14,22 @@ export const calculateLevel = memoize((xp: number): { level: number; title: stri
       break;
     }
   }
-  
+
   if (xp >= XP_LEVELS[XP_LEVELS.length - 1].xpRequired) {
     currentLevel = XP_LEVELS[XP_LEVELS.length - 1];
     nextLevel = XP_LEVELS[XP_LEVELS.length - 1];
   }
-  
-  const progress = nextLevel.xpRequired > currentLevel.xpRequired 
-    ? (xp - currentLevel.xpRequired) / (nextLevel.xpRequired - currentLevel.xpRequired) 
+
+  const progress = nextLevel.xpRequired > currentLevel.xpRequired
+    ? (xp - currentLevel.xpRequired) / (nextLevel.xpRequired - currentLevel.xpRequired)
     : 1;
-  
+
+  // Use language-specific title
+  const title = language === 'en' ? currentLevel.titleEn : currentLevel.title;
+
   return {
     level: currentLevel.level,
-    title: currentLevel.title,
+    title: title,
     progress: Math.min(progress, 1),
     nextLevelXP: nextLevel.xpRequired
   };
