@@ -2,7 +2,7 @@
   "expo": {
     "name": "ByeSmoke AI - Smart Quit Coach",
     "slug": "byesmoke-v00",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "byesmokev00",
@@ -13,7 +13,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zaynstudio.byesmoke",
-      "buildNumber": "1.0.11",
+      "buildNumber": "1.0.12",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -38,7 +38,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.zaynstudio.byesmoke",
-      "versionCode": 11,
+      "versionCode": 12,
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
